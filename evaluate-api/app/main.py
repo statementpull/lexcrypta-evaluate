@@ -90,12 +90,20 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup():
+    import logging
+    log = logging.getLogger("evaluate.startup")
     run_update_check()
-    create_evaluate_schema()
-    Base.metadata.create_all(bind=engine)
+    try:
+        create_evaluate_schema()
+        Base.metadata.create_all(bind=engine)
+    except Exception as exc:
+        log.error("Database init failed — running without DB: %s", exc)
     enc_path = os.path.join(os.path.dirname(__file__), "data", "lexi_libraries.db.enc")
     secret = os.getenv("LIBRARY_SECRET", "dev-secret")
-    _lib_mod.init_loader(enc_path, secret)
+    try:
+        _lib_mod.init_loader(enc_path, secret)
+    except Exception as exc:
+        log.error("Library loader failed: %s", exc)
 
 
 @app.get("/version")
