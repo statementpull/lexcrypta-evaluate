@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LexCrypta — Intelligence Suite</title>
+<style>
+  :root {
+    --navy: #0d1526;
+    --navy-mid: #1a2540;
+    --navy-light: #243050;
+    --gold: #c9a84c;
+    --gold-light: #e8c97e;
+    --text: #e8eaf0;
+    --text-muted: #8a96b0;
+    --border: rgba(201,168,76,0.2);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--navy);
+    color: var(--text);
+    font-family: 'Georgia', serif;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(13,21,38,0.95);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand-icon {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .brand-name {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .brand-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .header-right {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* HERO */
+  .hero {
+    text-align: center;
+    padding: 80px 48px 60px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 20px;
+  }
+  .hero-title {
+    font-size: 42px;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 20px;
+    font-weight: normal;
+  }
+  .hero-title em {
+    color: var(--gold);
+    font-style: normal;
+  }
+  .hero-sub {
+    font-size: 16px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-family: 'Arial', sans-serif;
+  }
+  .hero-divider {
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 40px auto;
+  }
+
+  /* PRODUCT GRID */
+  .products {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px 80px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 28px;
+  }
+
+  .product-card {
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 36px 32px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .product-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .product-card:hover {
+    border-color: rgba(201,168,76,0.5);
+    transform: translateY(-3px);
+  }
+  .product-card:hover::before {
+    opacity: 1;
+  }
+
+  .product-tag {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    border: 1px solid var(--border);
+    padding: 3px 10px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    font-family: 'Arial', sans-serif;
+  }
+  .product-name {
+    font-size: 26px;
+    color: var(--gold);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+  .product-tagline {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    font-family: 'Arial', sans-serif;
+  }
+  .product-desc {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.7;
+    margin-bottom: 24px;
+    font-family: 'Arial', sans-serif;
+    flex-grow: 1;
+  }
+
+  .signal-list {
+    list-style: none;
+    margin-bottom: 28px;
+  }
+  .signal-list li {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.02em;
+  }
+  .signal-list li::before {
+    content: '◆';
+    color: var(--gold);
+    font-size: 6px;
+    flex-shrink: 0;
+  }
+
+  .product-cta {
+    display: block;
+    text-align: center;
+    padding: 13px;
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+    font-family: 'Arial', sans-serif;
+  }
+  .product-cta:hover {
+    background: var(--gold);
+    color: var(--navy);
+  }
+  .product-cta.primary {
+    background: var(--gold);
+    color: var(--navy);
+  }
+  .product-cta.primary:hover {
+    background: var(--gold-light);
+  }
+  .product-cta.disabled {
+    border-color: rgba(201,168,76,0.2);
+    color: var(--text-muted);
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 8px;
+    background: var(--gold);
+    color: var(--navy);
+    padding: 2px 6px;
+    border-radius: 2px;
+    letter-spacing: 0.1em;
+    vertical-align: middle;
+    margin-left: 6px;
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+  }
+  .badge.soon {
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.4);
+    color: var(--text-muted);
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.05em;
+  }
+  footer a {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  footer a:hover { color: var(--gold); }
+
+  @media (max-width: 640px) {
+    header { padding: 16px 20px; }
+    .hero { padding: 48px 20px 40px; }
+    .hero-title { font-size: 28px; }
+    .products { padding: 0 16px 60px; }
+    footer { flex-direction: column; gap: 12px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">⚖</div>
+    <div>
+      <div class="brand-name">LexCrypta</div>
+      <div class="brand-sub">Financial Intelligence Suite</div>
+    </div>
+  </div>
+  <div class="header-right">Invite Only &nbsp;·&nbsp; Confidential</div>
+</header>
+
+<div class="hero">
+  <div class="hero-eyebrow">Bartilotta Intelligence Platform</div>
+  <h1 class="hero-title">Uncover What<br><em>Others Miss</em></h1>
+  <p class="hero-sub">
+    Three purpose-built tools for lawyers and accountants who need to see the full
+    financial picture — hidden assets, forensic signals, and deal-level intelligence —
+    from raw documents.
+  </p>
+  <div class="hero-divider"></div>
+</div>
+
+<div class="products">
+
+  <!-- LEXCRYPTA -->
+  <div class="product-card">
+    <div class="product-tag">Asset Investigation</div>
+    <div class="product-name">LexCrypta</div>
+    <div class="product-tagline">Full Spectrum Asset Intelligence</div>
+    <p class="product-desc">
+      The core platform. Upload raw bank statements and financial documents — LexCrypta
+      surfaces hidden assets, crypto holdings, undisclosed transfers, and behavioral
+      anomalies using Carmen's proprietary 37-library signal system.
+    </p>
+    <ul class="signal-list">
+      <li>Hidden asset detection across accounts</li>
+      <li>Crypto wallet matching &amp; tracing</li>
+      <li>Behavioral pattern analysis</li>
+      <li>Intercompany transfer mapping</li>
+      <li>Full audit trail with citation</li>
+    </ul>
+    <a href="https://lexcrypta-home.netlify.app" class="product-cta primary">Open LexCrypta</a>
+  </div>
+
+  <!-- EVALUATE -->
+  <div class="product-card">
+    <div class="product-tag">M&amp;A Due Diligence</div>
+    <div class="product-name">Evaluate <span class="badge">BETA</span></div>
+    <div class="product-tagline">Deal Forensics Terminal</div>
+    <p class="product-desc">
+      Built for investment, legal, and accounting teams conducting M&amp;A due diligence.
+      Upload deal financials and Evaluate runs a full forensic pass — LAS scoring,
+      revenue gap analysis, cash flow irregularities, and lawyer-ready summaries.
+    </p>
+    <ul class="signal-list">
+      <li>LAS (Lexi Anomaly Score) with confidence bands</li>
+      <li>Revenue gap &amp; EBITDA reconciliation</li>
+      <li>Cash flow irregularity detection</li>
+      <li>K-1 &amp; tax declaration cross-referencing</li>
+      <li>UCC lien filing analysis</li>
+    </ul>
+    <a href="/evaluate.html" class="product-cta">Open Evaluate</a>
+  </div>
+
+  <!-- FORENSICS -->
+  <div class="product-card">
+    <div class="product-tag">Legal Forensics</div>
+    <div class="product-name">Forensics <span class="badge">BETA</span></div>
+    <div class="product-tagline">Rapid Legal Intelligence</div>
+    <p class="product-desc">
+      Designed for lawyers who need fast, citation-ready findings. Upload documents
+      and Forensics delivers structured signals — liability exposure, behavioural
+      flags, cash flow anomalies — formatted for use in affidavits and court filings.
+    </p>
+    <ul class="signal-list">
+      <li>Liability &amp; exposure assessment</li>
+      <li>Behavioural financial signals</li>
+      <li>Cash flow anomaly detection</li>
+      <li>Affidavit-ready output format</li>
+      <li>Rapid turnaround — minutes, not days</li>
+    </ul>
+    <a href="/forensics.html" class="product-cta">Open Forensics</a>
+  </div>
+
+</div>
+
+<footer>
+  <div>&copy; 2026 Lexcrypta LLC — Michigan &nbsp;·&nbsp; All rights reserved</div>
+  <div>
+    Confidential &amp; Proprietary &nbsp;·&nbsp;
+    Beta tools are invite-only and provided for evaluation purposes only.
+    Not legal or financial advice.
+  </div>
+</footer>
+
+</body>
+</html>
