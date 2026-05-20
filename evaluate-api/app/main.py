@@ -1020,8 +1020,6 @@ async def analyse_deal(
         all_transactions,
         pl_rows=pl_rows,
         loader=loader,
-        ucc_records=ucc_records or None,
-        supplementary=supplementary or None,
     )
 
     # Merge stored web findings into signals for report
