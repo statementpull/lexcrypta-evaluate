@@ -23,7 +23,7 @@ class LibraryLoader:
         tmp.write(raw_db)
         tmp.flush()
         tmp.close()
-        self._conn = sqlite3.connect(tmp_name)
+        self._conn = sqlite3.connect(tmp_name, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         # On Windows, SQLite holds the file open — skip unlink; tempfile is cleaned by OS on reboot.
         # On Linux/Mac the file is unlinked immediately after open (inode stays until conn closes).
