@@ -161,6 +161,7 @@ option{background:var(--navy3);color:var(--cream)}
     <span class="brand-name">LexCrypta</span>
     <div class="brand-divider"></div>
     <span class="brand-product">Forensic Intelligence</span>
+    <span style="font-size:7px;background:#c8963e;color:#0d1526;padding:1px 6px;border-radius:2px;letter-spacing:.1em;font-weight:600;margin-left:8px">BETA</span>
   </div>
   <nav class="topbar-nav">
     <a href="lexcrypta_forensics.html" class="top-link active">Forensics</a>
@@ -237,7 +238,7 @@ option{background:var(--navy3);color:var(--cream)}
 
     <div class="disclaimer">
       <p class="disclaimer-text">
-        This analysis is produced by an automated intelligence system and identifies patterns that warrant professional investigation. It does not constitute legal advice or a definitive finding of misconduct. All results should be reviewed and verified by a qualified legal or forensic professional before use in proceedings.
+        <strong style="color:#c8963e">Beta — Invite Only.</strong> This analysis is produced by an automated intelligence system and identifies patterns that warrant professional investigation. It does not constitute legal advice or a definitive finding of misconduct. All results should be reviewed and verified by a qualified legal or forensic professional before use in proceedings.
       </p>
     </div>
   </div>
@@ -310,7 +311,7 @@ option{background:var(--navy3);color:var(--cream)}
    Local dev:  leave CLOUD_API_URL = null
    Cloud:      set CLOUD_API_URL = 'https://your-railway-url.up.railway.app'
 */
-const CLOUD_API_URL = null;
+const CLOUD_API_URL = "https://lexcrypta-evaluate-production.up.railway.app";
 const API_BASE = CLOUD_API_URL || `http://${window.location.hostname}:8084`;
 
 let selectedFiles = [];

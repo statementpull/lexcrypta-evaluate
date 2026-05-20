@@ -419,7 +419,7 @@ select.finp{cursor:pointer;appearance:none;background-image:url("data:image/svg+
 <aside class="sidebar">
   <div class="sidebar-logo">
     <div class="logo-name">LexCrypta</div>
-    <div class="logo-product">Evaluate</div>
+    <div class="logo-product">Evaluate <span style="font-size:7px;background:var(--gold);color:#0d1526;padding:1px 5px;border-radius:2px;vertical-align:middle;letter-spacing:.1em">BETA</span></div>
     <div class="logo-tagline">Deal Forensics</div>
   </div>
   <div class="sidebar-user">
@@ -456,6 +456,7 @@ select.finp{cursor:pointer;appearance:none;background-image:url("data:image/svg+
   <div class="sidebar-footer">
     <div class="status-row"><div class="status-dot"></div><span>Lexi Engine · Active</span></div>
     <div style="font-size:9px;color:var(--muted);margin-bottom:12px;font-family:var(--mono)">6 detection signals loaded</div>
+    <div style="font-size:8px;color:var(--muted);line-height:1.5;margin-bottom:8px;border-top:1px solid var(--border);padding-top:8px">Beta — invite only. Outputs are indicative findings for qualified professionals only. Not legal or financial advice.</div>
     <button class="btn btn-sm" style="width:100%;font-size:8px" onclick="doLogout()">Sign Out</button>
   </div>
 </aside>
@@ -1025,7 +1026,7 @@ function acceptPrivacy(){
    Cloud:      set CLOUD_API_URL to your Railway URL before deploying to Netlify
                e.g. 'https://lexcrypta-evaluate.up.railway.app'
 */
-const CLOUD_API_URL = null;
+const CLOUD_API_URL = "https://lexcrypta-evaluate-production.up.railway.app";
 const API_BASE = CLOUD_API_URL || `http://${window.location.hostname}:8084`;
 
 async function checkLicense(){
