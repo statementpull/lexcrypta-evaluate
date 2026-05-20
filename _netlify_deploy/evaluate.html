@@ -400,11 +400,11 @@ select.finp{cursor:pointer;appearance:none;background-image:url("data:image/svg+
         </div>
         <div class="f-group" style="margin-bottom:3px">
           <div class="f-lbl">Email</div>
-          <input class="f-inp" type="email" id="loginEmail" placeholder="you@firm.com.au" value="sarah@mccarthylegal.com.au">
+          <input class="f-inp" type="email" id="loginEmail" placeholder="you@firm.com">
         </div>
         <div class="f-group">
           <div class="f-lbl">Password</div>
-          <input class="f-inp" type="password" placeholder="••••••••" value="demo">
+          <input class="f-inp" type="password" placeholder="••••••••">
         </div>
         <button class="login-btn" onclick="doLogin()">Access Evaluate</button>
       </div>
@@ -423,8 +423,8 @@ select.finp{cursor:pointer;appearance:none;background-image:url("data:image/svg+
     <div class="logo-tagline">Deal Forensics</div>
   </div>
   <div class="sidebar-user">
-    <span class="sidebar-user-name">Sarah McCarthy</span>
-    <span class="sidebar-user-firm" style="font-size:9px">mccarthy legal · principal</span>
+    <span class="sidebar-user-name" id="sidebarUserName">—</span>
+    <span class="sidebar-user-firm" style="font-size:9px" id="sidebarUserFirm">—</span>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-label">Workspace</div>
@@ -448,14 +448,14 @@ select.finp{cursor:pointer;appearance:none;background-image:url("data:image/svg+
       Firm Admin
     </button>
     <div class="nav-label" style="margin-top:8px">Products</div>
-    <a class="nav-item" href="lexcrypta_forensics.html" style="text-decoration:none">
+    <a class="nav-item" href="forensics.html" style="text-decoration:none">
       <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       Forensic Analysis
     </a>
   </nav>
   <div class="sidebar-footer">
     <div class="status-row"><div class="status-dot"></div><span>Lexi Engine · Active</span></div>
-    <div style="font-size:9px;color:var(--muted);margin-bottom:12px;font-family:var(--mono)">6 detection signals loaded</div>
+    <div style="font-size:9px;color:var(--muted);margin-bottom:12px;font-family:var(--mono)" id="sidebarLibCount">37 intelligence libraries</div>
     <div style="font-size:8px;color:var(--muted);line-height:1.5;margin-bottom:8px;border-top:1px solid var(--border);padding-top:8px">Beta — invite only. Outputs are indicative findings for qualified professionals only. Not legal or financial advice.</div>
     <button class="btn btn-sm" style="width:100%;font-size:8px" onclick="doLogout()">Sign Out</button>
   </div>
@@ -466,17 +466,17 @@ select.finp{cursor:pointer;appearance:none;background-image:url("data:image/svg+
 <!-- ════ DASHBOARD ════ -->
 <div id="view-dashboard" class="view active">
   <div class="topbar">
-    <div class="topbar-title">Good morning, <em>Sarah.</em></div>
+    <div class="topbar-title" id="dashGreeting">Deal Forensics <em>Dashboard</em></div>
     <div class="topbar-actions">
       <button class="btn btn-gold" onclick="openNewDeal()">+ New Deal</button>
     </div>
   </div>
   <div class="content">
     <div class="dash-kpi">
-      <div class="kpi kpi-gold"><div class="kpi-lbl">Active Deals</div><div class="kpi-val">4</div><div class="kpi-sub">Under evaluation</div></div>
-      <div class="kpi kpi-red"><div class="kpi-lbl">Do Not Proceed</div><div class="kpi-val">1</div><div class="kpi-sub">Critical breach found</div></div>
-      <div class="kpi kpi-amber"><div class="kpi-lbl">Awaiting Sources</div><div class="kpi-val">2</div><div class="kpi-sub">Gate not cleared</div></div>
-      <div class="kpi kpi-green"><div class="kpi-lbl">Cleared to Proceed</div><div class="kpi-val">1</div><div class="kpi-sub">This quarter</div></div>
+      <div class="kpi kpi-gold"><div class="kpi-lbl">Total Deals</div><div class="kpi-val" id="kpiActive">—</div><div class="kpi-sub">In workspace</div></div>
+      <div class="kpi kpi-red"><div class="kpi-lbl">Do Not Proceed</div><div class="kpi-val" id="kpiDNP">—</div><div class="kpi-sub">Critical breach found</div></div>
+      <div class="kpi kpi-amber"><div class="kpi-lbl">Awaiting Analysis</div><div class="kpi-val" id="kpiAwait">—</div><div class="kpi-sub">Not yet evaluated</div></div>
+      <div class="kpi kpi-green"><div class="kpi-lbl">Cleared to Proceed</div><div class="kpi-val" id="kpiPass">—</div><div class="kpi-sub">This quarter</div></div>
     </div>
     <div class="eyebrow">Active Deals</div>
     <div class="deals-list" id="dealsList"></div>
@@ -1407,11 +1407,34 @@ async function confirmPurge(){
 
 /* ══ AUTH ══ */
 function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim() || '';
+  const localPart = email.split('@')[0] || 'there';
+  const firstName = localPart.charAt(0).toUpperCase() + localPart.slice(1).replace(/[._-].*/, '');
+  const domain = email.includes('@') ? email.split('@')[1].replace(/\.(com|net|org|edu|au|co\.uk|law|legal).*/, '') : '';
+  const hr = new Date().getHours();
+  const greeting = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+
+  document.getElementById('sidebarUserName').textContent = email || 'Guest';
+  document.getElementById('sidebarUserFirm').textContent = domain || 'lexcrypta evaluate';
+  document.getElementById('dashGreeting').innerHTML = `${greeting}, <em>${firstName}.</em>`;
+
   document.getElementById('view-login').style.display='none';
   document.getElementById('appShell').style.display='flex';
   renderDeals('dealsList',DEALS);
   renderDeals('dealsListFull',DEALS);
+  updateKPIs();
   loadDealsFromAPI();
+}
+
+function updateKPIs(){
+  const real = DEALS.filter(d=>d.id>0);
+  document.getElementById('kpiActive').textContent = real.length || '0';
+  document.getElementById('kpiDNP').textContent = real.filter(d=>d.tag==='fail').length || '0';
+  document.getElementById('kpiAwait').textContent = real.filter(d=>d.tag==='new'||d.tag==='pending').length || '0';
+  document.getElementById('kpiPass').textContent = real.filter(d=>d.tag==='pass').length || '0';
+  const alert = real.filter(d=>d.tag==='fail').length;
+  const nb = document.getElementById('nbAlert');
+  if(alert>0){nb.textContent=alert;nb.style.display='inline-flex';}else{nb.style.display='none';}
 }
 
 async function loadDealsFromAPI(){
@@ -1438,6 +1461,7 @@ async function loadDealsFromAPI(){
     DEALS.push(...demos, ...realDeals);
     renderDeals('dealsList', DEALS);
     renderDeals('dealsListFull', DEALS);
+    updateKPIs();
   }catch(e){ /* backend unavailable — demo deals still show */ }
 }
 function doLogout(){
