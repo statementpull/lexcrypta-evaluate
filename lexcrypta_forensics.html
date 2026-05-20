@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LexCrypta — Forensic Intelligence · Bank Statement Analysis</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#060c18;--navy2:#0a1220;--navy3:#0e1828;--navy4:#121e32;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --gold:#c8963e;--gold2:#e0aa52;--golddim:rgba(200,150,62,0.07);--goldline:rgba(200,150,62,0.18);
+  --cream:#ede8dd;--muted:#5a6a7e;--text:#8898ac;
+  --red:#b03020;--reddim:rgba(176,48,32,0.09);--redbright:rgba(176,48,32,0.22);
+  --amber:#c47a08;--amberdim:rgba(196,122,8,0.09);--amberbright:rgba(196,122,8,0.22);
+  --green:#246442;--greendim:rgba(36,100,66,0.1);--greenbright:rgba(36,100,66,0.22);
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'IBM Plex Sans',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:13px;line-height:1.6;font-weight:300;min-height:100vh;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:2px}::-webkit-scrollbar-track{background:var(--navy2)}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08)}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:56px;border-bottom:1px solid var(--border);background:var(--navy2);position:sticky;top:0;z-index:50}
+.topbar-brand{display:flex;align-items:center;gap:16px}
+.brand-name{font-family:var(--serif);font-size:15px;font-weight:500;letter-spacing:.18em;color:var(--cream);text-transform:uppercase}
+.brand-divider{width:1px;height:18px;background:var(--border2)}
+.brand-product{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+.topbar-nav{display:flex;align-items:center;gap:4px}
+.top-link{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:7px 14px;border:1px solid transparent;transition:all .18s;cursor:pointer;text-decoration:none;font-family:var(--sans)}
+.top-link:hover{color:var(--text);border-color:var(--border)}
+.top-link.active{color:var(--gold);border-color:var(--goldline);background:var(--golddim)}
+
+/* ── HERO ── */
+.hero{padding:64px 48px 48px;max-width:880px;border-bottom:1px solid var(--border)}
+.hero-eyebrow{font-size:8px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.hero-eyebrow::before{content:'';display:block;width:24px;height:1px;background:var(--gold)}
+.hero-h{font-family:var(--serif);font-size:42px;font-weight:300;color:var(--cream);line-height:1.18;margin-bottom:12px}
+.hero-h em{font-style:italic;color:var(--gold)}
+.hero-sub{font-size:13px;color:var(--muted);line-height:1.75;max-width:560px}
+.hero-badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.badge{font-size:8px;letter-spacing:.2em;text-transform:uppercase;padding:5px 12px;border:1px solid var(--border2);color:var(--muted);font-family:var(--mono)}
+
+/* ── LAYOUT ── */
+.page{display:flex;gap:0}
+.intake-col{width:400px;flex-shrink:0;padding:40px 48px;border-right:1px solid var(--border);min-height:calc(100vh - 56px)}
+.results-col{flex:1;padding:40px 48px;min-height:calc(100vh - 56px)}
+
+/* ── FORM ELEMENTS ── */
+.field-group{margin-bottom:22px}
+.field-label{font-size:8px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:7px}
+.field-input{width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);color:var(--cream);font-family:var(--mono);font-size:11px;padding:10px 14px;outline:none;transition:border-color .18s}
+.field-input:focus{border-color:var(--goldline)}
+.field-input::placeholder{color:var(--muted);opacity:.5}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+select.field-input{cursor:pointer}
+option{background:var(--navy3);color:var(--cream)}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone{border:1px dashed rgba(200,150,62,0.25);background:rgba(200,150,62,0.025);padding:36px 24px;text-align:center;cursor:pointer;transition:all .22s;margin-bottom:22px;position:relative}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--gold);background:var(--golddim)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{width:28px;height:28px;stroke:var(--gold);fill:none;stroke-width:1.2;margin:0 auto 12px}
+.upload-title{font-size:11px;color:var(--cream);font-weight:400;margin-bottom:4px;letter-spacing:.04em}
+.upload-sub{font-size:9px;color:var(--muted);letter-spacing:.08em}
+.file-list{margin-bottom:16px}
+.file-item{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:rgba(255,255,255,0.025);border:1px solid var(--border);margin-bottom:5px}
+.file-item-name{font-size:10px;font-family:var(--mono);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
+.file-item-size{font-size:8px;font-family:var(--mono);color:var(--muted)}
+.file-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 4px;transition:color .15s}
+.file-remove:hover{color:var(--red)}
+
+/* ── BUTTONS ── */
+.btn{font-family:var(--sans);font-size:9px;letter-spacing:.2em;text-transform:uppercase;padding:12px 24px;border:1px solid var(--border2);background:none;color:var(--text);transition:all .18s;cursor:pointer;font-weight:400;width:100%}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+.btn-gold{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:500}
+.btn-gold:hover{background:var(--gold2);border-color:var(--gold2);color:var(--navy)}
+.btn:disabled{opacity:.28;cursor:not-allowed;pointer-events:none}
+.btn-sm{padding:7px 16px;font-size:8px;width:auto}
+.btn-ghost{border-color:transparent;color:var(--muted)}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+
+/* ── DISCLAIMER ── */
+.disclaimer{margin-top:22px;padding:14px;background:rgba(200,150,62,0.04);border-left:2px solid var(--goldline)}
+.disclaimer-text{font-size:9px;line-height:1.7;color:var(--muted)}
+
+/* ── RESULTS ── */
+.results-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;text-align:center;opacity:.4}
+.placeholder-icon{width:40px;height:40px;stroke:var(--muted);fill:none;stroke-width:1;margin-bottom:18px}
+.placeholder-text{font-family:var(--serif);font-size:20px;font-weight:300;color:var(--muted);margin-bottom:6px}
+.placeholder-sub{font-size:10px;color:var(--muted);letter-spacing:.1em}
+
+/* ── SCORE PANEL ── */
+.score-panel{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;padding:28px 32px;border:1px solid var(--border);background:var(--navy2);margin-bottom:28px}
+.score-num{font-family:var(--serif);font-size:64px;font-weight:300;line-height:1;color:var(--cream)}
+.score-num.red{color:#c84030}.score-num.amber{color:#d48820}.score-num.green{color:#3a9060}
+.score-meta{display:flex;flex-direction:column;gap:6px}
+.score-band{font-size:9px;letter-spacing:.28em;text-transform:uppercase;font-weight:500}
+.score-band.red{color:var(--red)}.score-band.amber{color:var(--amber)}.score-band.green{color:var(--green)}
+.score-bar-wrap{height:3px;background:rgba(255,255,255,0.06);width:100%;margin:4px 0}
+.score-bar{height:3px;transition:width .6s ease}
+.score-bar.red{background:var(--red)}.score-bar.amber{background:var(--amber)}.score-bar.green{background:var(--green)}
+.score-counts{display:flex;gap:20px;font-size:9px;font-family:var(--mono);color:var(--muted);margin-top:4px}
+.count-item{display:flex;align-items:center;gap:6px}
+.count-dot{width:6px;height:6px;border-radius:50%}
+.count-dot.red{background:var(--red)}.count-dot.amber{background:var(--amber)}.count-dot.green{background:var(--green)}
+
+/* ── SECTION HEADER ── */
+.section-hd{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.section-hd-title{font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);font-weight:400}
+.section-hd-badge{min-width:20px;height:20px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;padding:0 6px;font-family:var(--mono)}
+.shb-red{background:var(--red);color:#fff}.shb-amber{background:var(--amber);color:#fff}.shb-green{background:var(--green);color:#fff}
+
+/* ── SIGNAL CARD ── */
+.signal-card{padding:16px 18px;border:1px solid var(--border);background:var(--navy2);margin-bottom:8px;transition:border-color .18s}
+.signal-card:hover{border-color:var(--border2)}
+.signal-card.red{border-left:3px solid var(--red);background:var(--reddim)}
+.signal-card.amber{border-left:3px solid var(--amber);background:var(--amberdim)}
+.signal-card.green{border-left:3px solid var(--green);background:var(--greendim)}
+.sig-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
+.sig-type{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+.sig-sev{font-size:7px;letter-spacing:.18em;text-transform:uppercase;padding:3px 8px;font-weight:500}
+.sig-sev.red{background:var(--redbright);color:#e06050}.sig-sev.amber{background:var(--amberbright);color:#d4920a}.sig-sev.green{background:var(--greenbright);color:#3aaa70}
+.sig-merchant{font-family:var(--mono);font-size:11px;color:var(--cream);margin-bottom:5px;font-weight:400}
+.sig-desc{font-size:11px;color:var(--muted);line-height:1.65}
+.sig-footer{display:flex;align-items:center;gap:16px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)}
+.sig-amount{font-family:var(--mono);font-size:10px;color:var(--text);font-weight:400}
+.sig-date{font-family:var(--mono);font-size:9px;color:var(--muted)}
+.sig-confidence{font-family:var(--mono);font-size:8px;color:var(--muted);margin-left:auto}
+
+/* ── WARNINGS ── */
+.warn-list{margin-bottom:20px}
+.warn-item{display:flex;gap:10px;padding:10px 14px;background:rgba(196,122,8,0.06);border:1px solid rgba(196,122,8,0.15);margin-bottom:6px;font-size:10px;color:var(--muted);line-height:1.6}
+.warn-icon{flex-shrink:0;margin-top:1px;color:var(--amber);font-size:12px}
+
+/* ── REPORT ACTIONS ── */
+.report-actions{display:flex;gap:10px;margin-bottom:28px}
+
+/* ── SECTION SPACING ── */
+.section{margin-bottom:28px}
+
+/* ── PROGRESS ── */
+.progress-wrap{display:none;margin-bottom:18px}
+.progress-wrap.active{display:block}
+.progress-bar-track{height:2px;background:rgba(255,255,255,0.06);width:100%;margin-bottom:8px}
+.progress-bar-fill{height:2px;background:var(--gold);transition:width .4s ease;width:0%}
+.progress-label{font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em}
+
+/* ── CLEAN STATE ── */
+.results-active .results-placeholder{display:none}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <span class="brand-name">LexCrypta</span>
+    <div class="brand-divider"></div>
+    <span class="brand-product">Forensic Intelligence</span>
+  </div>
+  <nav class="topbar-nav">
+    <a href="lexcrypta_forensics.html" class="top-link active">Forensics</a>
+    <a href="lexcrypta_evaluate.html" class="top-link">M&amp;A Evaluate</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Bank Statement Intelligence</div>
+  <h1 class="hero-h">Forensic <em>Analysis</em><br>for Legal Professionals</h1>
+  <p class="hero-sub">Upload bank statements from any institution. LexCrypta's intelligence engine surfaces hidden asset patterns, AML structuring, undisclosed transfers, and behavioral anomalies — in seconds.</p>
+  <div class="hero-badges">
+    <span class="badge">Hidden Assets</span>
+    <span class="badge">AML / Structuring</span>
+    <span class="badge">Behavioral Signals</span>
+    <span class="badge">Cash Flow Forensics</span>
+    <span class="badge">Litigation Ready</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="page">
+
+  <!-- INTAKE -->
+  <div class="intake-col">
+    <div class="field-group">
+      <label class="field-label">Case Reference</label>
+      <input id="caseRef" class="field-input" type="text" placeholder="e.g. CI-2024-04467 or Matter 0012">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Subject / Entity Name</label>
+      <input id="subjectName" class="field-input" type="text" placeholder="Individual or company name">
+    </div>
+    <div class="field-row" style="margin-bottom:22px">
+      <div>
+        <label class="field-label">Analysis Period</label>
+        <select id="analysisPeriod" class="field-input">
+          <option value="6">6 months</option>
+          <option value="12" selected>12 months</option>
+          <option value="24">24 months</option>
+          <option value="36">36 months</option>
+          <option value="60">5 years</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Jurisdiction</label>
+        <select id="jurisdiction" class="field-input">
+          <option value="US">United States</option>
+          <option value="AU">Australia</option>
+          <option value="UK">United Kingdom</option>
+          <option value="CA">Canada</option>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="field-label" style="margin-bottom:10px">Bank Statements</label>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" multiple accept=".pdf,.csv,.xlsx" onchange="handleFiles(this.files)">
+      <svg class="upload-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      <p class="upload-title">Drop statements here</p>
+      <p class="upload-sub">PDF · CSV · XLSX &nbsp;·&nbsp; Up to 12 files &nbsp;·&nbsp; 100MB each</p>
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">Preparing analysis…</div>
+    </div>
+
+    <button class="btn btn-gold" id="analyseBtn" onclick="runAnalysis()" disabled>Run Forensic Analysis</button>
+
+    <div class="disclaimer">
+      <p class="disclaimer-text">
+        This analysis is produced by an automated intelligence system and identifies patterns that warrant professional investigation. It does not constitute legal advice or a definitive finding of misconduct. All results should be reviewed and verified by a qualified legal or forensic professional before use in proceedings.
+      </p>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-col" id="resultsCol">
+
+    <!-- Placeholder -->
+    <div class="results-placeholder" id="placeholder">
+      <svg class="placeholder-icon" viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" stroke-dasharray="4 3"/><path d="M24 14v10l6 6" stroke-linecap="round"/></svg>
+      <p class="placeholder-text">Awaiting Analysis</p>
+      <p class="placeholder-sub">Upload statements and run forensic analysis</p>
+    </div>
+
+    <!-- Results (hidden until analysis runs) -->
+    <div id="resultsContent" style="display:none">
+
+      <div class="report-actions" id="reportActions">
+        <button class="btn btn-sm" onclick="openReport()">Open Full Report</button>
+        <button class="btn btn-sm btn-ghost" onclick="printPage()">Print Summary</button>
+        <button class="btn btn-sm btn-ghost" onclick="clearCase()">New Case</button>
+      </div>
+
+      <!-- Score -->
+      <div class="score-panel" id="scorePanel">
+        <div class="score-num" id="scoreNum">—</div>
+        <div class="score-meta">
+          <div class="score-band" id="scoreBand">—</div>
+          <div class="score-bar-wrap"><div class="score-bar" id="scoreBar"></div></div>
+          <div class="score-counts" id="scoreCounts"></div>
+        </div>
+      </div>
+
+      <!-- Warnings -->
+      <div class="warn-list" id="warnList" style="display:none"></div>
+
+      <!-- Red signals -->
+      <div class="section" id="redSection" style="display:none">
+        <div class="section-hd">
+          <span class="section-hd-title">Critical Findings</span>
+          <span class="section-hd-badge shb-red" id="redCount">0</span>
+        </div>
+        <div id="redCards"></div>
+      </div>
+
+      <!-- Amber signals -->
+      <div class="section" id="amberSection" style="display:none">
+        <div class="section-hd">
+          <span class="section-hd-title">Findings to Investigate</span>
+          <span class="section-hd-badge shb-amber" id="amberCount">0</span>
+        </div>
+        <div id="amberCards"></div>
+      </div>
+
+      <!-- Green / info -->
+      <div class="section" id="greenSection" style="display:none">
+        <div class="section-hd">
+          <span class="section-hd-title">No Material Finding</span>
+          <span class="section-hd-badge shb-green" id="greenCount">0</span>
+        </div>
+        <div id="greenCards"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══ API CONFIG ══
+   Local dev:  leave CLOUD_API_URL = null
+   Cloud:      set CLOUD_API_URL = 'https://your-railway-url.up.railway.app'
+*/
+const CLOUD_API_URL = null;
+const API_BASE = CLOUD_API_URL || `http://${window.location.hostname}:8084`;
+
+let selectedFiles = [];
+let currentReportId = null;
+let currentDealId = null;
+
+/* ── Upload handling ── */
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+
+function handleFiles(files) {
+  for (const f of files) {
+    if (selectedFiles.length >= 12) break;
+    if (!selectedFiles.find(x => x.name === f.name && x.size === f.size)) {
+      selectedFiles.push(f);
+    }
+  }
+  renderFileList();
+  document.getElementById('analyseBtn').disabled = selectedFiles.length === 0;
+}
+
+function renderFileList() {
+  const el = document.getElementById('fileList');
+  el.innerHTML = selectedFiles.map((f, i) => `
+    <div class="file-item">
+      <span class="file-item-name">${f.name}</span>
+      <span class="file-item-size">${(f.size/1024/1024).toFixed(1)}MB</span>
+      <button class="file-remove" onclick="removeFile(${i})">×</button>
+    </div>`).join('');
+}
+
+function removeFile(i) {
+  selectedFiles.splice(i, 1);
+  renderFileList();
+  document.getElementById('analyseBtn').disabled = selectedFiles.length === 0;
+}
+
+/* ── Progress ── */
+function setProgress(pct, label) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+
+function showProgress(show) {
+  document.getElementById('progressWrap').classList.toggle('active', show);
+}
+
+/* ── Main analysis flow ── */
+async function runAnalysis() {
+  const btn = document.getElementById('analyseBtn');
+  btn.disabled = true;
+  showProgress(true);
+  setProgress(10, 'Creating case file…');
+
+  const caseRef = document.getElementById('caseRef').value.trim();
+  const subject = document.getElementById('subjectName').value.trim();
+  const period = parseInt(document.getElementById('analysisPeriod').value);
+  const dealName = [caseRef, subject].filter(Boolean).join(' — ') || `Forensic Analysis ${new Date().toLocaleDateString()}`;
+
+  try {
+    // 1. Create deal
+    const fd1 = new FormData();
+    fd1.append('name', dealName);
+    fd1.append('deal_value', '0');
+    fd1.append('industry', 'forensic');
+    fd1.append('analysis_period_months', period);
+    const r1 = await fetch(`${API_BASE}/deals`, { method: 'POST', body: fd1 });
+    if (!r1.ok) throw new Error('Could not create case — ' + await r1.text());
+    const deal = await r1.json();
+    currentDealId = deal.id;
+
+    setProgress(30, 'Uploading bank statements…');
+
+    // 2. Upload bank statements
+    const fd2 = new FormData();
+    selectedFiles.forEach(f => fd2.append('files', f));
+    const r2 = await fetch(`${API_BASE}/deals/${deal.id}/analyse`, { method: 'POST', body: fd2 });
+    if (!r2.ok) throw new Error('Analysis failed — ' + await r2.text());
+    const result = await r2.json();
+
+    setProgress(70, 'Running intelligence libraries…');
+
+    // 3. Fetch full signal detail
+    let signals = [];
+    try {
+      const r3 = await fetch(`${API_BASE}/sessions/${result.session_id}/signals`);
+      if (r3.ok) signals = await r3.json();
+    } catch (_) {}
+
+    setProgress(100, 'Analysis complete.');
+    currentReportId = result.report_id;
+
+    setTimeout(() => {
+      showProgress(false);
+      renderResults(result, signals);
+      btn.disabled = false;
+    }, 400);
+
+  } catch (err) {
+    showProgress(false);
+    alert('Analysis error: ' + err.message);
+    btn.disabled = false;
+  }
+}
+
+/* ── Render results ── */
+function renderResults(result, signals) {
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('resultsContent').style.display = 'block';
+
+  // Score
+  const score = Math.round(result.las_score || 0);
+  const band = result.band || result.verdict || '';
+  const sev = score >= 45 ? 'red' : score >= 20 ? 'amber' : 'green';
+
+  const scoreEl = document.getElementById('scoreNum');
+  scoreEl.textContent = score;
+  scoreEl.className = `score-num ${sev}`;
+
+  const bandEl = document.getElementById('scoreBand');
+  const bandLabel = band.replace(/_/g, ' ').toUpperCase();
+  bandEl.textContent = bandLabel;
+  bandEl.className = `score-band ${sev}`;
+
+  const bar = document.getElementById('scoreBar');
+  bar.style.width = Math.min(score, 100) + '%';
+  bar.className = `score-bar ${sev}`;
+
+  const red = signals.filter(s => s.severity === 'red');
+  const amber = signals.filter(s => s.severity === 'amber');
+  const green = signals.filter(s => s.severity !== 'red' && s.severity !== 'amber');
+
+  document.getElementById('scoreCounts').innerHTML = `
+    <span class="count-item"><span class="count-dot red"></span>${red.length} critical</span>
+    <span class="count-item"><span class="count-dot amber"></span>${amber.length} findings</span>
+    <span class="count-item"><span class="count-dot green"></span>${green.length} clear</span>
+  `;
+
+  // Warnings
+  const warns = result.warnings || [];
+  if (warns.length) {
+    const wl = document.getElementById('warnList');
+    wl.style.display = 'block';
+    wl.innerHTML = warns.map(w => `
+      <div class="warn-item"><span class="warn-icon">⚠</span><span>${w}</span></div>`).join('');
+  }
+
+  // Signal sections
+  renderSection('red', red, 'redSection', 'redCards', 'redCount');
+  renderSection('amber', amber, 'amberSection', 'amberCards', 'amberCount');
+  renderSection('green', green, 'greenSection', 'greenCards', 'greenCount');
+}
+
+function renderSection(sev, signals, secId, cardsId, countId) {
+  if (!signals.length) return;
+  document.getElementById(secId).style.display = 'block';
+  document.getElementById(countId).textContent = signals.length;
+  document.getElementById(cardsId).innerHTML = signals.map(s => signalCard(s, sev)).join('');
+}
+
+function signalCard(s, sev) {
+  const typeLabel = (s.type || '').replace(/_/g, ' ').toUpperCase();
+  const merchant = s.merchant || '';
+  const amount = s.amount ? `$${parseFloat(s.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '';
+  const date = s.transaction_date ? s.transaction_date.substring(0, 10) : '';
+  const conf = s.confidence_weight ? `${Math.round(s.confidence_weight * 100)}% confidence` : '';
+
+  return `<div class="signal-card ${sev}">
+    <div class="sig-top">
+      <span class="sig-type">${typeLabel}</span>
+      <span class="sig-sev ${sev}">${sev}</span>
+    </div>
+    ${merchant ? `<div class="sig-merchant">${merchant}</div>` : ''}
+    <div class="sig-desc">${s.description || ''}</div>
+    ${(amount || date || conf) ? `<div class="sig-footer">
+      ${amount ? `<span class="sig-amount">${amount}</span>` : ''}
+      ${date ? `<span class="sig-date">${date}</span>` : ''}
+      ${conf ? `<span class="sig-confidence">${conf}</span>` : ''}
+    </div>` : ''}
+  </div>`;
+}
+
+/* ── Actions ── */
+function openReport() {
+  if (currentReportId) window.open(`${API_BASE}/reports/${currentReportId}`, '_blank');
+}
+
+function printPage() { window.print(); }
+
+async function clearCase() {
+  if (currentDealId) {
+    try { await fetch(`${API_BASE}/deals/${currentDealId}/purge`, { method: 'DELETE' }); } catch (_) {}
+  }
+  selectedFiles = [];
+  currentReportId = null;
+  currentDealId = null;
+  renderFileList();
+  document.getElementById('analyseBtn').disabled = true;
+  document.getElementById('caseRef').value = '';
+  document.getElementById('subjectName').value = '';
+  document.getElementById('resultsContent').style.display = 'none';
+  document.getElementById('placeholder').style.display = 'flex';
+  document.getElementById('warnList').style.display = 'none';
+  document.getElementById('redSection').style.display = 'none';
+  document.getElementById('amberSection').style.display = 'none';
+  document.getElementById('greenSection').style.display = 'none';
+}
+</script>
+</body>
+</html>
