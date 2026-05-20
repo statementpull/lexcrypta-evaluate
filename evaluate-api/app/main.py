@@ -9,7 +9,7 @@ from datetime import date as _date, datetime, timedelta, timezone
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -86,6 +86,28 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-License-Key"],
 )
+
+_CORS_HEADER = {"Access-Control-Allow-Origin": "*"}
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    import logging, traceback
+    logging.getLogger("evaluate.error").error(
+        "Unhandled exception: %s\n%s", exc, traceback.format_exc()
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error — check Railway logs for details."},
+        headers=_CORS_HEADER,
+    )
+
+@app.exception_handler(HTTPException)
+async def _http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=_CORS_HEADER,
+    )
 
 
 @app.on_event("startup")
