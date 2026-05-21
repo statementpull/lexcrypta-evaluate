@@ -169,31 +169,78 @@ def _slot_status(slot: dict, raw_signals: list) -> tuple:
 
 
 def _build_intel_card(slot_name: str, slot_cat: str, matching_signals: list) -> dict:
-    """Build one intel card for a detected signal slot."""
+    """Build one intel card with transaction-level narrative."""
     tmpl = INTEL_TEMPLATES.get(slot_name, DEFAULT_INTEL)
-    merchants = list({s.get("merchant", s.get("description", "")) for s in matching_signals})[:3]
+
+    # Sort by absolute amount — largest transaction leads the narrative
+    sorted_sigs = sorted(matching_signals, key=lambda s: abs(s.get("amount", 0)), reverse=True)
+    top = sorted_sigs[0] if sorted_sigs else {}
+
+    # Deduplicated merchant list, largest-amount first
+    seen, merchants = set(), []
+    for s in sorted_sigs:
+        m = (s.get("merchant") or s.get("description", "")).strip()
+        if m and m not in seen:
+            seen.add(m)
+            merchants.append(m)
+        if len(merchants) == 3:
+            break
+
     total = sum(abs(s.get("amount", 0)) for s in matching_signals)
     count = len(matching_signals)
-    narrative = (
-        f"Lexi identified {count} transaction{'s' if count != 1 else ''} "
-        f"totalling ${total:,.0f} associated with {slot_name.lower()}. "
-        f"Merchants detected: {', '.join(m for m in merchants if m)}."
-    )
+    top_merchant = (top.get("merchant") or top.get("description", "")).strip()
+    top_amount   = abs(top.get("amount", 0))
+    top_date     = top.get("transaction_date", "")
+
+    # Opening — lead with the single most significant transaction
+    if top_date and top_merchant and top_amount > 0:
+        narrative = (
+            f"On {top_date}, ${top_amount:,.2f} was directed to {top_merchant} — "
+            f"the largest single transaction detected in this category. "
+        )
+    else:
+        narrative = ""
+
+    # Volume summary
+    if count == 1:
+        narrative += f"One transaction of ${total:,.0f} was identified."
+    else:
+        narrative += (
+            f"Across {count} transactions totalling ${total:,.0f}, "
+            f"activity consistent with {slot_name.lower()} was identified in the uploaded statements."
+        )
+
+    # Entity list (skip if already named as top_merchant and only one entity)
+    other_merchants = [m for m in merchants if m != top_merchant]
+    if other_merchants:
+        narrative += f" Additional entities detected: {', '.join(other_merchants)}."
+
+    # Pattern note
+    if count >= 8:
+        narrative += (
+            " The volume and frequency of these transactions indicates a sustained pattern, "
+            "not isolated activity — consistent with deliberate asset movement."
+        )
+    elif count >= 3:
+        narrative += " Multiple occurrences establish a pattern warranting formal investigation and record preservation."
+
     path = tmpl["path_template"].format(
-        exchanges=", ".join(m for m in merchants if m) or "identified exchanges",
-        lender=merchants[0] if merchants else "identified lender",
-        platforms=", ".join(m for m in merchants if m) or "identified platforms",
-        operators=", ".join(m for m in merchants if m) or "identified operators",
+        exchanges =", ".join(merchants) or "identified exchanges",
+        lender    =merchants[0] if merchants else "identified lender",
+        platforms =", ".join(merchants) or "identified platforms",
+        operators =", ".join(merchants) or "identified operators",
     )
     return {
-        "cat": slot_cat,
+        "cat":     slot_cat,
         "cat_cls": tmpl["cat_cls"],
-        "title": slot_name,
+        "title":   slot_name,
         "narrative": narrative,
-        "rec": tmpl["rec"],
+        "rec":     tmpl["rec"],
         "rec_cls": tmpl["rec_cls"],
-        "tier": tmpl["tier"],
-        "path": path,
+        "tier":    tmpl["tier"],
+        "path":    path,
+        "top_transaction": {"date": top_date, "merchant": top_merchant, "amount": top_amount}
+                           if top_merchant else None,
     }
 
 
