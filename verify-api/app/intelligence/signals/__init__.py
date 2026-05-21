@@ -13,6 +13,7 @@ Interface notes (actual signatures discovered from source):
   - owner_compensation.run(transactions, pl_rows=None, loader=None) — OK
   - liability.run(transactions)                        — NO loader param
 """
+import calendar
 from datetime import datetime, timezone
 
 from ..las_score import calculate_las
@@ -205,6 +206,37 @@ def _exposure_from_score(score: float) -> tuple:
     return "LOW", "green", ""
 
 
+_MONTH_ABBR = [None, "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+def _compute_date_range(transactions: list) -> dict | None:
+    """Return {from_label, to_label} from M/D transaction dates, or None."""
+    months = []
+    current_year = datetime.now(timezone.utc).year
+    for t in transactions:
+        raw = (t.get("transaction_date") or "").strip()
+        if not raw:
+            continue
+        parts = raw.split("/")
+        if len(parts) >= 1:
+            try:
+                months.append(int(parts[0]))
+            except ValueError:
+                pass
+    if not months:
+        return None
+    lo, hi = min(months), max(months)
+    # If range wraps year (e.g. Nov → Feb), infer prior year for start
+    if lo > hi:
+        from_year, to_year = current_year - 1, current_year
+    else:
+        from_year = to_year = current_year
+    return {
+        "from_label": f"{_MONTH_ABBR[lo]} {from_year}",
+        "to_label": f"{_MONTH_ABBR[hi]} {to_year}",
+    }
+
+
 def build_verify_result(
     matter_id: int,
     raw_signals: list,
@@ -212,6 +244,7 @@ def build_verify_result(
     exposure: str = "PENDING",
 ) -> dict:
     """Map raw engine output to frontend result object."""
+    date_range = _compute_date_range(transactions)
     total_credits = sum(
         t.get("credit", 0) or max(t.get("amount", 0), 0)
         for t in transactions
@@ -309,6 +342,7 @@ def build_verify_result(
         "signals": signals_out,
         "intel": intel_out,
         "verify_plus_teaser": verify_plus,
+        "date_range": date_range,
         "cash_summary": {
             "total_credits": round(total_credits),
             "total_debits": round(total_debits),

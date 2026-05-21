@@ -650,6 +650,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
           <div><span class="mhf-lbl">Ref</span><span class="mhf-val" id="mhRef">—</span></div>
           <div><span class="mhf-lbl">Filing Date</span><span class="mhf-val" id="mhDate">—</span></div>
           <div><span class="mhf-lbl">Last Run</span><span class="mhf-val" id="mhLastRun">Not yet analysed</span></div>
+          <div id="mhTxnWrap" style="display:none"><span class="mhf-lbl">Transactions</span><span class="mhf-val" id="mhTxnCount">—</span></div>
           <div><span class="mhf-lbl">Library</span><span class="mhf-val">v2026.03</span></div>
         </div>
       </div>
@@ -1069,6 +1070,9 @@ async function runQuickScan(){
     if(!runRes.ok) throw new Error('Analysis failed');
     const result = await runRes.json();
 
+    // Purge the temp matter — Quick Scan results are local-only, not persisted in queue
+    fetch(`${API_BASE}/matters/${scanMatterId}/purge`, { method:'DELETE' }).catch(() => {});
+
     renderScanResults(result);
     document.getElementById('scanUploadSection').style.display='none';
     document.getElementById('scanResults').style.display='block';
@@ -1483,8 +1487,21 @@ function renderSignalsFromResult(result) {
     const netSub = document.getElementById('csNetSub');
     if (netSub) netSub.style.color = cs.net_cash < 0 ? 'var(--red)' : 'var(--muted)';
     const n = result.transactions_parsed || 0;
+    // Transaction count in matter header
+    if (n > 0) {
+      const wrap = document.getElementById('mhTxnWrap');
+      const cnt = document.getElementById('mhTxnCount');
+      if (wrap) wrap.style.display = '';
+      if (cnt) cnt.textContent = n.toLocaleString();
+    }
+    // Cash flow meta: transaction count + date range
     const meta = document.getElementById('cashSummaryMeta');
-    if (meta) meta.textContent = `${n} transactions parsed`;
+    const dr = result.date_range;
+    if (meta) {
+      let metaTxt = `${n.toLocaleString()} transactions parsed`;
+      if (dr && dr.from_label && dr.to_label) metaTxt += ` · ${dr.from_label} – ${dr.to_label}`;
+      meta.textContent = metaTxt;
+    }
     const narr = document.getElementById('cashNarrative');
     if (narr) {
       const surplus = cs.net_cash;
