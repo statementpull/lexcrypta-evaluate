@@ -55,11 +55,19 @@ _WF_CREDIT_MAX_X = 479.0
 _WF_DEBIT_MAX_X  = 530.0   # balance col starts at x0=533; keep margin
 _WF_AMT_MIN_X    = 390.0   # ignore amounts in description area
 
-# Lines containing these phrases are bank headers/footers, not transaction content
+# Lines containing these phrases are bank headers/footers or boilerplate — not transactions
 _WF_SKIP_RE = re.compile(
     r"Wells Fargo Bank|Member FDIC|Ending balance|Beginning balance"
-    r"|Account number|Page \d+ of \d+",
+    r"|Account number|Page \d+ of \d+"
+    r"|IN CASE OF ERRORS|ELECTRONIC FUNDS TRANSFER|CALL US AT 1-8"
+    r"|\*END\*|\*START\*|DISCLOSURE MESSAGE|DAILY ENDING"
+    r"|WE MUST HEAR FROM YOU|PROVISIONAL CREDIT",
     re.IGNORECASE,
+)
+
+# Lines that are clearly balance summary rows (dates and dollar amounts, no description)
+_WF_BALANCE_ROW_RE = re.compile(
+    r"^\s*[\d,]+\.\d{2}\s+\d{1,2}/\d{1,2}\s+[\d,]+\.\d{2}"
 )
 
 
@@ -150,6 +158,8 @@ def _parse_wellsfargo_pdf(pdf_bytes: bytes) -> list[dict]:
                     }
                 elif current is not None:
                     if _WF_SKIP_RE.search(line_text):
+                        continue
+                    if _WF_BALANCE_ROW_RE.match(line_text):
                         continue
                     # Continuation line — append non-amount words to description
                     for w in line:

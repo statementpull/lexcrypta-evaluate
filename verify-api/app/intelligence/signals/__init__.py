@@ -17,7 +17,20 @@ from . import (
 SIGNAL_SLOTS = [
     {"name": "Crypto Exchange Activity",      "cat": "ASSET · CONVERSION",     "types": ["digital_asset"],      "keywords": ["COINBASE", "KRAKEN", "BINANCE", "GEMINI", "BITCOIN", "CRYPTO", "ETHEREUM", "BTC", "ETH"]},
     {"name": "Crypto Payment Gateways",       "cat": "CONVERSION",              "types": ["digital_asset"],      "keywords": ["BITPAY", "COINPAYMENTS", "NOWPAYMENTS", "CRYPTOMUS", "BITREFILL"]},
-    {"name": "Mortgage Servicer Activity",    "cat": "ASSET",                   "types": ["real_estate", "liability"], "keywords": ["MORTGAGE", "HOME LOAN", "WESTPAC HOME", "CBA HOME", "ANZ MORTGAGE"]},
+    {"name": "Mortgage Servicer Activity",    "cat": "ASSET",                   "types": ["real_estate", "liability"], "keywords": [
+        "MORTGAGE", "HOME LOAN",
+        # US servicers
+        "LAKEVIEW", "NATIONSTAR", "MR COOPER", "MRCOOPER", "FREEDOM MORTGAGE",
+        "ROUNDPOINT", "PHH MORTGAGE", "SHELLPOINT", "CARRINGTON", "PENNYMAC",
+        "LOANDEPOT", "LOAN DEPOT", "NEWREZ", "CALIBER HOME", "BSI FINANCIAL",
+        "OCWEN", "HOME POINT", "PLANET HOME", "RUSHMORE LOAN", "FLAGSTAR",
+        "CHASE MORTGAGE", "CHASE HOME", "WELLS FARGO MORTGAGE", "WELLS HOME",
+        "QUICKEN LOAN", "ROCKET MORTGAGE", "BANK OF AMERICA MORTGAGE",
+        "US BANK HOME", "USBANK HOME", "SUNTRUST MORTGAGE", "REGIONS MORTGAGE",
+        "MICHIGAN FIRST MORTGAGE", "MICHIGAN FIRST ACH",
+        # AU/UK (kept for international matters)
+        "WESTPAC HOME", "CBA HOME", "ANZ MORTGAGE",
+    ]},
     {"name": "Gambling Platforms",            "cat": "CONVERSION · OBFUSCATION","types": ["behavioural"],        "keywords": ["SPORTSBET", "LADBROKES", "BETFAIR", "NEDS", "POINTSBET", "TABCORP", "CASINO", "POKIES", "BET365"]},
     {"name": "Luxury Asset Merchants",        "cat": "ASSET",                   "types": ["hidden_assets"],      "keywords": ["ROLEX", "LOUIS VUITTON", "GUCCI", "CARTIER", "TIFFANY", "PORSCHE", "FERRARI", "MASERATI", "YACHT"]},
     {"name": "Travel Vendors",                "cat": "FLOW · LIFESTYLE",        "types": ["behavioural", "cash_flow"], "keywords": ["QANTAS", "VIRGIN", "JETSTAR", "AIRBNB", "BOOKING.COM", "EXPEDIA", "HOTELS.COM", "CRUISE"]},
@@ -204,6 +217,51 @@ def _detect_pass_through(transactions: list) -> list:
     return flagged
 
 
+def _keyword_scan(transactions: list) -> list:
+    """Keyword-first detection: create signals for transactions matching slot keywords.
+
+    The signal modules catch broad behavioural patterns; this catches specific known
+    entities (US mortgage servicers, crypto exchanges, remittance operators, etc.)
+    that the modules may miss. Deduplication in run_signals prevents double-counting.
+    """
+    results = []
+    for t in transactions:
+        merchant_upper = (t.get("merchant") or t.get("description", "")).upper()
+        if not merchant_upper:
+            continue
+        for slot in SIGNAL_SLOTS:
+            if not slot["keywords"]:
+                continue
+            if any(kw in merchant_upper for kw in slot["keywords"]):
+                results.append({
+                    "signal_type": slot["types"][0],
+                    "merchant": t.get("merchant") or t.get("description", ""),
+                    "amount": t.get("amount", 0),
+                    "transaction_date": t.get("transaction_date", ""),
+                    "severity": "amber",
+                    "confidence_weight": 0.5,
+                    "source": "keyword_scan",
+                })
+                break  # one signal per transaction
+    return results
+
+
+def _dedup_signals(signals: list) -> list:
+    """Remove duplicate signals by (type, date, amount) — prevents keyword_scan
+    and module signals double-counting the same transaction."""
+    seen, out = set(), []
+    for s in signals:
+        key = (
+            s.get("signal_type", s.get("type", "")),
+            s.get("transaction_date", ""),
+            round(s.get("amount", 0), 2),
+        )
+        if key not in seen:
+            seen.add(key)
+            out.append(s)
+    return out
+
+
 def run_signals(transactions: list, loader=None) -> list:
     """Run all 8 signal libraries and return combined raw signal list.
 
@@ -247,7 +305,13 @@ def run_signals(transactions: list, loader=None) -> list:
     except Exception:
         pass
 
-    return results
+    # Keyword-first scan — catches known entities the modules miss
+    try:
+        results.extend(_keyword_scan(transactions))
+    except Exception:
+        pass
+
+    return _dedup_signals(results)
 
 
 def _slot_status(slot: dict, raw_signals: list) -> tuple:
