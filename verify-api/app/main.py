@@ -18,10 +18,17 @@ from sqlalchemy.orm import Session
 from .config import DEMO_KEY, LICENSE_SECRET, MAX_CSV_MB, MAX_PDF_MB
 from .database import Base, create_verify_schema, engine, get_db
 from .intelligence.signals import build_verify_result, run_signals
-from .models import AnalysisResult, Document, License, Matter
+from .models import AnalysisResult, Counterparty, Document, License, Matter
 from .parsers.bank_parser import parse_bank_csv_text, parse_bank_pdf
 from .parsers.file_detector import detect_file_type
 from .seed import seed_demo_data
+from .services.counterparty_service import (
+    enrich_signals,
+    get_counterparty,
+    list_counterparties,
+    tag_counterparty,
+    upsert_counterparties,
+)
 
 
 # ── License ───────────────────────────────────────────────────────────────────
@@ -286,6 +293,7 @@ async def run_analysis(
     transactions = [t for t in transactions if t.get("signal_type") != "document_integrity"]
 
     raw_signals = run_signals(transactions) + doc_signals
+    raw_signals = enrich_signals(db, raw_signals)
     result = build_verify_result(
         matter_id=matter_id,
         raw_signals=raw_signals,
@@ -312,6 +320,10 @@ async def run_analysis(
         db.add(AnalysisResult(matter_id=matter_id, result_json=json.dumps(result)))
 
     db.commit()
+
+    # Register all merchants into the cross-matter counterparty library
+    upsert_counterparties(db, matter_id, transactions)
+
     return result
 
 
@@ -382,6 +394,7 @@ async def demo_analyse(
     db.refresh(m)
 
     raw_signals = run_signals(all_transactions) + doc_signals
+    raw_signals = enrich_signals(db, raw_signals)
     result = build_verify_result(matter_id=m.id, raw_signals=raw_signals, transactions=all_transactions)
     result["transactions_parsed"] = len(all_transactions)
     if parse_errors:
@@ -401,7 +414,54 @@ async def demo_analyse(
     db.add(AnalysisResult(matter_id=m.id, result_json=json.dumps(result)))
     db.commit()
 
+    # Register all merchants into the cross-matter counterparty library
+    upsert_counterparties(db, m.id, all_transactions)
+
     result["report_url"] = f"/reports/{m.id}"
+    return result
+
+
+# ── Counterparty Library ──────────────────────────────────────────────────────
+
+@app.get("/counterparties")
+def get_counterparties(
+    severity: str = None,
+    min_matters: int = 1,
+    limit: int = 200,
+    db: Session = Depends(get_db),
+    _: bool = Depends(require_license),
+):
+    return list_counterparties(db, severity=severity, min_matters=min_matters, limit=limit)
+
+
+@app.get("/counterparties/{name}")
+def get_counterparty_detail(
+    name: str,
+    db: Session = Depends(get_db),
+    _: bool = Depends(require_license),
+):
+    result = get_counterparty(db, name)
+    if not result:
+        raise HTTPException(status_code=404, detail="Counterparty not found.")
+    return result
+
+
+class CounterpartyTagRequest(BaseModel):
+    severity: str | None = None
+    tags: list[str] | None = None
+    notes: str | None = None
+
+
+@app.patch("/counterparties/{name}")
+def patch_counterparty(
+    name: str,
+    req: CounterpartyTagRequest,
+    db: Session = Depends(get_db),
+    _: bool = Depends(require_license),
+):
+    result = tag_counterparty(db, name, severity=req.severity, tags=req.tags, notes=req.notes)
+    if not result:
+        raise HTTPException(status_code=404, detail="Counterparty not found.")
     return result
 
 
@@ -515,12 +575,27 @@ def get_report(
           <tbody>{rows}</tbody>
         </table>"""
 
-    # Counterparty table
+    # Counterparty table — enrich with library data
     cp_html = ""
     if counterparties:
+        # Build a lookup of known entities from the library
+        cp_names = [c["merchant"].strip().upper() for c in counterparties]
+        known_map = {}
+        for cp_row in db.query(Counterparty).filter(Counterparty.name.in_(cp_names)).all():
+            known_map[cp_row.name] = cp_row
+
+        def _cp_badge(c):
+            cp_row = known_map.get(c["merchant"].strip().upper())
+            if cp_row and cp_row.matter_count > 1:
+                sev_col = {"red": "#c0392b", "amber": "#d4860a", "green": "#2e7d52"}.get(cp_row.severity, "#c8963e")
+                return (f'<span style="font-size:8px;background:{sev_col};color:#fff;'
+                        f'padding:2px 6px;border-radius:2px;margin-left:6px;letter-spacing:.1em">'
+                        f'SEEN {cp_row.matter_count}× MATTERS</span>')
+            return ""
+
         rows = "".join(
             f'<tr>'
-            f'<td style="font-size:11px;color:#e8e0d0">{c["merchant"][:55]}</td>'
+            f'<td style="font-size:11px;color:#e8e0d0">{c["merchant"][:55]}{_cp_badge(c)}</td>'
             f'<td style="font-family:monospace;font-size:10px;color:#c8963e;text-align:right">${c["total"]:,.0f}</td>'
             f'<td style="font-family:monospace;font-size:10px;color:#9aa8bc;text-align:right">{c["count"]}</td>'
             f'<td style="font-family:monospace;font-size:10px;color:{"#c0392b" if c["sent"] > c["received"] else "#2e7d52"};text-align:right">'
@@ -530,7 +605,7 @@ def get_report(
         )
         cp_html = f"""
         <h2>Top Counterparties</h2>
-        <p style="font-size:10px;color:#6a7a8e;margin-bottom:10px">Entities ranked by total transaction volume. Arrows indicate dominant flow direction (↑ received, ↓ sent).</p>
+        <p style="font-size:10px;color:#6a7a8e;margin-bottom:10px">Entities ranked by total transaction volume. Arrows indicate dominant flow direction (↑ received, ↓ sent). Badge shows cross-matter frequency.</p>
         <table>
           <thead><tr><th>Entity</th><th style="text-align:right">Total Volume</th><th style="text-align:right">Transactions</th><th style="text-align:right">Dominant Flow</th></tr></thead>
           <tbody>{rows}</tbody>

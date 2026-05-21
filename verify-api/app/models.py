@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, LargeBinary, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from .database import Base
@@ -66,3 +66,40 @@ class License(Base):
     id = Column(Integer, primary_key=True)
     key_hash = Column(String(128))
     activated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Counterparty(Base):
+    __tablename__ = "counterparties"
+    __table_args__ = {"schema": "verify"}
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(300), nullable=False, unique=True)   # normalised UPPER merchant name
+    matter_count = Column(Integer, default=0)
+    transaction_count = Column(Integer, default=0)
+    total_volume = Column(Float, default=0.0)                 # abs sum across all matters
+    first_seen = Column(String(20), default="")
+    last_seen = Column(String(20), default="")
+    category = Column(String(50), default="")                 # e.g. mortgage, crypto
+    severity = Column(String(10), default="none")             # none / green / amber / red
+    tags = Column(Text, default="[]")                         # JSON array of analyst tags
+    notes = Column(Text, default="")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    matter_links = relationship("CounterpartyMatterLink", back_populates="counterparty", cascade="all, delete-orphan")
+
+
+class CounterpartyMatterLink(Base):
+    __tablename__ = "counterparty_matter_links"
+    __table_args__ = (
+        UniqueConstraint("counterparty_id", "matter_id", name="uq_cp_matter"),
+        {"schema": "verify"},
+    )
+
+    id = Column(Integer, primary_key=True)
+    counterparty_id = Column(Integer, ForeignKey("verify.counterparties.id"), nullable=False)
+    matter_id = Column(Integer, ForeignKey("verify.matters.id"), nullable=False)
+    transaction_count = Column(Integer, default=0)
+    total_volume = Column(Float, default=0.0)
+
+    counterparty = relationship("Counterparty", back_populates="matter_links")
