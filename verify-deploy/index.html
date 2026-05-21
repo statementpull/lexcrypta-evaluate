@@ -8,8 +8,8 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --navy:#080f1c;--navy2:#0c1526;--navy3:#111e30;--navy4:#162035;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --navy:#112236;--navy2:#162d47;--navy3:#1c3555;--navy4:#223d60;
+  --border:rgba(255,255,255,0.10);--border2:rgba(255,255,255,0.18);
   --gold:#c8963e;--gold2:#e0aa52;--golddim:rgba(200,150,62,0.09);
   --cream:#f0ebe0;--muted:#6a7a8e;--text:#9aa8bc;
   --red:#c0392b;--reddim:rgba(192,57,43,0.09);
@@ -21,6 +21,13 @@
   --serif:'Cormorant Garamond',Georgia,serif;
   --sans:'IBM Plex Sans',sans-serif;
   --mono:'IBM Plex Mono',monospace;
+}
+html[data-theme="light"]{
+  --navy:#eef2f7;--navy2:#e4eaf3;--navy3:#d8e2ef;--navy4:#cdd9ea;
+  --border:rgba(0,40,80,0.09);--border2:rgba(0,40,80,0.16);
+  --cream:#1a2d45;--text:#2e4a68;--muted:#587490;
+  --golddim:rgba(160,110,30,0.10);
+  --reddim:rgba(192,57,43,0.08);--amberdim:rgba(180,100,5,0.08);--greendim:rgba(30,100,60,0.08);
 }
 html{scroll-behavior:smooth}
 body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:13px;line-height:1.6;font-weight:300;min-height:100vh;display:flex;-webkit-font-smoothing:antialiased}
@@ -403,6 +410,34 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
 .notify.show{transform:translateX(0)}
 .notify-title{font-size:11px;color:var(--cream);margin-bottom:2px;font-weight:400}
 .notify-msg{font-size:10px;color:var(--muted);line-height:1.5}
+
+/* ── QUICK SCAN ── */
+.scan-drop{border:1.5px dashed var(--border2);padding:52px 32px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--navy2)}
+.scan-drop:hover,.scan-drop.drag-over{border-color:var(--gold);background:var(--golddim)}
+.scan-drop-icon{margin:0 auto 14px;width:40px;height:40px;color:var(--muted)}
+.scan-drop-title{font-family:var(--serif);font-size:20px;font-weight:300;color:var(--cream);margin-bottom:6px}
+.scan-drop-sub{font-size:10px;color:var(--muted);letter-spacing:.05em}
+.scan-file-row{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--navy2);border:1px solid var(--border);margin-bottom:3px;font-size:11px}
+.scan-file-name{color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scan-file-size{color:var(--muted);font-family:var(--mono);font-size:9px;margin:0 12px;flex-shrink:0}
+.scan-file-rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;flex-shrink:0}
+.scan-file-rm:hover{color:var(--red)}
+.scan-result-meta{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:start;margin-bottom:32px;padding:28px;background:var(--navy2);border:1px solid var(--border)}
+.scan-las-num{font-family:var(--serif);font-size:72px;line-height:1;font-weight:300}
+.scan-las-num.las-high{color:#c0392b}.scan-las-num.las-mid{color:#d4860a}.scan-las-num.las-low{color:#2e7d52}
+.scan-section-title{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin:28px 0 12px;display:flex;align-items:center;gap:10px}
+.scan-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.scan-sig-table{width:100%;border-collapse:collapse;margin-bottom:4px}
+.scan-sig-table th{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border)}
+.scan-sig-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:11px}
+.scan-sig-table tr:hover td{background:rgba(255,255,255,.02)}
+.sig-detected{color:#c0392b;font-weight:500}.sig-possible{color:#d4860a}.sig-none{color:var(--muted)}
+.scan-intel-card{border:1px solid var(--border);padding:18px;margin-bottom:10px;background:var(--navy2)}
+.scan-intel-cat{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.scan-intel-title{font-family:var(--serif);font-size:18px;font-weight:300;color:var(--cream);margin-bottom:8px}
+.scan-intel-narrative{font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px}
+.scan-intel-path-lbl{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.scan-intel-path{font-size:11px;color:var(--text);line-height:1.65}
 </style>
 </head>
 <body>
@@ -483,6 +518,11 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <span id="navMatterName" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
     </button>
+    <div class="nav-section-label" style="margin-top:8px">Tools</div>
+    <button class="nav-item" id="navScan" onclick="showView('scan')">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Quick Scan
+    </button>
     <div class="nav-section-label" style="margin-top:8px">Firm</div>
     <button class="nav-item" id="navAdmin" onclick="showView('admin')">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
@@ -495,6 +535,9 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
       <span style="font-family:var(--mono);font-size:9px">Library v2026.03</span>
     </div>
     <div style="font-size:9px;margin-bottom:10px">50 libraries · 04 Mar 2026</div>
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <button id="themeToggle" class="btn btn-sm" style="flex:1;font-size:8px" onclick="toggleTheme()">☀ Day Mode</button>
+    </div>
     <button class="btn btn-sm" style="width:100%;font-size:8px" onclick="doLogout()">Sign Out</button>
   </div>
 </aside>
@@ -683,18 +726,18 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
           <div class="tb-period"><div class="tb-period-lbl">Full Period</div><div class="tb-period-val">312</div><div class="tb-period-sub">total</div></div>
         </div>
       </div>
-      <div class="results-eyebrow">Income Reconciliation</div>
+      <div class="results-eyebrow">Cash Flow Summary</div>
       <div class="tax-recon">
         <div class="tax-head">
-          <div class="tax-title"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Income vs Deposits — 2022–2024</div>
-          <span style="font-size:9px;color:var(--muted);font-family:var(--mono)">Source: IRS Form 1040</span>
+          <div class="tax-title"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Statement Cash Flow Analysis</div>
+          <span style="font-size:9px;color:var(--muted);font-family:var(--mono)" id="cashSummaryMeta">Parsed from uploaded statements</span>
         </div>
         <div class="tax-grid">
-          <div class="tax-cell"><div class="tax-cell-lbl">Declared Income</div><div class="tax-cell-val tv-declared">$247,000</div><div style="font-size:9px;color:var(--muted);margin-top:3px">3-year total</div></div>
-          <div class="tax-cell"><div class="tax-cell-lbl">Deposits Detected</div><div class="tax-cell-val tv-detected">$412,800</div><div style="font-size:9px;color:var(--muted);margin-top:3px">All accounts</div></div>
-          <div class="tax-cell"><div class="tax-cell-lbl">Unexplained Gap</div><div class="tax-cell-val tv-gap">$165,800</div><div style="font-size:9px;color:var(--red);margin-top:3px">67% above declared</div></div>
+          <div class="tax-cell"><div class="tax-cell-lbl">Total Inflows</div><div class="tax-cell-val tv-declared" id="csInflows">—</div><div style="font-size:9px;color:var(--muted);margin-top:3px">Credits detected</div></div>
+          <div class="tax-cell"><div class="tax-cell-lbl">Total Outflows</div><div class="tax-cell-val tv-detected" id="csOutflows">—</div><div style="font-size:9px;color:var(--muted);margin-top:3px">Debits detected</div></div>
+          <div class="tax-cell"><div class="tax-cell-lbl">Net Cash Flow</div><div class="tax-cell-val tv-gap" id="csNet">—</div><div style="font-size:9px;color:var(--muted);margin-top:3px" id="csNetSub">Statement period</div></div>
         </div>
-        <div class="tax-narrative">Total deposits of <strong style="color:var(--gold)">$412,800</strong> exceed declared income of <strong style="color:var(--text)">$247,000</strong> by <strong style="color:var(--red)">$165,800</strong>. Lifestyle expenditure implies annual income of ~$138,000. Consistent with material undisclosed income — warrants formal production of additional records.</div>
+        <div class="tax-narrative" id="cashNarrative">Run analysis to generate cash flow summary from uploaded bank statements.</div>
       </div>
       <div class="results-eyebrow">Signal Detection & Intelligence</div>
       <div class="results-zones">
@@ -710,6 +753,70 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
     </div>
       <!-- Verify+ Teaser -->
       <div id="verifyPlusTeaser" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ════ QUICK SCAN ════ -->
+<div id="view-scan" class="view">
+  <div class="topbar">
+    <div class="topbar-title">Quick Scan <em>·</em> Bank Statement Analysis</div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="resetScan()">Clear</button>
+      <button class="btn btn-gold" id="scanRunBtn" onclick="runQuickScan()" disabled>Run Analysis</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <div id="scanUploadSection">
+      <div style="max-width:680px;margin:0 auto">
+        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:20px">Upload one or more bank statement files (PDF or CSV) and run the full 16-signal forensic engine.</div>
+        <div class="scan-drop" id="scanDropZone" onclick="document.getElementById('scanFileInput').click()"
+          ondragover="event.preventDefault();this.classList.add('drag-over')"
+          ondragleave="this.classList.remove('drag-over')"
+          ondrop="handleScanDrop(event)">
+          <div class="scan-drop-icon">
+            <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" fill="none" stroke-width="1.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="scan-drop-title">Drop bank statements here</div>
+          <div class="scan-drop-sub">PDF or CSV · Click to browse · Multiple files supported</div>
+        </div>
+        <input type="file" id="scanFileInput" multiple accept=".pdf,.csv" style="display:none" onchange="handleScanFiles(event)">
+        <div id="scanFileList" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <div id="scanResults" style="display:none;max-width:880px;margin:0 auto">
+      <div class="scan-result-meta">
+        <div>
+          <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Lexi Attention Score</div>
+          <div class="scan-las-num" id="scanLasNum">—</div>
+          <div style="font-family:var(--serif);font-size:16px;font-weight:300;color:var(--cream);margin-top:4px" id="scanLasVerdict">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px" id="scanLasReason"></div>
+        </div>
+        <div>
+          <div style="font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Exposure</div>
+          <div id="scanExposureBadge" style="display:inline-block;padding:4px 12px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;margin-bottom:14px"></div>
+          <div id="scanAttFlag" style="font-size:10px;color:var(--muted);margin-bottom:16px"></div>
+          <button class="btn btn-gold" onclick="downloadScanReport()">↓ Download Report</button>
+        </div>
+      </div>
+
+      <div class="scan-section-title">Signal Results — 16 Detection Categories</div>
+      <table class="scan-sig-table">
+        <thead><tr><th>Signal</th><th>Category</th><th>Status</th><th>Count</th><th>Amount</th></tr></thead>
+        <tbody id="scanSigBody"></tbody>
+      </table>
+
+      <div class="scan-section-title" id="scanIntelHeader" style="display:none">Intelligence Detail</div>
+      <div id="scanIntelCards"></div>
+
+      <div id="scanVerifyPlus" style="display:none;margin-top:24px;border:1px solid rgba(200,150,62,.3);padding:24px;background:var(--golddim);text-align:center">
+        <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Verify+</div>
+        <div style="font-family:var(--serif);font-size:20px;font-weight:300;color:var(--cream);margin-bottom:6px">Enhanced Recovery Intelligence Available</div>
+        <div style="font-size:11px;color:var(--muted)">High-exposure matter detected. Verify+ provides subpoena pathways, offshore entity mapping, and recovery probability scoring.</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -865,13 +972,39 @@ async function doLogin() {
   renderQueue();
 }
 
+function normalizeApiMatter(m) {
+  return {
+    id: m.id,
+    subject: m.subject,
+    ref: m.ref,
+    type: m.type,
+    typeLabel: m.type_label || m.typeLabel || '',
+    matterDate: m.matter_date || m.matterDate || '—',
+    assignedTo: m.assigned_to || m.assignedTo || '—',
+    notes: m.notes || '',
+    exposure: m.exposure || 'PENDING',
+    att: m.att || 'green',
+    attFlag: m.att_flag || m.attFlag || '',
+    lastRun: m.last_run || m.lastRun || '—',
+    docs: m.doc_count != null ? m.doc_count : (m.docs || 0),
+    analysed: m.analysed || false,
+    las: m.las ? {
+      score: m.las.score,
+      verdict: m.las.verdict,
+      verdictCls: m.las.verdict_cls || m.las.verdictCls || 'low',
+      reason: m.las.reason || '',
+      components: m.las.components || []
+    } : null
+  };
+}
+
 async function loadMattersFromAPI() {
   try {
     const r = await fetch(`${API_BASE}/matters`);
     if (!r.ok) return;
     const apiMatters = await r.json();
     MATTERS.length = 0;
-    MATTERS.push(...apiMatters);
+    MATTERS.push(...apiMatters.map(normalizeApiMatter));
   } catch (e) { /* backend unavailable — MATTERS stays as local demo data */ }
 }
 
@@ -880,13 +1013,150 @@ function doLogout(){
   document.getElementById('view-login').style.display='flex';
 }
 
+/* ══ QUICK SCAN ══ */
+let scanFiles = [];
+let scanMatterId = null;
+
+function handleScanDrop(e){
+  e.preventDefault();
+  document.getElementById('scanDropZone').classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => /\.(pdf|csv)$/i.test(f.name));
+  addScanFiles(files);
+}
+function handleScanFiles(e){
+  addScanFiles(Array.from(e.target.files));
+  e.target.value = '';
+}
+function addScanFiles(files){
+  files.forEach(f => { if(!scanFiles.find(x=>x.name===f.name)) scanFiles.push(f); });
+  renderScanFileList();
+}
+function removeScanFile(name){
+  scanFiles = scanFiles.filter(f => f.name !== name);
+  renderScanFileList();
+}
+function renderScanFileList(){
+  const el = document.getElementById('scanFileList');
+  el.innerHTML = scanFiles.map(f => `
+    <div class="scan-file-row">
+      <span class="scan-file-name">${f.name}</span>
+      <span class="scan-file-size">${(f.size/1024/1024).toFixed(2)} MB</span>
+      <button class="scan-file-rm" onclick="removeScanFile('${f.name.replace(/'/g,"\\'")}')">✕</button>
+    </div>`).join('');
+  document.getElementById('scanRunBtn').disabled = scanFiles.length === 0;
+}
+async function runQuickScan(){
+  if(!scanFiles.length) return;
+  const btn = document.getElementById('scanRunBtn');
+  btn.disabled = true; btn.textContent = 'Analysing…';
+  try {
+    const ref = 'QS-' + Date.now();
+    const mRes = await fetch(`${API_BASE}/matters`, {
+      method:'POST',
+      body: (() => { const f=new FormData(); f.append('subject','Quick Scan — '+scanFiles[0].name); f.append('ref',ref); f.append('type','civil'); return f; })()
+    });
+    if(!mRes.ok) throw new Error('Could not create matter');
+    const matter = await mRes.json();
+    scanMatterId = matter.id;
+
+    const upForm = new FormData();
+    scanFiles.forEach(f => upForm.append('files', f));
+    upForm.append('zone','bank');
+    const upRes = await fetch(`${API_BASE}/matters/${scanMatterId}/upload`, { method:'POST', body:upForm });
+    if(!upRes.ok) throw new Error('Upload failed');
+
+    const runRes = await fetch(`${API_BASE}/matters/${scanMatterId}/run`, { method:'POST' });
+    if(!runRes.ok) throw new Error('Analysis failed');
+    const result = await runRes.json();
+
+    renderScanResults(result);
+    document.getElementById('scanUploadSection').style.display='none';
+    document.getElementById('scanResults').style.display='block';
+  } catch(err) {
+    showNotify(err.message || 'Analysis failed','Error');
+    btn.disabled = false; btn.textContent = 'Run Analysis';
+  }
+}
+function renderScanResults(result){
+  const las = result.las || {};
+  const score = las.score ?? '—';
+  const cls = las.verdict_cls === 'high' ? 'las-high' : las.verdict_cls === 'mid' ? 'las-mid' : 'las-low';
+  document.getElementById('scanLasNum').textContent = score;
+  document.getElementById('scanLasNum').className = 'scan-las-num ' + cls;
+  document.getElementById('scanLasVerdict').textContent = las.verdict || '—';
+  document.getElementById('scanLasReason').textContent = las.reason || '';
+
+  const expEl = document.getElementById('scanExposureBadge');
+  const exp = result.exposure || 'PENDING';
+  const expColors = {HIGH:'#c0392b',MEDIUM:'#d4860a',LOW:'#2e7d52',PENDING:'#6a7a8e'};
+  expEl.textContent = exp;
+  expEl.style.background = expColors[exp] || '#6a7a8e';
+  expEl.style.color = '#fff';
+  document.getElementById('scanAttFlag').textContent = result.att_flag || '';
+
+  const signals = result.signals || [];
+  document.getElementById('scanSigBody').innerHTML = signals.map(s => {
+    const cls = s.status==='detected' ? 'sig-detected' : s.status==='possible' ? 'sig-possible' : 'sig-none';
+    return `<tr><td style="color:var(--cream)">${s.name}</td><td style="color:var(--muted)">${s.cat}</td><td class="${cls}">${(s.status||'none').toUpperCase()}</td><td style="font-family:var(--mono);color:var(--muted)">${s.count||'—'}</td><td style="font-family:var(--mono);color:var(--muted)">${s.amount||'—'}</td></tr>`;
+  }).join('');
+
+  const intel = result.intel || [];
+  const intelHeader = document.getElementById('scanIntelHeader');
+  const intelCards = document.getElementById('scanIntelCards');
+  if(intel.length){
+    intelHeader.style.display='flex';
+    intelCards.innerHTML = intel.map(i => `
+      <div class="scan-intel-card">
+        <div class="scan-intel-cat">${i.cat||''}</div>
+        <div class="scan-intel-title">${i.title||''}</div>
+        <div class="scan-intel-narrative">${i.narrative||''}</div>
+        <div class="scan-intel-path-lbl">Path Forward</div>
+        <div class="scan-intel-path">${i.path||''}</div>
+      </div>`).join('');
+  }
+
+  const vp = result.verify_plus_teaser;
+  if(vp && vp.available) document.getElementById('scanVerifyPlus').style.display='block';
+}
+function downloadScanReport(){
+  if(scanMatterId) window.open(`${API_BASE}/reports/${scanMatterId}`, '_blank');
+}
+function resetScan(){
+  scanFiles = []; scanMatterId = null;
+  renderScanFileList();
+  document.getElementById('scanUploadSection').style.display='block';
+  document.getElementById('scanResults').style.display='none';
+  document.getElementById('scanVerifyPlus').style.display='none';
+  document.getElementById('scanIntelHeader').style.display='none';
+  document.getElementById('scanRunBtn').textContent = 'Run Analysis';
+}
+
+function toggleTheme(){
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const next = isLight ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('lc-theme', next);
+  document.getElementById('themeToggle').textContent = next === 'light' ? '🌙 Night Mode' : '☀ Day Mode';
+}
+
+(function(){
+  const saved = localStorage.getItem('lc-theme') || 'dark';
+  if(saved === 'light'){
+    document.documentElement.setAttribute('data-theme','light');
+    document.addEventListener('DOMContentLoaded', function(){
+      const btn = document.getElementById('themeToggle');
+      if(btn) btn.textContent = '🌙 Night Mode';
+    });
+  }
+}());
+
 /* ══ VIEWS ══ */
 function showView(v){
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   const panel=document.getElementById('view-'+v);
   if(panel) panel.classList.add('active');
-  const navMap={dashboard:'navDashboard',queue:'navQueue',matters:'navMatters',matter:'navMatter',admin:'navAdmin'};
+  const navMap={dashboard:'navDashboard',queue:'navQueue',matters:'navMatters',matter:'navMatter',scan:'navScan',admin:'navAdmin'};
   const nav=document.getElementById(navMap[v]||'nav'+v);
   if(nav) nav.classList.add('active');
   if(v==='queue') renderQueue();
@@ -989,12 +1259,12 @@ function buildLASCard(las,matterId){
   const barCls=las.verdictCls==='high'?'lbf-high':las.verdictCls==='mid'?'lbf-mid':'lbf-low';
   const verdictCls=las.verdictCls==='high'?'lv-high':las.verdictCls==='mid'?'lv-mid':'lv-low';
   const bdId='lbd'+matterId;
-  const comps=las.components.map(c=>`
+  const comps=(las.components||[]).map(c=>`
     <div class="las-comp">
       <div class="las-comp-lbl">${c.label}</div>
       <div class="las-comp-track"><div class="las-comp-fill" style="width:${Math.round(c.val/c.max*100)}%"></div></div>
       <div class="las-comp-val">${c.val}<span class="las-comp-max">/${c.max}</span></div>
-    </div>`).join('');
+    </div>`).join('') || '<div style="font-size:10px;color:var(--muted);padding:4px 0">Score breakdown not available — run full analysis to see components.</div>';
   return `<div class="las-card ${cls}">
     <div class="las-inner">
       <div class="las-score-col">
@@ -1190,17 +1460,40 @@ function renderIntel(){
 function renderSignalsFromResult(result) {
   const signals = result.signals || [];
   const el = document.getElementById('signalCats');
-  if (!el) return;
-  el.innerHTML = signals.map(s => `
-    <div class="sig-cat">
-      <div class="sig-ind ind-${s.status}"></div>
-      <div class="sig-main"><div class="sig-name">${s.name}</div><div class="sig-cat-label">${s.cat}</div></div>
-      <div class="sig-right">
-        <div class="sig-badge scb-${s.status}">${s.status.toUpperCase()}</div>
-        ${s.count > 0 ? `<div class="sig-count">${s.count} txns</div>` : ''}
-        ${s.amount ? `<div class="sig-amt">${s.amount}</div>` : ''}
-      </div>
-    </div>`).join('');
+  if (el) {
+    el.innerHTML = signals.map(s => `
+      <div class="sig-cat">
+        <div class="sig-ind ind-${s.status}"></div>
+        <div class="sig-main"><div class="sig-name">${s.name}</div><div class="sig-cat-label">${s.cat}</div></div>
+        <div class="sig-right">
+          <div class="sig-badge scb-${s.status}">${s.status.toUpperCase()}</div>
+          ${s.count > 0 ? `<div class="sig-count">${s.count} txns</div>` : ''}
+          ${s.amount ? `<div class="sig-amt">${s.amount}</div>` : ''}
+        </div>
+      </div>`).join('');
+  }
+  // Populate cash flow summary
+  const cs = result.cash_summary;
+  if (cs) {
+    const fmt = v => '$' + Math.abs(v).toLocaleString();
+    const set = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+    set('csInflows', fmt(cs.total_credits));
+    set('csOutflows', fmt(cs.total_debits));
+    set('csNet', (cs.net_cash >= 0 ? '+' : '-') + fmt(cs.net_cash));
+    const netSub = document.getElementById('csNetSub');
+    if (netSub) netSub.style.color = cs.net_cash < 0 ? 'var(--red)' : 'var(--muted)';
+    const n = result.transactions_parsed || 0;
+    const meta = document.getElementById('cashSummaryMeta');
+    if (meta) meta.textContent = `${n} transactions parsed`;
+    const narr = document.getElementById('cashNarrative');
+    if (narr) {
+      const surplus = cs.net_cash;
+      if (surplus < 0)
+        narr.innerHTML = `Outflows of <strong style="color:var(--gold)">${fmt(cs.total_debits)}</strong> exceed inflows of <strong style="color:var(--text)">${fmt(cs.total_credits)}</strong> — net deficit of <strong style="color:var(--red)">${fmt(surplus)}</strong>. Cross-reference with declared income and asset register.`;
+      else
+        narr.innerHTML = `Inflows of <strong style="color:var(--gold)">${fmt(cs.total_credits)}</strong> with outflows of <strong style="color:var(--text)">${fmt(cs.total_debits)}</strong> — net surplus of <strong style="color:var(--gold)">${fmt(surplus)}</strong>. Cross-reference with declared income and asset register.`;
+    }
+  }
 }
 
 function renderIntelFromResult(result) {

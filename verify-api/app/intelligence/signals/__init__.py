@@ -212,6 +212,14 @@ def build_verify_result(
     exposure: str = "PENDING",
 ) -> dict:
     """Map raw engine output to frontend result object."""
+    total_credits = sum(
+        t.get("credit", 0) or max(t.get("amount", 0), 0)
+        for t in transactions
+    )
+    total_debits = sum(
+        t.get("debit", 0) or abs(min(t.get("amount", 0), 0))
+        for t in transactions
+    )
     total_vol = sum(abs(t.get("amount", 0)) for t in transactions)
     try:
         las_score = calculate_las(raw_signals, total_vol)
@@ -301,4 +309,9 @@ def build_verify_result(
         "signals": signals_out,
         "intel": intel_out,
         "verify_plus_teaser": verify_plus,
+        "cash_summary": {
+            "total_credits": round(total_credits),
+            "total_debits": round(total_debits),
+            "net_cash": round(total_credits - total_debits),
+        },
     }

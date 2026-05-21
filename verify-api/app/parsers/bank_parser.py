@@ -41,6 +41,13 @@ _WF_CREDIT_MAX_X = 479.0
 _WF_DEBIT_MAX_X  = 530.0   # balance col starts at x0=533; keep margin
 _WF_AMT_MIN_X    = 390.0   # ignore amounts in description area
 
+# Lines containing these phrases are bank headers/footers, not transaction content
+_WF_SKIP_RE = re.compile(
+    r"Wells Fargo Bank|Member FDIC|Ending balance|Beginning balance"
+    r"|Account number|Page \d+ of \d+",
+    re.IGNORECASE,
+)
+
 
 def _is_wf_bank(text: str) -> bool:
     return "Wells Fargo" in text or "wellsfargo" in text.lower()
@@ -128,6 +135,8 @@ def _parse_wellsfargo_pdf(pdf_bytes: bytes) -> list[dict]:
                         "debit": debit,
                     }
                 elif current is not None:
+                    if _WF_SKIP_RE.search(line_text):
+                        continue
                     # Continuation line — append non-amount words to description
                     for w in line:
                         if _classify_wf_amount(w) is None:
