@@ -268,23 +268,32 @@ async def run_analysis(
         )
 
     transactions = []
+    parse_errors = []
     for doc in docs:
         try:
+            raw = bytes(doc.content)  # memoryview → bytes for pdfplumber
             if doc.filename.lower().endswith(".pdf"):
-                # parse_bank_pdf expects bytes directly
-                txns = parse_bank_pdf(doc.content)
+                txns = parse_bank_pdf(raw)
             else:
-                txns = parse_bank_csv_text(doc.content.decode("utf-8", errors="replace"))
+                txns = parse_bank_csv_text(raw.decode("utf-8", errors="replace"))
             transactions.extend(txns)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.exception("Parse failed for %s: %s", doc.filename, e)
+            parse_errors.append(doc.filename)
 
-    raw_signals = run_signals(transactions)
+    # Pull document-level integrity signals out of transactions before running engine
+    doc_signals = [t for t in transactions if t.get("signal_type") == "document_integrity"]
+    transactions = [t for t in transactions if t.get("signal_type") != "document_integrity"]
+
+    raw_signals = run_signals(transactions) + doc_signals
     result = build_verify_result(
         matter_id=matter_id,
         raw_signals=raw_signals,
         transactions=transactions,
     )
+    if parse_errors:
+        result["parse_errors"] = parse_errors
+    result["transactions_parsed"] = len(transactions)
 
     las = result["las"]
     m.las_score = las["score"]

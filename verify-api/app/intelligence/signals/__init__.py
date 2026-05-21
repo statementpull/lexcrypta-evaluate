@@ -40,6 +40,7 @@ SIGNAL_SLOTS = [
     {"name": "Gold & Precious Metals",        "cat": "ASSET",                   "types": ["hidden_assets"],      "keywords": ["ABC BULLION", "PERTH MINT", "GOLD BULLION", "SILVER BULLION", "PRECIOUS METALS"]},
     {"name": "Gift Card / Prepaid",           "cat": "OBFUSCATION",             "types": ["aml_structuring"],    "keywords": ["GIFT CARD", "PREPAID VISA", "PREPAID MASTERCARD", "VANILLA VISA", "EFTPOS GIFT"]},
     {"name": "Cross-Border Value Transfer",   "cat": "FLOW",                    "types": ["cash_flow"],          "keywords": ["WESTERN UNION", "MONEYGRAM", "WISE", "TRANSFERWISE", "REMITLY", "WORLDREMIT", "OFX"]},
+    {"name": "PDF Document Integrity",        "cat": "DOCUMENT · INTEGRITY",    "types": ["document_integrity"], "keywords": []},
 ]
 
 INTEL_TEMPLATES = {
@@ -84,6 +85,13 @@ INTEL_TEMPLATES = {
         "rec_cls": "medium",
         "tier": "Remittance Operators",
         "path_template": "Subpoena {operators} for recipient details, destination country, and beneficiary identity. Cross-border transfers may indicate undisclosed foreign assets.",
+    },
+    "PDF Document Integrity": {
+        "cat_cls": "obfuscation",
+        "rec": "Immediate Review",
+        "rec_cls": "high",
+        "tier": "Document Authenticity",
+        "path_template": "Statement metadata indicates post-issuance modification. Obtain certified copy directly from issuing bank. Do not rely on provided document without independent verification.",
     },
 }
 

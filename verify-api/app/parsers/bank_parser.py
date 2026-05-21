@@ -181,6 +181,51 @@ def _parse_generic_pdf(pdf_bytes: bytes) -> list[dict]:
     return txns
 
 
+# ── PDF metadata integrity check ──────────────────────────────────────────────
+
+def _extract_pdf_metadata(pdf_bytes: bytes) -> dict | None:
+    """Return a metadata signal record if the PDF shows integrity concerns."""
+    try:
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            meta = pdf.metadata or {}
+    except Exception:
+        return None
+
+    creator   = str(meta.get("Creator",  meta.get("/Creator",  ""))).strip()
+    producer  = str(meta.get("Producer", meta.get("/Producer", ""))).strip()
+    created   = str(meta.get("CreationDate", meta.get("/CreationDate", ""))).strip()
+    modified  = str(meta.get("ModDate",  meta.get("/ModDate",  ""))).strip()
+
+    # Flag if document was re-saved by a tool other than the issuing bank
+    resave_tools = ["adobe acrobat", "preview", "microsoft word", "libreoffice",
+                    "foxit", "nitro", "pdfelement", "cutepdf", "ghostscript"]
+    resaved = any(t in (creator + producer).lower() for t in resave_tools)
+    modified_after_creation = (modified and created and modified != created)
+
+    if resaved or modified_after_creation:
+        note = []
+        if resaved:
+            note.append(f"Re-saved by third-party tool: {producer or creator}")
+        if modified_after_creation:
+            note.append("Modification date differs from creation date")
+        return {
+            "transaction_date": "",
+            "merchant": "PDF METADATA INTEGRITY FLAG",
+            "amount": 0.0,
+            "signal_type": "document_integrity",
+            "severity": "red",
+            "meta": {
+                "creator": creator,
+                "producer": producer,
+                "created": created,
+                "modified": modified,
+                "note": " · ".join(note),
+            },
+            "raw": {},
+        }
+    return None
+
+
 # ── Public interface ───────────────────────────────────────────────────────────
 
 def parse_bank_pdf(pdf_bytes: bytes) -> list[dict]:
@@ -194,10 +239,17 @@ def parse_bank_pdf(pdf_bytes: bytes) -> list[dict]:
     if _is_wf_bank(first_text):
         txns = _parse_wellsfargo_pdf(pdf_bytes)
         if txns:
+            meta_signal = _extract_pdf_metadata(pdf_bytes)
+            if meta_signal:
+                txns.append(meta_signal)
             return txns
 
     # Fallback to generic table parser
-    return _parse_generic_pdf(pdf_bytes)
+    txns = _parse_generic_pdf(pdf_bytes)
+    meta_signal = _extract_pdf_metadata(pdf_bytes)
+    if meta_signal:
+        txns.append(meta_signal)
+    return txns
 
 
 def parse_bank_csv_text(csv_text: str) -> list[dict]:
