@@ -430,31 +430,443 @@ def _parse_chase_pdf(pdf_bytes: bytes) -> list[dict]:
     return txns
 
 
+# ── Westpac parser ────────────────────────────────────────────────────────────
+#
+# Westpac electronic statements use compact date format: DDJUL (no space).
+# Column x-positions (empirical from eSaver statements, 595pt wide page):
+#   Description : x0 < 295
+#   Debit       : 295 <= x0 <= 343
+#   Credit      : 343 < x0 <= 410
+#   Balance     : x0 > 410
+
+_WESTPAC_DATE_RE = re.compile(r"^\d{2}[A-Z]{3}$")
+
+_WESTPAC_SKIP_RE = re.compile(
+    r"STATEMENT\s+(OPENING|CLOSING)\s+BALANCE"
+    r"|^DATE\s+DESCRIPTION"
+    r"|^FROM\s+LAST\s+STATEMENT"
+    r"|^\d{4}$"
+    r"|STATEMENT\s+NO\.",
+    re.IGNORECASE,
+)
+
+_WP_DEBIT_MIN_X   = 295.0
+_WP_DEBIT_MAX_X   = 343.0
+_WP_CREDIT_MIN_X  = 343.0
+_WP_CREDIT_MAX_X  = 410.0
+_WP_BALANCE_MIN_X = 410.0
+
+
+def _is_westpac_bank(text: str) -> bool:
+    return ("Westpac Banking Corporation" in text
+            or "ABN 33 007 457 141" in text
+            or "Westpac eSaver" in text
+            or ("Westpac" in text and "Electronic Statement" in text))
+
+
+def _classify_wp_amount(word: dict) -> str | None:
+    s = word["text"].replace(",", "")
+    try:
+        float(s)
+    except ValueError:
+        return None
+    x = word["x0"]
+    if _WP_DEBIT_MIN_X <= x <= _WP_DEBIT_MAX_X:
+        return "debit"
+    if _WP_CREDIT_MIN_X < x <= _WP_CREDIT_MAX_X:
+        return "credit"
+    if x >= _WP_BALANCE_MIN_X:
+        return "balance"
+    return None
+
+
+def _parse_westpac_pdf(pdf_bytes: bytes) -> list[dict]:
+    txns = []
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        for page in pdf.pages:
+            words = page.extract_words()
+            lines = _group_lines(words, y_tol=3.0)
+            in_txn_section = False
+            current = None
+
+            for line in lines:
+                line_text = " ".join(w["text"] for w in line)
+
+                if "DETAILS OF YOUR ACCOUNT" in line_text or "DESCRIPTION OF" in line_text:
+                    in_txn_section = True
+                    continue
+                if not in_txn_section:
+                    continue
+                if _WESTPAC_SKIP_RE.search(line_text):
+                    continue
+
+                first = line[0] if line else None
+                is_new_txn = (
+                    first is not None
+                    and bool(_WESTPAC_DATE_RE.match(first["text"]))
+                    and first["x0"] < 130
+                )
+
+                if is_new_txn:
+                    if current:
+                        txns.append(_finalise_wp_txn(current))
+                    desc_parts, debit, credit = [], 0.0, 0.0
+                    for w in line[1:]:
+                        col = _classify_wp_amount(w)
+                        if col == "debit":
+                            debit = _parse_float(w["text"])
+                        elif col == "credit":
+                            credit = _parse_float(w["text"])
+                        elif col is None:
+                            desc_parts.append(w["text"])
+                    current = {
+                        "date": first["text"],
+                        "description": " ".join(desc_parts),
+                        "debit": debit,
+                        "credit": credit,
+                    }
+                elif current is not None:
+                    for w in line:
+                        col = _classify_wp_amount(w)
+                        if col == "debit" and not current["debit"]:
+                            current["debit"] = _parse_float(w["text"])
+                        elif col == "credit" and not current["credit"]:
+                            current["credit"] = _parse_float(w["text"])
+                        elif col is None and w["x0"] < _WP_DEBIT_MIN_X:
+                            current["description"] += " " + w["text"]
+
+            if current:
+                txns.append(_finalise_wp_txn(current))
+
+    return txns
+
+
+def _finalise_wp_txn(t: dict) -> dict:
+    desc = _normalise_merchant(t["description"])
+    amount = t["credit"] - t["debit"] if (t["credit"] or t["debit"]) else 0.0
+    return {
+        "transaction_date": t["date"],
+        "merchant": desc,
+        "amount": amount,
+        "credit": t["credit"],
+        "debit": t["debit"],
+        "raw": {"description": desc},
+    }
+
+
+# ── NAB parser ─────────────────────────────────────────────────────────────────
+#
+# NAB statements use text-layout with dotted leaders for multi-line descriptions.
+# Date format: D Mon YYYY (split across three words).
+# Column x-positions (empirical from iSaver statements, 595pt wide page):
+#   Date        : x0 < 95
+#   Particulars : 95 <= x0 < 365
+#   Debits      : 365 <= x0 <= 430
+#   Credits     : 430 < x0 <= 500
+#   Balance     : x0 > 500  (followed by "Cr" / "Dr" label at x0≈541)
+
+_NAB_MONTHS = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
+
+_NAB_SKIP_RE = re.compile(
+    r"Brought\s+forward|Balance\s+Forward"
+    r"|Your\s+Interest\s+Rate|Interest\s+Rate\s+Brought|As\s+At\s+\d"
+    r"|Account\s+Balance\s+Summary|Opening\s+balance|Closing\s+balance"
+    r"|Total\s+credits|Total\s+debits|Transaction\s+Details"
+    r"|Statement\s+number|Please\s+retain|Summary\s+of\s+Government"
+    r"|Date\s+Particulars|Outlet\s+Details|Account\s+Details"
+    r"|For\s+further\s+information|NAB\s+iSaver|Your\s+Savings\s+History",
+    re.IGNORECASE,
+)
+
+_NAB_DEBIT_MIN_X   = 365.0
+_NAB_DEBIT_MAX_X   = 430.0
+_NAB_CREDIT_MIN_X  = 430.0
+_NAB_CREDIT_MAX_X  = 500.0
+_NAB_BALANCE_MIN_X = 500.0
+
+
+def _is_nab_bank(text: str) -> bool:
+    return "National Australia Bank" in text or "ABN 12 004 044 937" in text
+
+
+_NAB_AMT_RE = re.compile(r"^\d{1,3}(?:,\d{3})*\.\d{2}$")
+
+_NAB_SECTION_END_RE = re.compile(
+    r"Your\s+Savings\s+History|Account\s+Balances\s+As\s+At"
+    r"|Summary\s+of\s+Government|Explanatory\s+Notes",
+    re.IGNORECASE,
+)
+
+
+def _classify_nab_amount(word: dict) -> str | None:
+    if word["text"] in ("Cr", "Dr"):
+        return None
+    # Financial amounts always have 2 decimal places — reject years, counts, percentages
+    if not _NAB_AMT_RE.match(word["text"]):
+        return None
+    x = word["x0"]
+    if _NAB_DEBIT_MIN_X <= x <= _NAB_DEBIT_MAX_X:
+        return "debit"
+    if _NAB_CREDIT_MIN_X < x <= _NAB_CREDIT_MAX_X:
+        return "credit"
+    if x >= _NAB_BALANCE_MIN_X:
+        return "balance"
+    return None
+
+
+def _nab_date_from_line(line: list) -> str | None:
+    if len(line) < 3:
+        return None
+    d, m, y = line[0]["text"], line[1]["text"], line[2]["text"]
+    if (re.match(r"^\d{1,2}$", d) and m in _NAB_MONTHS
+            and re.match(r"^\d{4}$", y) and line[0]["x0"] < 95):
+        return f"{d} {m} {y}"
+    return None
+
+
+def _parse_nab_pdf(pdf_bytes: bytes) -> list[dict]:
+    txns = []
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        for page in pdf.pages:
+            words = page.extract_words()
+            lines = _group_lines(words, y_tol=3.0)
+            current = None
+
+            for line in lines:
+                line_text = " ".join(w["text"] for w in line)
+                # Section-break markers — flush current transaction, stop accumulating
+                if _NAB_SECTION_END_RE.search(line_text):
+                    if current:
+                        txns.append(_finalise_nab_txn(current))
+                        current = None
+                    continue
+
+                if _NAB_SKIP_RE.search(line_text):
+                    continue
+
+                date_str = _nab_date_from_line(line)
+                if date_str:
+                    if current:
+                        txns.append(_finalise_nab_txn(current))
+                    desc_parts, debit, credit = [], 0.0, 0.0
+                    for w in line[3:]:  # skip day, month, year words
+                        col = _classify_nab_amount(w)
+                        if col == "debit":
+                            debit = _parse_float(w["text"])
+                        elif col == "credit":
+                            credit = _parse_float(w["text"])
+                        elif col is None and w["x0"] < _NAB_DEBIT_MIN_X:
+                            desc_parts.append(w["text"].rstrip("."))
+                    current = {
+                        "date": date_str,
+                        "description": " ".join(desc_parts),
+                        "debit": debit,
+                        "credit": credit,
+                    }
+                elif current is not None:
+                    # Continuation or dotted-leader line — pick up amounts, append description
+                    for w in line:
+                        col = _classify_nab_amount(w)
+                        if col == "debit" and not current["debit"]:
+                            current["debit"] = _parse_float(w["text"])
+                        elif col == "credit" and not current["credit"]:
+                            current["credit"] = _parse_float(w["text"])
+                        elif col is None and w["x0"] < _NAB_DEBIT_MIN_X:
+                            # Strip dotted-leader noise (e.g., "Hasitha.....")
+                            clean = w["text"].rstrip(".")
+                            if clean and not re.match(r"^\.+$", clean):
+                                current["description"] += " " + clean
+
+            if current:
+                txns.append(_finalise_nab_txn(current))
+
+    return txns
+
+
+def _finalise_nab_txn(t: dict) -> dict:
+    desc = _normalise_merchant(t["description"])
+    amount = t["credit"] - t["debit"] if (t["credit"] or t["debit"]) else 0.0
+    return {
+        "transaction_date": t["date"],
+        "merchant": desc,
+        "amount": amount,
+        "credit": t["credit"],
+        "debit": t["debit"],
+        "raw": {"description": desc},
+    }
+
+
+# ── Michigan First Credit Union parser ────────────────────────────────────────
+#
+# Michigan First statements list transactions under section headers.
+# Date format: Mon DD (e.g., "Nov 14").
+# Column x-positions (empirical):
+#   Date          : x0 < 80 (month at ~46, day at ~64)
+#   Description   : 80 <= x0 < 380
+#   Additions     : 380 <= x0 <= 440
+#   Subtractions  : 440 < x0 <= 530  (negative values already include '-' sign)
+#   Balance       : x0 > 530
+
+_MF_MONTHS = _NAB_MONTHS
+
+_MF_SKIP_RE = re.compile(
+    r"Balance\s+Forward|Ending\s+Balance"
+    r"|WITHDRAWALS\s+AND\s+OTHER\s+CHARGES"
+    r"|DEPOSITS\s+AND\s+OTHER\s+CREDITS"
+    r"|LOAN\s+ACCOUNTS|SAVINGS\s+ACCOUNTS|CHECKING\s+ACCOUNTS"
+    r"|CERTIFICATE\s+ACCOUNTS|PAYMENT\s+INFORMATION"
+    r"|Annual\s+Percentage\s+Yield|Date\s+Transaction\s+Description"
+    r"|Account\s+Balances|Statement\s+of\s+Accounts"
+    r"|MichiganFirst\.com|Withdrawals\s+and\s+Other\s+Charges\s+for"
+    r"|Deposits\s+and\s+Other\s+Credits\s+for",
+    re.IGNORECASE,
+)
+
+_MF_ADD_MIN_X  = 380.0
+_MF_ADD_MAX_X  = 440.0
+_MF_SUB_MIN_X  = 440.0
+_MF_SUB_MAX_X  = 530.0
+_MF_BAL_MIN_X  = 530.0
+
+
+def _is_mf_bank(text: str) -> bool:
+    return "MichiganFirst.com" in text or "Michigan First" in text
+
+
+def _classify_mf_amount(word: dict) -> str | None:
+    s = word["text"].replace(",", "").lstrip("-")
+    try:
+        float(s)
+    except ValueError:
+        return None
+    x = word["x0"]
+    if _MF_ADD_MIN_X <= x <= _MF_ADD_MAX_X:
+        return "addition"
+    if _MF_SUB_MIN_X < x <= _MF_SUB_MAX_X:
+        return "subtraction"
+    if x >= _MF_BAL_MIN_X:
+        return "balance"
+    return None
+
+
+def _mf_date_from_line(line: list) -> str | None:
+    if len(line) < 2:
+        return None
+    month, day = line[0]["text"], line[1]["text"]
+    if (month in _MF_MONTHS and line[0]["x0"] < 60
+            and re.match(r"^\d{1,2}$", day)):
+        return f"{month} {day}"
+    return None
+
+
+def _parse_mf_pdf(pdf_bytes: bytes) -> list[dict]:
+    txns = []
+    in_summary_section = False
+
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        for page in pdf.pages:
+            words = page.extract_words()
+            lines = _group_lines(words, y_tol=3.0)
+            current = None
+
+            for line in lines:
+                line_text = " ".join(w["text"] for w in line)
+
+                # Stop parsing transactions once we hit the summary tables
+                if re.search(r"WITHDRAWALS\s+AND\s+OTHER\s+CHARGES"
+                              r"|DEPOSITS\s+AND\s+OTHER\s+CREDITS"
+                              r"|LOAN\s+ACCOUNTS", line_text, re.IGNORECASE):
+                    if current:
+                        txns.append(_finalise_mf_txn(current))
+                        current = None
+                    in_summary_section = True
+                    continue
+
+                if in_summary_section:
+                    # New account section header resets summary flag
+                    if re.search(r"SAVINGS\s+ACCOUNTS|CHECKING\s+ACCOUNTS"
+                                  r"|CERTIFICATE\s+ACCOUNTS", line_text, re.IGNORECASE):
+                        in_summary_section = False
+                    continue
+
+                if _MF_SKIP_RE.search(line_text):
+                    continue
+
+                date_str = _mf_date_from_line(line)
+                if date_str:
+                    if current:
+                        txns.append(_finalise_mf_txn(current))
+                    desc_parts, addition, subtraction = [], 0.0, 0.0
+                    for w in line[2:]:  # skip month, day words
+                        col = _classify_mf_amount(w)
+                        if col == "addition":
+                            addition = _parse_float(w["text"])
+                        elif col == "subtraction":
+                            subtraction = _parse_float(w["text"].lstrip("-"))
+                        elif col is None and w["x0"] < _MF_ADD_MIN_X:
+                            desc_parts.append(w["text"])
+                    current = {
+                        "date": date_str,
+                        "description": " ".join(desc_parts),
+                        "addition": addition,
+                        "subtraction": subtraction,
+                    }
+                elif current is not None:
+                    # ACH continuation line (ID: XXXXXX CO: NAME) or other continuation
+                    for w in line:
+                        if w["x0"] >= _MF_ADD_MIN_X:
+                            break  # amounts on a continuation line belong to a different summary
+                        current["description"] += " " + w["text"]
+
+            if current:
+                txns.append(_finalise_mf_txn(current))
+            in_summary_section = False  # reset between pages
+
+    return txns
+
+
+def _finalise_mf_txn(t: dict) -> dict:
+    desc = _normalise_merchant(t["description"])
+    amount = t["addition"] - t["subtraction"]
+    return {
+        "transaction_date": t["date"],
+        "merchant": desc,
+        "amount": amount,
+        "credit": t["addition"],
+        "debit": t["subtraction"],
+        "raw": {"description": desc},
+    }
+
+
 # ── Public interface ───────────────────────────────────────────────────────────
 
 def parse_bank_pdf(pdf_bytes: bytes) -> list[dict]:
-    # Detect bank from text content
+    # Detect bank from first two pages (some banks print identifying text on page 2)
     try:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-            first_text = (pdf.pages[0].extract_text() or "") if pdf.pages else ""
+            first_text = "\n".join(
+                (p.extract_text() or "") for p in pdf.pages[:2]
+            )
     except Exception:
         first_text = ""
 
-    if _is_chase_bank(first_text):
-        txns = _parse_chase_pdf(pdf_bytes)
-        if txns:
-            meta_signal = _extract_pdf_metadata(pdf_bytes)
-            if meta_signal:
-                txns.append(meta_signal)
-            return txns
+    bank_parsers = [
+        (_is_chase_bank,   _parse_chase_pdf),
+        (_is_wf_bank,      _parse_wellsfargo_pdf),
+        (_is_westpac_bank, _parse_westpac_pdf),
+        (_is_nab_bank,     _parse_nab_pdf),
+        (_is_mf_bank,      _parse_mf_pdf),
+    ]
 
-    if _is_wf_bank(first_text):
-        txns = _parse_wellsfargo_pdf(pdf_bytes)
-        if txns:
-            meta_signal = _extract_pdf_metadata(pdf_bytes)
-            if meta_signal:
-                txns.append(meta_signal)
-            return txns
+    for detect, parse in bank_parsers:
+        if detect(first_text):
+            txns = parse(pdf_bytes)
+            if txns:
+                meta_signal = _extract_pdf_metadata(pdf_bytes)
+                if meta_signal:
+                    txns.append(meta_signal)
+                return txns
 
     # Fallback to generic table parser
     txns = _parse_generic_pdf(pdf_bytes)
