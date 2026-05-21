@@ -1,9 +1,13 @@
 import base64
 import hashlib
 import hmac as _hmac
+import io
 import json
+import logging
 import os
 from datetime import datetime, timezone
+
+logger = logging.getLogger("verify")
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -51,11 +55,11 @@ def require_license(db: Session = Depends(get_db)):
 
 app = FastAPI(title="LexCrypta Verify", version="1.0.0")
 
-_cors_origins = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else []
+_cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_cors_origins or ["*"],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=bool(_cors_origins),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -63,10 +67,10 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
+    logger.exception("Unhandled error: %s", exc)
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc)},
-        headers={"Access-Control-Allow-Origin": "*"},
+        content={"detail": "Internal server error"},
     )
 
 
@@ -74,12 +78,10 @@ async def global_exception_handler(request, exc):
 def startup():
     try:
         create_verify_schema()
-    except Exception:
-        pass
-    try:
         Base.metadata.create_all(bind=engine)
     except Exception:
-        pass
+        logger.exception("Database initialisation failed — check DATABASE_URL")
+        raise
     try:
         db = next(get_db())
         try:
@@ -87,7 +89,7 @@ def startup():
         finally:
             db.close()
     except Exception:
-        pass
+        logger.exception("Demo seed failed — continuing without demo data")
 
 
 # ── Health / Version ──────────────────────────────────────────────────────────
@@ -215,11 +217,20 @@ async def upload_documents(
     m = db.query(Matter).filter(Matter.id == matter_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Matter not found.")
+    _ALLOWED = {"bank_pdf", "pdf_financial_report", "bank_csv", "myob_gl", "myob_pl",
+                "xlsx", "quickbooks_pl", "balance_sheet", "aged_debtors",
+                "inventory", "customer_sales", "csv_unknown"}
     file_ids = []
     for f in files:
         content = await f.read()
+        detected = detect_file_type(io.BytesIO(content), f.filename)
+        if detected == "unknown":
+            raise HTTPException(
+                status_code=400,
+                detail=f"{f.filename}: unsupported file type. Upload PDF, CSV, or XLSX.",
+            )
         mb = len(content) / (1024 * 1024)
-        limit = MAX_PDF_MB if f.filename.lower().endswith(".pdf") else MAX_CSV_MB
+        limit = MAX_PDF_MB if detected in ("bank_pdf", "pdf_financial_report") else MAX_CSV_MB
         if mb > limit:
             raise HTTPException(status_code=413, detail=f"{f.filename} exceeds {limit}MB limit.")
         doc = Document(matter_id=matter_id, filename=f.filename, zone=zone, content=content)
@@ -315,6 +326,7 @@ def get_results(
 def get_report(
     matter_id: int,
     db: Session = Depends(get_db),
+    _: bool = Depends(require_license),
 ):
     m = db.query(Matter).filter(Matter.id == matter_id).first()
     ar = db.query(AnalysisResult).filter(AnalysisResult.matter_id == matter_id).first()
