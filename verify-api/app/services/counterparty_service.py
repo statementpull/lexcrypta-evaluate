@@ -1,9 +1,13 @@
 import json
+import logging
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
 from ..models import Counterparty, CounterpartyMatterLink
+from .ofac_service import check_name as ofac_check
+
+logger = logging.getLogger("verify.counterparty")
 
 
 def upsert_counterparties(db: Session, matter_id: int, transactions: list) -> None:
@@ -40,6 +44,29 @@ def upsert_counterparties(db: Session, matter_id: int, transactions: list) -> No
             cp.first_seen = first
         if last and (not cp.last_seen or last > cp.last_seen):
             cp.last_seen = last
+
+        # OFAC SDN screening — only runs if index is loaded
+        if cp.severity != "red":              # don't downgrade an existing red flag
+            try:
+                hit = ofac_check(name)
+                if hit:
+                    cp.severity = "red"
+                    tags = json.loads(cp.tags or "[]")
+                    if "ofac_sdn" not in tags:
+                        tags.append("ofac_sdn")
+                    cp.tags  = json.dumps(tags)
+                    cp.notes = (
+                        f"OFAC SDN MATCH — {hit['matched_name']} "
+                        f"| type: {hit['sdn_type']} "
+                        f"| programs: {', '.join(hit['programs'])} "
+                        f"| confidence: {hit['confidence']:.0%}"
+                    )
+                    logger.warning(
+                        "OFAC SDN match: merchant=%s sdn=%s conf=%.2f programs=%s",
+                        name, hit["matched_name"], hit["confidence"], hit["programs"],
+                    )
+            except Exception:
+                logger.exception("OFAC check failed for %s — skipping", name)
 
         link = db.query(CounterpartyMatterLink).filter_by(
             counterparty_id=cp.id, matter_id=matter_id

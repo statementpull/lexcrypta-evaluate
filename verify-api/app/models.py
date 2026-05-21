@@ -103,3 +103,17 @@ class CounterpartyMatterLink(Base):
     total_volume = Column(Float, default=0.0)
 
     counterparty = relationship("Counterparty", back_populates="matter_links")
+
+
+class SdnEntry(Base):
+    """Cached row from the OFAC Specially Designated Nationals list."""
+    __tablename__ = "sdn_entries"
+    __table_args__ = {"schema": "verify"}
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(300), nullable=False, index=True)   # normalised UPPER, punctuation stripped
+    sdn_type = Column(String(20), default="")                # Individual / Entity / Vessel / Aircraft
+    programs = Column(Text, default="[]")                    # JSON array of sanctions programs
+    is_alias = Column(Boolean, default=False)
+    source_uid = Column(Integer, nullable=True)              # OFAC uid of the parent entry
+    cached_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import os
+import threading
 from datetime import datetime, timezone
 
 logger = logging.getLogger("verify")
@@ -29,6 +30,7 @@ from .services.counterparty_service import (
     tag_counterparty,
     upsert_counterparties,
 )
+from .services import ofac_service
 
 
 # ── License ───────────────────────────────────────────────────────────────────
@@ -89,6 +91,7 @@ def startup():
     except Exception:
         logger.exception("Database initialisation failed — check DATABASE_URL")
         raise
+
     try:
         db = next(get_db())
         try:
@@ -97,6 +100,23 @@ def startup():
             db.close()
     except Exception:
         logger.exception("Demo seed failed — continuing without demo data")
+
+    # OFAC SDN index — load from cache or fetch fresh in background
+    def _init_ofac():
+        db = next(get_db())
+        try:
+            if ofac_service.needs_refresh(db):
+                logger.info("OFAC SDN cache stale or empty — fetching in background …")
+                ofac_service.fetch_and_cache(db)
+            else:
+                count = ofac_service.load_index(db)
+                logger.info("OFAC SDN index loaded from cache: %d entries", count)
+        except Exception:
+            logger.exception("OFAC initialisation failed — SDN screening will be unavailable until /admin/sync-ofac is called")
+        finally:
+            db.close()
+
+    threading.Thread(target=_init_ofac, daemon=True, name="ofac-init").start()
 
 
 # ── Health / Version ──────────────────────────────────────────────────────────
@@ -108,7 +128,7 @@ def health():
 
 @app.get("/version")
 def version():
-    return {"version": "v2026.05", "libraries": 8, "signals": 17, "product": "LexCrypta Verify"}
+    return {"version": "v2026.05", "libraries": 8, "signals": 17, "product": "LexCrypta Verify", "ofac_screening": True}
 
 
 # ── License endpoints ─────────────────────────────────────────────────────────
@@ -463,6 +483,28 @@ def patch_counterparty(
     if not result:
         raise HTTPException(status_code=404, detail="Counterparty not found.")
     return result
+
+
+# ── OFAC ──────────────────────────────────────────────────────────────────────
+
+@app.get("/ofac/status")
+def get_ofac_status(
+    db: Session = Depends(get_db),
+    _: bool = Depends(require_license),
+):
+    return ofac_service.status(db)
+
+
+@app.post("/admin/sync-ofac")
+def sync_ofac(
+    db: Session = Depends(get_db),
+    _: bool = Depends(require_license),
+):
+    """Force a fresh download of the OFAC SDN list and rebuild the index."""
+    try:
+        return ofac_service.fetch_and_cache(db)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
 
 # ── Reports ───────────────────────────────────────────────────────────────────
