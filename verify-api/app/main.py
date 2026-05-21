@@ -333,64 +333,71 @@ def get_results(
 
 @app.post("/demo/analyse")
 async def demo_analyse(
-    file: UploadFile = File(...),
+    files: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ):
-    """Public demo endpoint — no license required. One PDF in, full result out."""
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
+    """Public demo endpoint — no license required. One or more PDFs in, full result out."""
+    if not files:
+        raise HTTPException(status_code=400, detail="No files received.")
 
-    content = await file.read()
-    if len(content) / (1024 * 1024) > MAX_PDF_MB:
-        raise HTTPException(status_code=413, detail=f"File exceeds {MAX_PDF_MB} MB limit.")
+    all_transactions, doc_signals, parse_errors = [], [], []
+
+    for file in files:
+        if not file.filename.lower().endswith(".pdf"):
+            raise HTTPException(status_code=400, detail=f"{file.filename}: only PDF files are accepted.")
+        content = await file.read()
+        if len(content) / (1024 * 1024) > MAX_PDF_MB:
+            raise HTTPException(status_code=413, detail=f"{file.filename} exceeds {MAX_PDF_MB} MB limit.")
+        try:
+            txns = parse_bank_pdf(content)
+            doc_signals += [t for t in txns if t.get("signal_type") == "document_integrity"]
+            all_transactions += [t for t in txns if t.get("signal_type") != "document_integrity"]
+        except Exception as e:
+            logger.exception("Demo parse failed for %s: %s", file.filename, e)
+            parse_errors.append(file.filename)
+
+    if not all_transactions:
+        msg = "No transactions found across the uploaded files."
+        if parse_errors:
+            msg += f" Parse errors: {', '.join(parse_errors)}."
+        raise HTTPException(status_code=422, detail=msg)
 
     ref = f"DEMO-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-    subject = file.filename.replace(".pdf", "").replace("_", " ").replace("-", " ").title()
+    subject = (
+        files[0].filename.replace(".pdf", "").replace("_", " ").replace("-", " ").title()
+        if len(files) == 1
+        else f"{len(files)} Statements"
+    )
     m = Matter(
-        subject=subject or "Demo Statement",
+        subject=subject or "Demo Analysis",
         ref=ref,
         type="civil",
         type_label="Demo Analysis",
         matter_date="",
         assigned_to="Demo",
-        notes="Auto-created via demo upload.",
+        notes=f"Auto-created via demo upload. {len(files)} file(s).",
     )
     db.add(m)
     db.commit()
     db.refresh(m)
 
-    transactions = []
-    try:
-        transactions = parse_bank_pdf(content)
-    except Exception as e:
-        logger.exception("Demo parse failed for %s: %s", file.filename, e)
-        db.delete(m)
-        db.commit()
-        raise HTTPException(status_code=422, detail="Could not parse this PDF. Please upload a bank statement.")
-
-    doc_signals = [t for t in transactions if t.get("signal_type") == "document_integrity"]
-    transactions  = [t for t in transactions if t.get("signal_type") != "document_integrity"]
-
-    if not transactions:
-        db.delete(m)
-        db.commit()
-        raise HTTPException(status_code=422, detail="No transactions found. Please upload a valid bank statement PDF.")
-
-    raw_signals = run_signals(transactions) + doc_signals
-    result = build_verify_result(matter_id=m.id, raw_signals=raw_signals, transactions=transactions)
-    result["transactions_parsed"] = len(transactions)
+    raw_signals = run_signals(all_transactions) + doc_signals
+    result = build_verify_result(matter_id=m.id, raw_signals=raw_signals, transactions=all_transactions)
+    result["transactions_parsed"] = len(all_transactions)
+    if parse_errors:
+        result["parse_errors"] = parse_errors
 
     las = result["las"]
-    m.las_score    = las["score"]
-    m.las_verdict  = las["verdict"]
+    m.las_score       = las["score"]
+    m.las_verdict     = las["verdict"]
     m.las_verdict_cls = las["verdict_cls"]
-    m.las_reason   = las["reason"]
-    m.exposure     = result["exposure"]
-    m.att          = result["att"]
-    m.att_flag     = result["att_flag"]
-    m.analysed     = True
-    m.last_run     = datetime.now(timezone.utc).strftime("%d %b %Y · %H:%M")
-    m.doc_count    = 1
+    m.las_reason      = las["reason"]
+    m.exposure        = result["exposure"]
+    m.att             = result["att"]
+    m.att_flag        = result["att_flag"]
+    m.analysed        = True
+    m.last_run        = datetime.now(timezone.utc).strftime("%d %b %Y · %H:%M")
+    m.doc_count       = len(files)
     db.add(AnalysisResult(matter_id=m.id, result_json=json.dumps(result)))
     db.commit()
 

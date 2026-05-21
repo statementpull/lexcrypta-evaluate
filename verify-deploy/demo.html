@@ -130,6 +130,59 @@
   .drop-sub a { color: var(--gold); text-decoration: none; }
   #fileInput { display: none; }
 
+  .file-list {
+    margin-top: 20px;
+    width: 100%;
+    max-width: 560px;
+    display: none;
+  }
+  .file-list.visible { display: block; }
+  .file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    border-top: none;
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--muted);
+    background: var(--navy2);
+  }
+  .file-item:first-child { border-top: 1px solid var(--border); }
+  .file-item-name { color: var(--cream); }
+  .file-item-size { color: var(--muted); margin-left: 12px; white-space: nowrap; }
+  .file-remove {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+    line-height: 1;
+    margin-left: 8px;
+  }
+  .file-remove:hover { color: var(--red); }
+  .btn-analyse {
+    margin-top: 16px;
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    padding: 13px 32px;
+    font-size: 11px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    width: 100%;
+    max-width: 560px;
+    display: none;
+    transition: background .2s;
+  }
+  .btn-analyse.visible { display: block; }
+  .btn-analyse:hover { background: var(--gold2); }
+
   .trust-strip {
     display: flex;
     gap: 32px;
@@ -451,10 +504,13 @@
 
   <div class="drop-zone" id="dropZone">
     <div class="drop-icon">&#8675;</div>
-    <div class="drop-title">Drop your bank statement PDF here</div>
-    <div class="drop-sub">or <a href="#" id="browseLink">click to browse</a> &nbsp;·&nbsp; PDF only &nbsp;·&nbsp; Max 20 MB</div>
-    <input type="file" id="fileInput" accept=".pdf">
+    <div class="drop-title">Drop bank statement PDFs here</div>
+    <div class="drop-sub">or <a href="#" id="browseLink">click to browse</a> &nbsp;·&nbsp; PDF only &nbsp;·&nbsp; Multiple files supported &nbsp;·&nbsp; Max 20 MB each</div>
+    <input type="file" id="fileInput" accept=".pdf" multiple>
   </div>
+
+  <div class="file-list" id="fileList"></div>
+  <button class="btn-analyse" id="btnAnalyse">Run Analysis &rarr;</button>
 
   <div class="error-msg" id="errorMsg"></div>
 
@@ -470,7 +526,7 @@
 <div class="state" id="stateAnalysing">
   <div class="analysing-wrap">
     <div class="file-badge" id="analysingFilename">&#x2022; statement.pdf</div>
-    <div class="analysing-title">Analysing statement…</div>
+    <div class="analysing-title" id="analysingTitle">Analysing statement…</div>
     <div class="analysing-sub">Running forensic detection across all signal categories</div>
     <ul class="steps" id="stepList">
       <li class="step" id="step1"><div class="step-dot"></div>Extracting transactions from PDF</li>
@@ -533,47 +589,84 @@
 const API = 'https://lexcrypta-verify-production.up.railway.app';
 
 let _reportUrl = null;
+let _stagedFiles = []; // DataTransfer or File array
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmt$(n) {
-  return '$' + Math.round(n).toLocaleString('en-US');
-}
-
-function scoreColor(s) {
-  return s >= 60 ? '#c0392b' : s >= 30 ? '#d4860a' : '#2e7d52';
-}
+function fmt$(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+function fmtMB(b) { return (b / (1024*1024)).toFixed(1) + ' MB'; }
+function scoreColor(s) { return s >= 60 ? '#c0392b' : s >= 30 ? '#d4860a' : '#2e7d52'; }
 
 function showError(msg) {
   const el = document.getElementById('errorMsg');
   el.textContent = msg;
   el.style.display = 'block';
 }
-
 function clearError() {
   const el = document.getElementById('errorMsg');
   el.style.display = 'none';
   el.textContent = '';
 }
-
 function showState(id) {
-  ['stateUpload', 'stateAnalysing', 'stateResults'].forEach(s => {
-    document.getElementById(s).classList.toggle('active', s === id);
-  });
+  ['stateUpload','stateAnalysing','stateResults'].forEach(s =>
+    document.getElementById(s).classList.toggle('active', s === id));
 }
 
-// ── Step animation ───────────────────────────────────────────────────────────
+// ── File staging ──────────────────────────────────────────────────────────────
+
+function addFiles(files) {
+  for (const f of files) {
+    if (!f.name.toLowerCase().endsWith('.pdf')) { showError(`${f.name} is not a PDF.`); continue; }
+    if (f.size > 20 * 1024 * 1024) { showError(`${f.name} exceeds 20 MB.`); continue; }
+    if (!_stagedFiles.find(x => x.name === f.name && x.size === f.size)) _stagedFiles.push(f);
+  }
+  renderFileList();
+}
+
+function removeFile(idx) {
+  _stagedFiles.splice(idx, 1);
+  renderFileList();
+}
+
+function renderFileList() {
+  const listEl   = document.getElementById('fileList');
+  const btnEl    = document.getElementById('btnAnalyse');
+  listEl.innerHTML = '';
+  if (!_stagedFiles.length) {
+    listEl.classList.remove('visible');
+    btnEl.classList.remove('visible');
+    return;
+  }
+  listEl.classList.add('visible');
+  btnEl.classList.add('visible');
+  _stagedFiles.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.innerHTML = `
+      <span class="file-item-name">${f.name}</span>
+      <span style="display:flex;align-items:center;gap:0">
+        <span class="file-item-size">${fmtMB(f.size)}</span>
+        <button class="file-remove" title="Remove">&#x2715;</button>
+      </span>`;
+    item.querySelector('.file-remove').addEventListener('click', () => removeFile(i));
+    listEl.appendChild(item);
+  });
+  btnEl.textContent = _stagedFiles.length === 1
+    ? 'Run Analysis →'
+    : `Run Analysis — ${_stagedFiles.length} statements →`;
+}
+
+// ── Step animation ────────────────────────────────────────────────────────────
 
 function activateStep(n) {
   for (let i = 1; i <= 4; i++) {
     const el = document.getElementById('step' + i);
-    el.classList.remove('active', 'done');
+    el.classList.remove('active','done');
     if (i < n) el.classList.add('done');
     if (i === n) el.classList.add('active');
   }
-  document.getElementById('progressBar').style.width = ((n - 1) / 4 * 85) + '%';
+  document.getElementById('progressBar').style.width = ((n-1)/4*85) + '%';
 }
-
 function completeSteps() {
   for (let i = 1; i <= 4; i++) {
     const el = document.getElementById('step' + i);
@@ -583,112 +676,100 @@ function completeSteps() {
   document.getElementById('progressBar').style.width = '100%';
 }
 
-// ── Upload & Analyse ─────────────────────────────────────────────────────────
+// ── Analyse ───────────────────────────────────────────────────────────────────
 
-async function analyse(file) {
+async function runAnalysis() {
+  if (!_stagedFiles.length) return;
   clearError();
 
-  if (!file.name.toLowerCase().endsWith('.pdf')) {
-    showError('Only PDF files are accepted. Please upload a bank statement PDF.');
-    return;
-  }
-  if (file.size > 20 * 1024 * 1024) {
-    showError('File is too large. Maximum size is 20 MB.');
-    return;
-  }
+  const n = _stagedFiles.length;
+  document.getElementById('analysingFilename').textContent =
+    n === 1 ? `· ${_stagedFiles[0].name}` : `· ${n} statements`;
+  document.getElementById('analysingTitle').textContent =
+    n === 1 ? 'Analysing statement…' : `Analysing ${n} statements…`;
 
-  document.getElementById('analysingFilename').textContent = '· ' + file.name;
   showState('stateAnalysing');
-
   activateStep(1);
-  const step2Timer = setTimeout(() => activateStep(2), 2200);
-  const step3Timer = setTimeout(() => activateStep(3), 4200);
-  const step4Timer = setTimeout(() => activateStep(4), 5800);
+  const t2 = setTimeout(() => activateStep(2), 2200);
+  const t3 = setTimeout(() => activateStep(3), 4200);
+  const t4 = setTimeout(() => activateStep(4), 5800);
 
   const form = new FormData();
-  form.append('file', file);
+  _stagedFiles.forEach(f => form.append('files', f));
 
   let result;
   try {
-    const res = await fetch(API + '/demo/analyse', { method: 'POST', body: form });
+    const res  = await fetch(API + '/demo/analyse', { method: 'POST', body: form });
     const data = await res.json();
     if (!res.ok) {
-      clearTimeout(step2Timer); clearTimeout(step3Timer); clearTimeout(step4Timer);
+      clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
       showState('stateUpload');
-      showError(data.detail || 'Analysis failed. Please try a different file.');
+      showError(data.detail || 'Analysis failed. Please try different files.');
       return;
     }
     result = data;
   } catch (e) {
-    clearTimeout(step2Timer); clearTimeout(step3Timer); clearTimeout(step4Timer);
+    clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
     showState('stateUpload');
     showError('Could not reach the analysis server. Please try again in a moment.');
     return;
   }
 
-  clearTimeout(step2Timer); clearTimeout(step3Timer); clearTimeout(step4Timer);
+  clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
   completeSteps();
-
   await new Promise(r => setTimeout(r, 600));
-  renderResults(result, file.name);
+  renderResults(result);
   showState('stateResults');
 }
 
-// ── Render results ───────────────────────────────────────────────────────────
+// ── Render results ────────────────────────────────────────────────────────────
 
-function renderResults(r, filename) {
+function renderResults(r) {
   _reportUrl = API + (r.report_url || '');
 
   const las   = r.las || {};
   const cs    = r.cash_summary || {};
   const score = las.score || 0;
 
-  document.getElementById('rFilename').textContent = filename;
-  document.getElementById('rSubject').textContent  = r.subject || filename.replace('.pdf','');
+  document.getElementById('rFilename').textContent =
+    _stagedFiles.length === 1 ? _stagedFiles[0].name : `${_stagedFiles.length} statements analysed`;
+  document.getElementById('rSubject').textContent = r.subject || 'Demo Analysis';
 
   const scoreEl = document.getElementById('rLasScore');
   scoreEl.textContent = score;
   scoreEl.style.color = scoreColor(score);
-
   const verdictEl = document.getElementById('rLasVerdict');
   verdictEl.textContent = las.verdict || '';
   verdictEl.style.color = scoreColor(score);
 
-  document.getElementById('rTxns').textContent    = (r.transactions_parsed || 0).toLocaleString();
-  document.getElementById('rInflows').textContent = cs.total_credits ? fmt$(cs.total_credits) : '—';
-  document.getElementById('rOutflows').textContent= cs.total_debits  ? fmt$(cs.total_debits)  : '—';
+  document.getElementById('rTxns').textContent     = (r.transactions_parsed || 0).toLocaleString();
+  document.getElementById('rInflows').textContent  = cs.total_credits ? fmt$(cs.total_credits) : '—';
+  document.getElementById('rOutflows').textContent = cs.total_debits  ? fmt$(cs.total_debits)  : '—';
 
-  const detected = (r.signals || []).filter(s => s.status === 'detected' || s.status === 'possible');
-  document.getElementById('rSigCount').textContent = detected.length
-    ? detected.filter(s => s.status === 'detected').length + ' detected'
-    : 'None detected';
+  const detectedCount = (r.signals || []).filter(s => s.status === 'detected').length;
+  document.getElementById('rSigCount').textContent = detectedCount
+    ? detectedCount + ' detected' : 'None detected';
 
-  // Signal rows — show all detected/possible, plus a few none as padding
+  // Signal rows
   const sigWrap = document.getElementById('rSignalRows');
   sigWrap.innerHTML = '';
   const toShow = [
     ...(r.signals || []).filter(s => s.status !== 'none'),
     ...(r.signals || []).filter(s => s.status === 'none').slice(0, 3),
   ].slice(0, 10);
-
   toShow.forEach(s => {
     const row = document.createElement('div');
     row.className = 'signal-row';
     const pillCls = s.status === 'detected' ? 'pill-detected' : s.status === 'possible' ? 'pill-possible' : 'pill-none';
     row.innerHTML = `
-      <div>
-        <div class="signal-name">${s.name}</div>
-        <div class="signal-cat">${s.cat}</div>
-      </div>
-      <div>
-        <span class="signal-pill ${pillCls}">${s.status.toUpperCase()}${s.count ? ' · ' + s.count : ''}</span>
-      </div>`;
+      <div><div class="signal-name">${s.name}</div><div class="signal-cat">${s.cat}</div></div>
+      <span class="signal-pill ${pillCls}">${s.status.toUpperCase()}${s.count ? ' · '+s.count : ''}</span>`;
     sigWrap.appendChild(row);
   });
 
-  // Intel highlight cards — top 2
+  // Intel cards
   const intel = (r.intel || []).slice(0, 2);
-  const intelWrap = document.getElementById('rIntelWrap');
+  const intelWrap  = document.getElementById('rIntelWrap');
   const intelCards = document.getElementById('rIntelCards');
   intelCards.innerHTML = '';
   if (intel.length) {
@@ -696,12 +777,11 @@ function renderResults(r, filename) {
     intel.forEach(i => {
       const card = document.createElement('div');
       card.className = 'intel-card';
-      const borderCol = i.rec_cls === 'high' ? '#c0392b' : i.rec_cls === 'medium' ? '#d4860a' : '#2e7d52';
-      card.style.borderLeft = '3px solid ' + borderCol;
+      card.style.borderLeft = '3px solid ' + (i.rec_cls==='high'?'#c0392b':i.rec_cls==='medium'?'#d4860a':'#2e7d52');
       card.innerHTML = `
         <div class="intel-cat">${i.cat}</div>
         <div class="intel-title">${i.title}</div>
-        <div class="intel-narrative">${(i.narrative || '').slice(0, 200)}${(i.narrative || '').length > 200 ? '…' : ''}</div>`;
+        <div class="intel-narrative">${(i.narrative||'').slice(0,200)}${(i.narrative||'').length>200?'…':''}</div>`;
       intelCards.appendChild(card);
     });
   } else {
@@ -709,31 +789,29 @@ function renderResults(r, filename) {
   }
 }
 
-// ── Event wiring ─────────────────────────────────────────────────────────────
+// ── Event wiring ──────────────────────────────────────────────────────────────
 
 const dropZone  = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 
 dropZone.addEventListener('click', () => fileInput.click());
 document.getElementById('browseLink').addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
-fileInput.addEventListener('change', () => { if (fileInput.files[0]) analyse(fileInput.files[0]); });
+fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
 
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
 dropZone.addEventListener('drop', e => {
   e.preventDefault();
   dropZone.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) analyse(file);
+  addFiles(e.dataTransfer.files);
 });
 
-document.getElementById('btnFullReport').addEventListener('click', () => {
-  if (_reportUrl) window.open(_reportUrl, '_blank');
-});
-
+document.getElementById('btnAnalyse').addEventListener('click', runAnalysis);
+document.getElementById('btnFullReport').addEventListener('click', () => { if (_reportUrl) window.open(_reportUrl, '_blank'); });
 document.getElementById('btnReset').addEventListener('click', () => {
-  fileInput.value = '';
+  _stagedFiles = [];
   _reportUrl = null;
+  renderFileList();
   clearError();
   showState('stateUpload');
 });
