@@ -343,6 +343,19 @@ def build_verify_result(
         "intel": intel_out,
         "verify_plus_teaser": verify_plus,
         "date_range": date_range,
+        "flagged_transactions": [
+            {
+                "date": s.get("transaction_date", ""),
+                "merchant": (s.get("merchant") or s.get("description", ""))[:60],
+                "amount": s.get("amount", 0),
+                "signal_type": s.get("signal_type", s.get("type", "")),
+            }
+            for s in sorted(
+                [s for s in raw_signals if abs(s.get("amount", 0)) > 0],
+                key=lambda s: abs(s.get("amount", 0)),
+                reverse=True,
+            )[:20]
+        ],
         "cash_summary": {
             "total_credits": round(total_credits),
             "total_debits": round(total_debits),
