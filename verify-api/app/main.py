@@ -561,7 +561,7 @@ def get_report(
 <title>Forensic Report — {m.subject} — LexCrypta Verify</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono&display=swap');
-  :root{{--navy:#080f1c;--navy2:#0f1e2d;--navy3:#162840;--gold:#c8963e;--cream:#f0ebe0;--text:#b8c4d4;--muted:#6a7a8e;--red:#c0392b;--green:#2e7d52;--border:#1e2e40}}
+  :root{{--navy:#0e1c2e;--navy2:#152336;--navy3:#1c2f44;--gold:#c8963e;--cream:#f2ede4;--text:#ccd6e8;--muted:#8a9bb4;--red:#c0392b;--green:#2e7d52;--border:#243650}}
   *{{box-sizing:border-box;margin:0;padding:0}}
   body{{font-family:'IBM Plex Sans',Arial,sans-serif;background:var(--navy);color:var(--text);font-size:12px;line-height:1.6}}
   .page{{max-width:860px;margin:0 auto;padding:48px 40px}}
@@ -602,7 +602,7 @@ def get_report(
     [style*="color:#b8c4d4"]{{color:#333!important}}
     [style*="color:#c8963e"]{{color:#8b6914!important}}
     [style*="color:#f0ebe0"]{{color:#1a1a2e!important}}
-    [style*="background:#080f1c"],[style*="background:var(--navy"]{{background:white!important}}
+    [style*="background:#0e1c2e"],[style*="background:var(--navy"]{{background:white!important}}
   }}
 </style>
 </head>
