@@ -37,6 +37,20 @@ def normalise_amount(debit: str, credit: str) -> float:
 #   Balance  x0 >= 535
 # Determined empirically from extract_words() on Kangaroo Two LLC statements.
 
+_MERCHANT_NOISE_RE = re.compile(
+    r"\s+#\d+$"      # trailing #4912
+    r"|\s+\*\s*\d+$" # trailing * 44212
+    r"|\s+\d{6,}$"   # trailing long reference codes
+, re.IGNORECASE)
+
+
+def _normalise_merchant(raw: str) -> str:
+    """Strip trailing reference IDs from merchant descriptions."""
+    s = re.sub(r"\s+", " ", raw).strip().upper()
+    s = _MERCHANT_NOISE_RE.sub("", s).strip()
+    return s
+
+
 _WF_CREDIT_MAX_X = 479.0
 _WF_DEBIT_MAX_X  = 530.0   # balance col starts at x0=533; keep margin
 _WF_AMT_MIN_X    = 390.0   # ignore amounts in description area
@@ -149,7 +163,7 @@ def _parse_wellsfargo_pdf(pdf_bytes: bytes) -> list[dict]:
 
 
 def _finalise_wf_txn(t: dict) -> dict:
-    desc = re.sub(r"\s+", " ", t["description"]).strip().upper()
+    desc = _normalise_merchant(t["description"])
     amount = t["credit"] - t["debit"] if (t["credit"] or t["debit"]) else 0.0
     return {
         "transaction_date": t["transaction_date"],
@@ -183,7 +197,7 @@ def _parse_generic_pdf(pdf_bytes: bytes) -> list[dict]:
                     continue
                 txns.append({
                     "transaction_date": date,
-                    "merchant": desc.upper(),
+                    "merchant": _normalise_merchant(desc),
                     "amount": normalise_amount(debit, credit),
                     "raw": row_dict,
                 })

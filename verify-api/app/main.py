@@ -101,7 +101,7 @@ def health():
 
 @app.get("/version")
 def version():
-    return {"version": "v2026.05", "libraries": 8, "signals": 16}
+    return {"version": "v2026.05", "libraries": 8, "signals": 17, "product": "LexCrypta Verify"}
 
 
 # ── License endpoints ─────────────────────────────────────────────────────────
@@ -348,6 +348,8 @@ def get_report(
     intel  = result.get("intel", [])
     ftxns  = result.get("flagged_transactions", [])
     n_txns = result.get("transactions_parsed", 0)
+    counterparties = result.get("top_counterparties", [])
+    monthly = result.get("monthly_breakdown", [])
     score  = las.get("score", 0)
     now_str = datetime.now(timezone.utc).strftime("%d %b %Y · %H:%M UTC")
 
@@ -416,6 +418,47 @@ def get_report(
             <th>Date</th><th>Merchant / Description</th><th style="text-align:right">Amount</th><th>Signal Type</th>
           </tr></thead><tbody>{rows}</tbody></table>
         </div>"""
+
+    # Monthly breakdown table
+    monthly_html = ""
+    if monthly:
+        rows = "".join(
+            f'<tr>'
+            f'<td style="color:#e8e0d0;font-size:11px">{r["month"]}</td>'
+            f'<td style="font-family:monospace;font-size:10px;color:#2e7d52;text-align:right">${r["credits"]:,.0f}</td>'
+            f'<td style="font-family:monospace;font-size:10px;color:#9aa8bc;text-align:right">${r["debits"]:,.0f}</td>'
+            f'<td style="font-family:monospace;font-size:10px;text-align:right;color:{"#c0392b" if r["net"] < 0 else "#2e7d52"}">'
+            f'{"−" if r["net"] < 0 else "+"}${abs(r["net"]):,.0f}</td>'
+            f'</tr>'
+            for r in monthly
+        )
+        monthly_html = f"""
+        <h2>Monthly Activity Profile</h2>
+        <table style="max-width:480px">
+          <thead><tr><th>Month</th><th style="text-align:right">Credits</th><th style="text-align:right">Debits</th><th style="text-align:right">Net</th></tr></thead>
+          <tbody>{rows}</tbody>
+        </table>"""
+
+    # Counterparty table
+    cp_html = ""
+    if counterparties:
+        rows = "".join(
+            f'<tr>'
+            f'<td style="font-size:11px;color:#e8e0d0">{c["merchant"][:55]}</td>'
+            f'<td style="font-family:monospace;font-size:10px;color:#c8963e;text-align:right">${c["total"]:,.0f}</td>'
+            f'<td style="font-family:monospace;font-size:10px;color:#9aa8bc;text-align:right">{c["count"]}</td>'
+            f'<td style="font-family:monospace;font-size:10px;color:{"#c0392b" if c["sent"] > c["received"] else "#2e7d52"};text-align:right">'
+            f'{"↑" if c["received"] >= c["sent"] else "↓"} ${max(c["sent"], c["received"]):,.0f}</td>'
+            f'</tr>'
+            for c in counterparties
+        )
+        cp_html = f"""
+        <h2>Top Counterparties</h2>
+        <p style="font-size:10px;color:#6a7a8e;margin-bottom:10px">Entities ranked by total transaction volume. Arrows indicate dominant flow direction (↑ received, ↓ sent).</p>
+        <table>
+          <thead><tr><th>Entity</th><th style="text-align:right">Total Volume</th><th style="text-align:right">Transactions</th><th style="text-align:right">Dominant Flow</th></tr></thead>
+          <tbody>{rows}</tbody>
+        </table>"""
 
     # Cash flow section
     cf_html = ""
@@ -543,6 +586,10 @@ def get_report(
   </div>
 
   {cf_html}
+
+  {monthly_html}
+
+  {cp_html}
 
   <!-- Signal Table -->
   <h2>Signal Detection — 17 Categories</h2>

@@ -1,19 +1,9 @@
 """
 Verify signal runner and result builder.
 Runs 8 signal libraries against bank transactions and maps
-output to the 16-slot frontend SIGNALS array.
-
-Interface notes (actual signatures discovered from source):
-  - digital_asset.run(transactions, loader=None)       — OK
-  - hidden_assets.run(transactions, pl_rows=None, loader=None) — OK
-  - behavioural.run(transactions)                      — NO loader param
-  - aml_structuring.run(transactions, pl_rows=None, loader=None) — OK
-  - cash_flow.run(transactions, pl_rows)               — pl_rows is required positional
-  - real_estate.run(transactions, loader=None)         — OK
-  - owner_compensation.run(transactions, pl_rows=None, loader=None) — OK
-  - liability.run(transactions)                        — NO loader param
+output to the 17-slot frontend SIGNALS array.
 """
-import calendar
+from collections import defaultdict
 from datetime import datetime, timezone
 
 from ..las_score import calculate_las
@@ -105,6 +95,115 @@ DEFAULT_INTEL = {
 }
 
 
+def _build_top_counterparties(transactions: list, n: int = 10) -> list:
+    """Return top N counterparties by total absolute volume."""
+    totals: dict = defaultdict(lambda: {"sent": 0.0, "received": 0.0, "count": 0})
+    for t in transactions:
+        merchant = (t.get("merchant") or t.get("description", "")).strip()
+        if not merchant or merchant in ("UNKNOWN", "N/A", ""):
+            continue
+        amt = t.get("amount", 0)
+        totals[merchant]["count"] += 1
+        if amt < 0:
+            totals[merchant]["sent"] += abs(amt)
+        else:
+            totals[merchant]["received"] += amt
+    result = []
+    for merchant, d in totals.items():
+        total = d["sent"] + d["received"]
+        result.append({
+            "merchant": merchant,
+            "total": round(total),
+            "sent": round(d["sent"]),
+            "received": round(d["received"]),
+            "count": d["count"],
+        })
+    return sorted(result, key=lambda x: x["total"], reverse=True)[:n]
+
+
+def _build_monthly_breakdown(transactions: list) -> list:
+    """Return month-by-month credit/debit totals from M/D dates."""
+    monthly: dict = defaultdict(lambda: {"credits": 0.0, "debits": 0.0})
+    for t in transactions:
+        raw = (t.get("transaction_date") or "").strip()
+        parts = raw.split("/")
+        if not parts:
+            continue
+        try:
+            month = int(parts[0])
+        except ValueError:
+            continue
+        if not 1 <= month <= 12:
+            continue
+        amt = t.get("amount", 0)
+        if amt > 0:
+            monthly[month]["credits"] += amt
+        elif amt < 0:
+            monthly[month]["debits"] += abs(amt)
+    if not monthly:
+        return []
+    return [
+        {
+            "month": _MONTH_ABBR[m],
+            "credits": round(monthly[m]["credits"]),
+            "debits": round(monthly[m]["debits"]),
+            "net": round(monthly[m]["credits"] - monthly[m]["debits"]),
+        }
+        for m in sorted(monthly)
+    ]
+
+
+def _detect_pass_through(transactions: list) -> list:
+    """Flag rapid-cycling: credit ≥$2000 followed by similar debit within 2 days.
+
+    FinCEN layering typology — account used as conduit rather than genuine holder.
+    Threshold is tight ($2000 min, 80% match, 2-day window) to reduce false positives.
+    """
+    # Parse dates into (month, day) tuples
+    parsed = []
+    for t in transactions:
+        raw = (t.get("transaction_date") or "").strip()
+        parts = raw.split("/")
+        if len(parts) >= 2:
+            try:
+                parsed.append({**t, "_m": int(parts[0]), "_d": int(parts[1])})
+            except ValueError:
+                pass
+
+    flagged, seen = [], set()
+    credits = [t for t in parsed if t.get("amount", 0) >= 2000]
+    debits  = [t for t in parsed if t.get("amount", 0) <= -2000]
+
+    for c in credits:
+        c_amt = c["amount"]
+        for d in debits:
+            if c["_m"] != d["_m"]:
+                continue
+            days_apart = d["_d"] - c["_d"]
+            if not 0 <= days_apart <= 2:
+                continue
+            ratio = abs(d["amount"]) / c_amt
+            if not 0.80 <= ratio <= 1.20:
+                continue
+            key = (c.get("transaction_date"), c.get("merchant"), d.get("transaction_date"))
+            if key in seen:
+                continue
+            seen.add(key)
+            c_name = (c.get("merchant") or "")[:35]
+            d_name = (d.get("merchant") or "")[:35]
+            flagged.append({
+                "signal_type": "aml_structuring",
+                "merchant": f"PASS-THROUGH: {c_name} → {d_name}",
+                "amount": c_amt,
+                "transaction_date": c.get("transaction_date", ""),
+                "severity": "amber",
+                "confidence_weight": 0.6,
+            })
+        if len(flagged) >= 5:
+            break
+    return flagged
+
+
 def run_signals(transactions: list, loader=None) -> list:
     """Run all 8 signal libraries and return combined raw signal list.
 
@@ -141,6 +240,12 @@ def run_signals(transactions: list, loader=None) -> list:
             results.extend(module.run(transactions))
         except Exception:
             pass
+
+    # Pass-through/layering detection (built-in, no external module)
+    try:
+        results.extend(_detect_pass_through(transactions))
+    except Exception:
+        pass
 
     return results
 
@@ -368,6 +473,9 @@ def build_verify_result(
             "priority_action": "File preservation letter · Obtain subpoenas for identified institutions",
         }
 
+    top_counterparties = _build_top_counterparties(transactions)
+    monthly_breakdown  = _build_monthly_breakdown(transactions)
+
     return {
         "matter_id": matter_id,
         "run_at": datetime.now(timezone.utc).isoformat(),
@@ -408,4 +516,6 @@ def build_verify_result(
             "total_debits": round(total_debits),
             "net_cash": round(total_credits - total_debits),
         },
+        "top_counterparties": top_counterparties,
+        "monthly_breakdown": monthly_breakdown,
     }
