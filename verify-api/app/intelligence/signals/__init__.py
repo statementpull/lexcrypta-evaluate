@@ -44,6 +44,20 @@ SIGNAL_SLOTS = [
     {"name": "Gold & Precious Metals",        "cat": "ASSET",                   "types": ["hidden_assets"],      "keywords": ["ABC BULLION", "PERTH MINT", "GOLD BULLION", "SILVER BULLION", "PRECIOUS METALS"]},
     {"name": "Gift Card / Prepaid",           "cat": "OBFUSCATION",             "types": ["aml_structuring"],    "keywords": ["GIFT CARD", "PREPAID VISA", "PREPAID MASTERCARD", "VANILLA VISA", "EFTPOS GIFT"]},
     {"name": "Cross-Border Value Transfer",   "cat": "FLOW",                    "types": ["cash_flow"],          "keywords": ["WESTERN UNION", "MONEYGRAM", "WISE", "TRANSFERWISE", "REMITLY", "WORLDREMIT", "OFX"]},
+    {"name": "Political Entity Payments",     "cat": "DISTRIBUTION · ASSET",    "types": ["hidden_assets"],      "keywords": [
+        # Known PACs and political committees (US)
+        "ACTBLUE", "ACT BLUE", "WINRED", "WIN RED",
+        "PROTECT OUR FUTURE", "HOUSE MAJORITY PAC", "SENATE MAJORITY PAC",
+        "ONE NATION", "AMERICAN ACTION NETWORK", "SENATE LEADERSHIP FUND",
+        "TEAM MCCONNELL", "EMILYS LIST", "EMILY S LIST",
+        "NRSC", "NRCC", "DCCC", "DSCC",
+        # Generic political identifiers
+        "FOR CONGRESS", "FOR SENATE", "FOR GOVERNOR", "FOR PRESIDENT",
+        "POLITICAL ACTION COMMITTEE", "LEADERSHIP PAC", "CAMPAIGN COMMITTEE",
+        "ELECTION FUND", "CAMPAIGN FUND", "POLITICAL FUND",
+        # Federal identifiers
+        "FEDERAL ELECTION", "FEC FILING",
+    ]},
     {"name": "PDF Document Integrity",        "cat": "DOCUMENT · INTEGRITY",    "types": ["document_integrity"], "keywords": []},
 ]
 
@@ -89,6 +103,13 @@ INTEL_TEMPLATES = {
         "rec_cls": "medium",
         "tier": "Remittance Operators",
         "path_template": "Subpoena {operators} for recipient details, destination country, and beneficiary identity. Cross-border transfers may indicate undisclosed foreign assets.",
+    },
+    "Political Entity Payments": {
+        "cat_cls": "obfuscation",
+        "rec": "High Recovery",
+        "rec_cls": "high",
+        "tier": "Wealth Extraction — Political",
+        "path_template": "Political donations are a documented mechanism for extracting funds from a business or estate. Identify the receiving PAC or committee and cross-reference with FEC filings at fec.gov to confirm amounts, donor identity, and source entity. In bankruptcy and divorce proceedings, political contributions made within the preference period may be recoverable. Subpoena the donor's brokerage and payroll records to establish whether the source was business operating funds or personal wealth.",
     },
     "PDF Document Integrity": {
         "cat_cls": "obfuscation",

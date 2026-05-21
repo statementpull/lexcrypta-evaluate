@@ -128,7 +128,7 @@ def health():
 
 @app.get("/version")
 def version():
-    return {"version": "v2026.05", "libraries": 8, "signals": 17, "product": "LexCrypta Verify", "ofac_screening": True}
+    return {"version": "v2026.05", "libraries": 8, "signals": 18, "product": "LexCrypta Verify", "ofac_screening": True}
 
 
 # ── License endpoints ─────────────────────────────────────────────────────────
