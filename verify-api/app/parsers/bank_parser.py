@@ -259,6 +259,177 @@ def _extract_pdf_metadata(pdf_bytes: bytes) -> dict | None:
     return None
 
 
+# ── Chase bank parser ─────────────────────────────────────────────────────────
+#
+# Chase Business/Personal statements use section markers: *start*<name> / *end*
+# Credits live in "deposits and additions", debits in "atm & debit card withdrawals"
+# and "electronic withdrawals". Amounts trail the first description line.
+
+_CHASE_AMOUNT_RE = re.compile(r"\$?([\d,]+\.\d{2})\s*$")
+_CHASE_DATE_RE   = re.compile(r"^(\d{1,2}/\d{1,2})\s+(.*)")
+_CHASE_SECTION_START_RE = re.compile(r"^\*start\*(.+)", re.IGNORECASE)
+_CHASE_SECTION_END_RE   = re.compile(r"^\*end\*", re.IGNORECASE)
+
+# Chase section name fragments that contain credits
+_CHASE_CREDIT_SECTIONS = {"deposits and additions", "deposits", "other credits"}
+# Chase section name fragments that contain debits
+_CHASE_DEBIT_SECTIONS  = {"atm", "debit withdrawal", "debit card", "electronic withdrawal",
+                           "electronic payment", "checks paid", "fees", "service fee"}
+
+_CHASE_SKIP_RE = re.compile(
+    r"^Total|^Account Number|^JPMorgan Chase|^Member FDIC"
+    r"|^\(continued\)|^Beginning Balance|^Ending Balance"
+    r"|^Date\s+Description|^ACCOUNT ACTIVITY",
+    re.IGNORECASE,
+)
+
+# Multi-line ACH continuation fields — strip these
+_CHASE_ACH_CONT_RE = re.compile(
+    r"^\s*(Orig CO Name:|Orig ID:|Descr:|CO Entry Class:|Trn:|Trace#|Individual ID:|Individual Name:|PPD ID:)",
+    re.IGNORECASE,
+)
+
+# Extract originating company name from ACH header lines
+_CHASE_ORIG_CO_RE = re.compile(r"Orig CO Name:\s*([^O]+?)(?:\s+Orig ID:|$)", re.IGNORECASE)
+
+# Card purchase pattern: "Card Purchase MM/DD <merchant> Card XXXX"
+_CHASE_CARD_RE = re.compile(
+    r"^Card (?:Purchase|Payment)\s+\d{1,2}/\d{1,2}\s+(.*?)\s+Card\s+\d{4}",
+    re.IGNORECASE,
+)
+
+# Zelle pattern
+_CHASE_ZELLE_RE = re.compile(r"^Zelle (?:Payment (?:From|To)|Transfer(?:\s+From|\s+To)?)\s+(.*?)\s+(?:on\s+)?\d{1,2}/\d{1,2}", re.IGNORECASE)
+
+
+def _is_chase_bank(text: str) -> bool:
+    return "JPMorgan Chase" in text or "Chase.com" in text or "Chase Bank" in text
+
+
+def _clean_chase_desc(raw: str) -> str:
+    """Extract a clean merchant name from a Chase transaction description."""
+    s = raw.strip()
+
+    # Card purchase — extract merchant between date and 'Card XXXX'
+    m = _CHASE_CARD_RE.match(s)
+    if m:
+        return _normalise_merchant(m.group(1))
+
+    # Zelle
+    m = _CHASE_ZELLE_RE.match(s)
+    if m:
+        return _normalise_merchant("ZELLE " + m.group(1))
+
+    # ACH with Orig CO Name embedded
+    m = _CHASE_ORIG_CO_RE.search(s)
+    if m:
+        return _normalise_merchant(m.group(1).strip())
+
+    return _normalise_merchant(s)
+
+
+def _parse_chase_pdf(pdf_bytes: bytes) -> list[dict]:
+    txns = []
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        full_text = "\n".join(
+            page.extract_text() or "" for page in pdf.pages
+        )
+
+    lines = full_text.splitlines()
+    current_section = ""
+    is_credit_section = False
+    is_debit_section  = False
+    skip_section      = False
+    current           = None
+
+    def _flush(t):
+        if not t:
+            return
+        desc  = _clean_chase_desc(t["description"])
+        amt   = t["amount"]
+        txns.append({
+            "transaction_date": t["date"],
+            "merchant": desc,
+            "amount": amt,
+            "credit": amt if amt > 0 else 0.0,
+            "debit":  abs(amt) if amt < 0 else 0.0,
+            "raw": {"description": desc},
+        })
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        # Section start
+        m = _CHASE_SECTION_START_RE.match(stripped)
+        if m:
+            _flush(current)
+            current = None
+            current_section = m.group(1).lower()
+            skip_section = (
+                "daily ending balance" in current_section
+                or "summary" in current_section
+                or "message" in current_section
+            )
+            is_credit_section = not skip_section and any(
+                cs in current_section for cs in _CHASE_CREDIT_SECTIONS
+            )
+            is_debit_section = not skip_section and any(
+                ds in current_section for ds in _CHASE_DEBIT_SECTIONS
+            )
+            continue
+
+        # Section end
+        if _CHASE_SECTION_END_RE.match(stripped):
+            _flush(current)
+            current = None
+            current_section = ""
+            is_credit_section = is_debit_section = skip_section = False
+            continue
+
+        if skip_section or (not is_credit_section and not is_debit_section):
+            continue
+
+        if _CHASE_SKIP_RE.match(stripped):
+            continue
+
+        # ACH continuation line — append to current description, skip amount parsing
+        if current and _CHASE_ACH_CONT_RE.match(stripped):
+            # Only keep Orig CO Name content; ignore the rest
+            mc = _CHASE_ORIG_CO_RE.search(stripped)
+            if mc:
+                current["description"] = mc.group(1).strip()
+            continue
+
+        # New transaction: starts with MM/DD
+        m = _CHASE_DATE_RE.match(stripped)
+        if m:
+            _flush(current)
+            date = m.group(1)
+            rest = m.group(2).strip()
+
+            # Extract trailing amount
+            am = _CHASE_AMOUNT_RE.search(rest)
+            if not am:
+                current = None
+                continue
+            raw_amount = _parse_float(am.group(1))
+            desc_part  = rest[: am.start()].strip()
+
+            # Sign: credits positive, debits negative
+            signed_amount = raw_amount if is_credit_section else -raw_amount
+            current = {"date": date, "description": desc_part, "amount": signed_amount}
+        elif current:
+            # Continuation of prior description — only append non-amount text
+            am = _CHASE_AMOUNT_RE.search(stripped)
+            if not am:
+                current["description"] += " " + stripped
+
+    _flush(current)
+    return txns
+
+
 # ── Public interface ───────────────────────────────────────────────────────────
 
 def parse_bank_pdf(pdf_bytes: bytes) -> list[dict]:
@@ -268,6 +439,14 @@ def parse_bank_pdf(pdf_bytes: bytes) -> list[dict]:
             first_text = (pdf.pages[0].extract_text() or "") if pdf.pages else ""
     except Exception:
         first_text = ""
+
+    if _is_chase_bank(first_text):
+        txns = _parse_chase_pdf(pdf_bytes)
+        if txns:
+            meta_signal = _extract_pdf_metadata(pdf_bytes)
+            if meta_signal:
+                txns.append(meta_signal)
+            return txns
 
     if _is_wf_bank(first_text):
         txns = _parse_wellsfargo_pdf(pdf_bytes)
