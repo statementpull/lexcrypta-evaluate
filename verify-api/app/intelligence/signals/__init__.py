@@ -59,6 +59,8 @@ SIGNAL_SLOTS = [
         "FEDERAL ELECTION", "FEC FILING",
     ]},
     {"name": "PDF Document Integrity",        "cat": "DOCUMENT · INTEGRITY",    "types": ["document_integrity"], "keywords": []},
+    {"name": "Round-Trip Cash Flows",         "cat": "OBFUSCATION · FRAUD",      "types": ["round_trip_flow"],    "keywords": []},
+    {"name": "NSF Fee Manipulation",          "cat": "BANK CONDUCT",             "types": ["nsf_manipulation"],   "keywords": []},
 ]
 
 INTEL_TEMPLATES = {
@@ -117,6 +119,20 @@ INTEL_TEMPLATES = {
         "rec_cls": "high",
         "tier": "Document Authenticity",
         "path_template": "Statement metadata indicates post-issuance modification. Obtain certified copy directly from issuing bank. Do not rely on provided document without independent verification.",
+    },
+    "Round-Trip Cash Flows": {
+        "cat_cls": "obfuscation",
+        "rec": "Immediate Review",
+        "rec_cls": "high",
+        "tier": "Revenue Fabrication Signal",
+        "path_template": "Same entity appears as both payer and payee within a 90-day window — mechanical signature of round-trip cash flows used to inflate revenue (Luckin Coffee pattern). Subpoena {operators} for full counterparty records, identify the source entity, and cross-reference with accounts receivable records to establish whether the inbound amounts represent genuine revenue or recycled funds.",
+    },
+    "NSF Fee Manipulation": {
+        "cat_cls": "obfuscation",
+        "rec": "Investigate",
+        "rec_cls": "medium",
+        "tier": "Bank Conduct Signal",
+        "path_template": "NSF fee applied on the same day a covering deposit arrived — consistent with transaction reordering to maximise fee revenue (Wells Fargo pattern). Obtain the full daily transaction ledger from the bank to establish the processing sequence. This pattern may support a fee recovery claim and may indicate the account was deliberately maintained at low balances.",
     },
 }
 
@@ -267,6 +283,122 @@ def _keyword_scan(transactions: list) -> list:
     return results
 
 
+_NSF_KEYWORDS = frozenset([
+    "NSF", "NON-SUFFICIENT", "INSUFFICIENT FUNDS", "INSUFFICIENT FD",
+    "OVERDRAFT FEE", "RETURNED ITEM FEE", "RETURNED CHECK FEE", "NSF FEE",
+])
+
+
+def _detect_round_trip_flows(transactions: list) -> list:
+    """Detect same counterparty as both payer and payee within 90 days.
+
+    Luckin Coffee pattern: funds paid out to an agent who routes them back as
+    fake revenue. Same entity name on both sides of the ledger within ~90 days
+    is the mechanical signature of fabricated round-trip cash flows.
+    """
+    parsed = []
+    for t in transactions:
+        raw = (t.get("transaction_date") or "").strip()
+        parts = raw.split("/")
+        if len(parts) >= 2:
+            try:
+                m, d = int(parts[0]), int(parts[1])
+                parsed.append({**t, "_day": m * 31 + d})
+            except ValueError:
+                pass
+
+    by_merchant: dict = defaultdict(list)
+    for t in parsed:
+        merchant = (t.get("merchant") or t.get("description", "")).strip().upper()
+        if not merchant or merchant in ("UNKNOWN", "N/A", ""):
+            continue
+        by_merchant[merchant].append(t)
+
+    flagged = []
+    for merchant, txns in by_merchant.items():
+        inbound  = [t for t in txns if t.get("amount", 0) > 0]
+        outbound = [t for t in txns if t.get("amount", 0) < 0]
+        if not inbound or not outbound:
+            continue
+
+        found = False
+        for c in inbound:
+            for d in outbound:
+                if abs(c["_day"] - d["_day"]) <= 90:
+                    found = True
+                    break
+            if found:
+                break
+
+        if found:
+            display = (inbound[0].get("merchant") or merchant)[:40]
+            total_in  = sum(t.get("amount", 0) for t in inbound)
+            total_out = sum(abs(t.get("amount", 0)) for t in outbound)
+            flagged.append({
+                "signal_type": "round_trip_flow",
+                "merchant": f"ROUND-TRIP: {display}",
+                "amount": min(total_in, total_out),
+                "transaction_date": inbound[0].get("transaction_date", ""),
+                "severity": "red",
+                "confidence_weight": 0.75,
+            })
+
+        if len(flagged) >= 5:
+            break
+
+    return flagged
+
+
+def _detect_nsf_manipulation(transactions: list) -> list:
+    """Detect NSF fee on the same day a covering deposit arrived.
+
+    Wells Fargo pattern: bank reorders transactions within a day (debits before
+    credits) to trigger NSF fees even when a deposit arrives the same day that
+    would have covered the balance. The signature is an NSF fee and a deposit
+    on an identical transaction_date.
+    """
+    by_date: dict = defaultdict(list)
+    for t in transactions:
+        raw = (t.get("transaction_date") or "").strip()
+        if raw:
+            by_date[raw].append(t)
+
+    flagged = []
+    for date, day_txns in by_date.items():
+        nsf_fees = [
+            t for t in day_txns
+            if t.get("amount", 0) < 0
+            and any(
+                kw in (t.get("merchant") or t.get("description", "")).upper()
+                for kw in _NSF_KEYWORDS
+            )
+        ]
+        if not nsf_fees:
+            continue
+
+        deposits = [t for t in day_txns if t.get("amount", 0) > 0]
+        if not deposits:
+            continue
+
+        total_deposit = sum(t.get("amount", 0) for t in deposits)
+        for fee in nsf_fees:
+            if total_deposit >= abs(fee.get("amount", 0)):
+                fee_name = (fee.get("merchant") or "NSF Fee")[:40]
+                flagged.append({
+                    "signal_type": "nsf_manipulation",
+                    "merchant": f"NSF MANIPULATION: {fee_name}",
+                    "amount": fee.get("amount", 0),
+                    "transaction_date": date,
+                    "severity": "amber",
+                    "confidence_weight": 0.65,
+                })
+
+        if len(flagged) >= 5:
+            break
+
+    return flagged
+
+
 def _dedup_signals(signals: list) -> list:
     """Remove duplicate signals by (type, date, amount) — prevents keyword_scan
     and module signals double-counting the same transaction."""
@@ -329,6 +461,18 @@ def run_signals(transactions: list, loader=None) -> list:
     # Keyword-first scan — catches known entities the modules miss
     try:
         results.extend(_keyword_scan(transactions))
+    except Exception:
+        pass
+
+    # Round-trip cash flow detection (Luckin Coffee pattern)
+    try:
+        results.extend(_detect_round_trip_flows(transactions))
+    except Exception:
+        pass
+
+    # NSF fee manipulation detection (Wells Fargo pattern)
+    try:
+        results.extend(_detect_nsf_manipulation(transactions))
     except Exception:
         pass
 
