@@ -22,6 +22,7 @@ from .intelligence.signals import build_verify_result, run_signals
 from .models import AnalysisResult, Counterparty, Document, License, Matter
 from .parsers.bank_parser import parse_bank_csv_text, parse_bank_pdf
 from .parsers.file_detector import detect_file_type
+from .parsers.security_scanner import scan_pdf_bytes, validate_pdf_header
 from .seed import seed_demo_data
 from .services.counterparty_service import (
     enrich_signals,
@@ -260,6 +261,18 @@ async def upload_documents(
         limit = MAX_PDF_MB if detected in ("bank_pdf", "pdf_financial_report") else MAX_CSV_MB
         if mb > limit:
             raise HTTPException(status_code=413, detail=f"{f.filename} exceeds {limit}MB limit.")
+        if detected in ("bank_pdf", "pdf_financial_report"):
+            hdr_err = validate_pdf_header(content, f.filename)
+            if hdr_err:
+                raise HTTPException(status_code=400, detail=hdr_err)
+            threat = scan_pdf_bytes(content, f.filename)
+            if threat:
+                logger.warning("Security threat in upload: %s — %s",
+                               f.filename, threat["meta"]["threats_found"])
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{f.filename}: security threat detected — {'; '.join(threat['meta']['threats_found'])}. File rejected.",
+                )
         doc = Document(matter_id=matter_id, filename=f.filename, zone=zone, content=content)
         db.add(doc)
         db.flush()
@@ -380,6 +393,17 @@ async def demo_analyse(
         content = await file.read()
         if len(content) / (1024 * 1024) > MAX_PDF_MB:
             raise HTTPException(status_code=413, detail=f"{file.filename} exceeds {MAX_PDF_MB} MB limit.")
+        hdr_err = validate_pdf_header(content, file.filename)
+        if hdr_err:
+            raise HTTPException(status_code=400, detail=hdr_err)
+        threat = scan_pdf_bytes(content, file.filename)
+        if threat:
+            logger.warning("Security threat in demo upload: %s — %s",
+                           file.filename, threat["meta"]["threats_found"])
+            raise HTTPException(
+                status_code=400,
+                detail=f"{file.filename}: security threat detected — {'; '.join(threat['meta']['threats_found'])}. File rejected.",
+            )
         try:
             txns = parse_bank_pdf(content)
             doc_signals += [t for t in txns if t.get("signal_type") == "document_integrity"]
