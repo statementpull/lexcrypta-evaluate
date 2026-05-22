@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..models import Counterparty, CounterpartyMatterLink
 from .ofac_service import check_name as ofac_check
+from .dfat_service import check_name as dfat_check
 
 logger = logging.getLogger("verify.counterparty")
 
@@ -45,8 +46,8 @@ def upsert_counterparties(db: Session, matter_id: int, transactions: list) -> No
         if last and (not cp.last_seen or last > cp.last_seen):
             cp.last_seen = last
 
-        # OFAC SDN screening — only runs if index is loaded
-        if cp.severity != "red":              # don't downgrade an existing red flag
+        # Sanctions screening — OFAC (US) then DFAT (AU); don't downgrade an existing red
+        if cp.severity != "red":
             try:
                 hit = ofac_check(name)
                 if hit:
@@ -67,6 +68,28 @@ def upsert_counterparties(db: Session, matter_id: int, transactions: list) -> No
                     )
             except Exception:
                 logger.exception("OFAC check failed for %s — skipping", name)
+
+        if cp.severity != "red":
+            try:
+                hit = dfat_check(name)
+                if hit:
+                    cp.severity = "red"
+                    tags = json.loads(cp.tags or "[]")
+                    if "dfat_sanctions" not in tags:
+                        tags.append("dfat_sanctions")
+                    cp.tags  = json.dumps(tags)
+                    cp.notes = (
+                        f"DFAT SANCTIONS MATCH — {hit['matched_name']} "
+                        f"| type: {hit['entity_type']} "
+                        f"| regimes: {', '.join(hit['regimes'])} "
+                        f"| confidence: {hit['confidence']:.0%}"
+                    )
+                    logger.warning(
+                        "DFAT sanctions match: merchant=%s dfat=%s conf=%.2f regimes=%s",
+                        name, hit["matched_name"], hit["confidence"], hit["regimes"],
+                    )
+            except Exception:
+                logger.exception("DFAT check failed for %s — skipping", name)
 
         link = db.query(CounterpartyMatterLink).filter_by(
             counterparty_id=cp.id, matter_id=matter_id

@@ -31,7 +31,7 @@ from .services.counterparty_service import (
     tag_counterparty,
     upsert_counterparties,
 )
-from .services import ofac_service
+from .services import ofac_service, dfat_service
 
 
 # ── License ───────────────────────────────────────────────────────────────────
@@ -119,6 +119,23 @@ def startup():
 
     threading.Thread(target=_init_ofac, daemon=True, name="ofac-init").start()
 
+    # DFAT Consolidated Sanctions List — load from cache or fetch fresh in background
+    def _init_dfat():
+        db = next(get_db())
+        try:
+            if dfat_service.needs_refresh(db):
+                logger.info("DFAT sanctions cache stale or empty — fetching in background …")
+                dfat_service.fetch_and_cache(db)
+            else:
+                count = dfat_service.load_index(db)
+                logger.info("DFAT sanctions index loaded from cache: %d entries", count)
+        except Exception:
+            logger.exception("DFAT initialisation failed — AU sanctions screening will be unavailable until /admin/sync-dfat is called")
+        finally:
+            db.close()
+
+    threading.Thread(target=_init_dfat, daemon=True, name="dfat-init").start()
+
 
 # ── Health / Version ──────────────────────────────────────────────────────────
 
@@ -129,7 +146,7 @@ def health():
 
 @app.get("/version")
 def version():
-    return {"version": "v2026.05", "libraries": 8, "signals": 18, "product": "LexCrypta Verify", "ofac_screening": True}
+    return {"version": "v2026.05", "libraries": 8, "signals": 20, "product": "LexCrypta Verify", "ofac_screening": True, "dfat_screening": True}
 
 
 # ── License endpoints ─────────────────────────────────────────────────────────
@@ -527,6 +544,28 @@ def sync_ofac(
     """Force a fresh download of the OFAC SDN list and rebuild the index."""
     try:
         return ofac_service.fetch_and_cache(db)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+# ── DFAT ──────────────────────────────────────────────────────────────────────
+
+@app.get("/dfat/status")
+def get_dfat_status(
+    db: Session = Depends(get_db),
+    _: bool = Depends(require_license),
+):
+    return dfat_service.status(db)
+
+
+@app.post("/admin/sync-dfat")
+def sync_dfat(
+    db: Session = Depends(get_db),
+    _: bool = Depends(require_license),
+):
+    """Force a fresh download of the DFAT Consolidated Sanctions List and rebuild the index."""
+    try:
+        return dfat_service.fetch_and_cache(db)
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 
