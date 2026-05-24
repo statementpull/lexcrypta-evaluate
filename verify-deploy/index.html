@@ -1304,7 +1304,11 @@ function startLiveFeed(matterId) {
 function stopLiveFeed() {
   if (_liveFeedInterval) { clearInterval(_liveFeedInterval); _liveFeedInterval = null; }
   const overlay = document.getElementById('scanOverlay');
-  if (overlay) overlay.style.display = 'none';
+  if (overlay) {
+    overlay.style.transition = '';
+    overlay.style.opacity = '';
+    overlay.style.display = 'none';
+  }
 }
 
 /* ══ QUICK SCAN ══ */
@@ -1391,27 +1395,38 @@ async function runQuickScan(){
     if(!runRes.ok) { stopLiveFeed(); throw new Error('Analysis failed'); }
     const result = await runRes.json();
 
-    // Stop polling — prevents it from touching the bar mid-animation
+    // Stop polling so it can't touch the bar during completion animation
     if (_liveFeedInterval) { clearInterval(_liveFeedInterval); _liveFeedInterval = null; }
 
     if (_lft) _lft.textContent = 'ANALYSIS COMPLETE';
+
+    // Snap bar back to ≤80% then animate to 100% over 3s — always a visible fill
     if (_lfb) {
-      // Snap bar to at most 80% (no transition) so there is always a visible fill
       const snapPct = Math.min(parseFloat(_lfb.style.width) || 22, 80);
       _lfb.style.transition = 'none';
       _lfb.style.width = snapPct + '%';
-      void _lfb.offsetWidth; // force layout so snap commits before next transition
-      // Drive smoothly to 100% over 3s guaranteed
+      void _lfb.offsetWidth;
       _lfb.style.transition = 'width 3s ease';
       _lfb.style.width = '100%';
-      // Flat wait: 3s fill + 1s hold at COMPLETE
-      await new Promise(r => setTimeout(r, 4000));
     }
 
-    // Render results into DOM, then hide overlay — no blank flash
+    // Hold at ANALYSIS COMPLETE for 5 full seconds (bar fills during this time)
+    await new Promise(r => setTimeout(r, 5000));
+
+    // Fade overlay out over 0.6s — smooth reveal instead of instant snap
+    const _ov2 = document.getElementById('scanOverlay');
+    if (_ov2) {
+      _ov2.style.transition = 'opacity 0.6s ease';
+      _ov2.style.opacity = '0';
+      await new Promise(r => setTimeout(r, 650));
+      _ov2.style.display = 'none';
+      _ov2.style.opacity = '';
+      _ov2.style.transition = '';
+    }
+
+    // Render and reveal results only after overlay is fully gone
     renderScanResults(result);
-    document.getElementById('scanResults').style.display='block';
-    stopLiveFeed();
+    document.getElementById('scanResults').style.display = 'block';
   } catch(err) {
     stopLiveFeed();
     document.getElementById('scanUploadSection').style.display = 'block';
