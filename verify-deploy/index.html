@@ -1311,7 +1311,12 @@ async function runQuickScan(){
     if(!runRes.ok) { stopLiveFeed(); throw new Error('Analysis failed'); }
     const result = await runRes.json();
 
-    // Render results into DOM before hiding the overlay so there is no blank flash
+    // Drive bar to 100% and hold briefly so the user sees completion before overlay hides
+    if (_lft) _lft.textContent = 'ANALYSIS COMPLETE';
+    if (_lfb) { _lfb.style.width = '100%'; }
+    await new Promise(r => setTimeout(r, 650));
+
+    // Render results into DOM, then hide overlay — no blank flash
     renderScanResults(result);
     document.getElementById('scanResults').style.display='block';
     stopLiveFeed();
