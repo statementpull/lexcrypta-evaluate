@@ -446,6 +446,15 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
 .scan-sig-table th{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border)}
 .scan-sig-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:11px}
 .scan-sig-table tr:hover td{background:rgba(255,255,255,.02)}
+.live-feed-container{background:var(--navy2);border:1px solid var(--border);padding:24px;width:100%}
+.live-feed-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.live-feed-title{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--gold)}
+.live-feed-count{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.live-feed-log{font-family:var(--mono);font-size:10px;color:var(--text);height:140px;overflow-y:auto;line-height:2;border-top:1px solid var(--border);padding-top:10px;margin-bottom:12px}
+.live-feed-log .lf-signal{color:var(--gold)}
+.live-feed-log .lf-dim{color:var(--muted)}
+.live-feed-bar{background:var(--navy3);height:2px;border-radius:1px}
+.live-feed-bar-fill{background:var(--gold);height:2px;border-radius:1px;transition:width .3s}
 .sig-detected{color:#c0392b;font-weight:500}.sig-possible{color:#d4860a}.sig-none{color:var(--muted)}
 .scan-intel-card{border:1px solid var(--border);padding:18px;margin-bottom:10px;background:var(--navy2)}
 .scan-intel-cat{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
@@ -840,6 +849,20 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
       </div>
     </div>
 
+    <div id="scanOverlay" style="display:none;max-width:680px;margin:0 auto">
+      <div class="live-feed-container">
+        <div class="live-feed-header">
+          <span class="live-feed-title" id="liveFeedTitle">INITIALISING...</span>
+          <span class="live-feed-count">
+            <span id="liveFeedFileIdx">0</span>/<span id="liveFeedFileTotal">0</span> files ·
+            <span id="liveFeedTxnCount">0</span> transactions
+          </span>
+        </div>
+        <div id="liveFeedLog" class="live-feed-log"></div>
+        <div class="live-feed-bar"><div id="liveFeedBarFill" class="live-feed-bar-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
     <div id="scanResults" style="display:none;max-width:880px;margin:0 auto">
       <div class="scan-result-meta">
         <div>
@@ -1105,6 +1128,59 @@ function doLogout(){
   document.getElementById('view-login').style.display='flex';
 }
 
+let _liveFeedInterval = null;
+let _lastStage = '';
+
+function startLiveFeed(matterId) {
+  const log   = document.getElementById('liveFeedLog');
+  const title = document.getElementById('liveFeedTitle');
+  const fIdx  = document.getElementById('liveFeedFileIdx');
+  const fTot  = document.getElementById('liveFeedFileTotal');
+  const tCnt  = document.getElementById('liveFeedTxnCount');
+  const bar   = document.getElementById('liveFeedBarFill');
+  if (log) log.innerHTML = '';
+
+  _liveFeedInterval = setInterval(async () => {
+    try {
+      const r = await fetch(`${API_BASE}/matters/${matterId}/progress`);
+      if (!r.ok) return;
+      const p = await r.json();
+
+      if (title) title.textContent = p.stage || 'PROCESSING...';
+      if (fIdx)  fIdx.textContent  = p.file_index || 0;
+      if (fTot)  fTot.textContent  = p.file_total || 0;
+      if (tCnt)  tCnt.textContent  = p.txn_count  || 0;
+
+      if (bar) {
+        const pct = p.file_total > 0
+          ? Math.round((p.file_index / p.file_total) * 100)
+          : (p.done ? 100 : 10);
+        bar.style.width = pct + '%';
+      }
+
+      if (log && p.stage && p.stage !== _lastStage) {
+        _lastStage = p.stage;
+        const line = document.createElement('div');
+        line.className = p.stage.includes('SIGNAL') ? 'lf-signal' : 'lf-dim';
+        line.textContent = '› ' + p.stage;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      if (p.done) {
+        clearInterval(_liveFeedInterval);
+        _liveFeedInterval = null;
+      }
+    } catch(e) { /* swallow — analysis may still be starting */ }
+  }, 500);
+}
+
+function stopLiveFeed() {
+  if (_liveFeedInterval) { clearInterval(_liveFeedInterval); _liveFeedInterval = null; }
+  const overlay = document.getElementById('scanOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
 /* ══ QUICK SCAN ══ */
 let scanFiles = [];
 let scanMatterId = null;
@@ -1157,7 +1233,14 @@ async function runQuickScan(){
     const upRes = await fetch(`${API_BASE}/matters/${scanMatterId}/upload`, { method:'POST', body:upForm });
     if(!upRes.ok) throw new Error('Upload failed');
 
+    // Show live feed while analysis runs
+    _lastStage = '';
+    document.getElementById('scanUploadSection').style.display = 'none';
+    document.getElementById('scanOverlay').style.display = 'block';
+    startLiveFeed(scanMatterId);
+
     const runRes = await fetch(`${API_BASE}/matters/${scanMatterId}/run`, { method:'POST' });
+    stopLiveFeed();
     if(!runRes.ok) throw new Error('Analysis failed');
     const result = await runRes.json();
 
@@ -1165,9 +1248,9 @@ async function runQuickScan(){
     fetch(`${API_BASE}/matters/${scanMatterId}/purge`, { method:'DELETE' }).catch(() => {});
 
     renderScanResults(result);
-    document.getElementById('scanUploadSection').style.display='none';
     document.getElementById('scanResults').style.display='block';
   } catch(err) {
+    stopLiveFeed();
     showNotify(err.message || 'Analysis failed','Error');
     btn.disabled = false; btn.textContent = 'Run Analysis';
   }
