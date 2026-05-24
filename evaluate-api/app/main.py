@@ -1397,6 +1397,11 @@ SIGNAL CATEGORIES — detect all that apply:
    Westpac Group transaction formats (flag all as confirmed Westpac mortgage signal): "WESTPAC HOME LOAN", "WESTPAC LOAN REP", "WESTPAC RESI LOAN", "WESTPAC BANK LOAN", "WBC HOME LOAN", "WESTPAC BANK MORTGAGE", "ST GEORGE HOME LOAN", "STG HOME LOAN", "STGEORGE HOME LOAN", "BANK OF MELBOURNE HOME LOAN", "BOM HOME LOAN", "BANKSA HOME LOAN", "BSA HOME LOAN"
    NOTE: St.George Bank, Bank of Melbourne, and BankSA are Westpac Group subsidiaries — their home loan payments are equally strong Westpac Group ownership signals.
 
+   OFFSET / REDRAW ACCOUNTS (definitive ownership signal — treat with same weight as explicit mortgage repayment):
+   If the account type or header shows "OFFSET ACCOUNT", "REDRAW ACCOUNT", "ROCKET REPAY OFFSET", "HOME LOAN OFFSET", "OFFSET FACILITY", or similar — this IS a home loan product. The account itself is proof of an active mortgage. Flag as signal type "mortgage".
+   Also flag: "HOME LOAN INTEREST", "OFFSET FEE", "LOAN FEE", "REDRAW FEE", "PACKAGE FEE" from a bank — these appear on offset accounts and confirm a mortgage exists.
+   In an offset account statement, the mortgage repayment may not appear as a separate direct debit — the balance itself offsets the loan. Look instead for council rates, insurance, strata, and utilities to establish the property address.
+
 7. PROPERTY MANAGEMENT / RENTAL INCOME DEPOSITS (may indicate investment property):
    Key terms: rent receipts from property managers, "RENTAL INCOME", "RENT TRUST", "PROPERTY MANAGEMENT"
    Managers: Ray White, LJ Hooker, Harcourts, McGrath, Barry Plant, Nelson Alexander, Jellis Craig, Biggin & Scott, Raine & Horne, Century 21
@@ -1478,24 +1483,47 @@ async def _run_propertytrace(text: str, market: str) -> dict:
         # and well within Railway's 30s proxy limit even for 8-file statement sets.
         message = await client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=1200,
+            max_tokens=1800,   # raised from 1200 — offset/transaction accounts have dense transactions
             system=system_prompt,
             messages=[{
                 "role": "user",
-                "content": f"Analyse this anonymised bank statement for property ownership signals. Return only JSON.\n\nTRANSACTION DATA:\n{text[:12000]}"
+                "content": f"Analyse this anonymised bank statement for property ownership signals. Return only JSON.\n\nTRANSACTION DATA:\n{text[:8000]}"
             }]
         )
         raw   = message.content[0].text.strip()
         clean = raw.replace("```json", "").replace("```", "").strip()
+
+        # If Haiku hit the token cap, JSON may be truncated (no closing brace).
+        # Give a specific actionable error rather than a generic parse failure.
+        if message.stop_reason == 'max_tokens':
+            m = _re.search(r'\{[\s\S]*\}', clean)
+            if m:
+                try:
+                    return _json.loads(m.group())
+                except _json.JSONDecodeError:
+                    pass
+            raise HTTPException(
+                status_code=502,
+                detail="Too many transactions to analyse in one pass — try 3–4 statements at a time instead of all 8."
+            )
+
         # Primary parse attempt
         try:
             return _json.loads(clean)
         except _json.JSONDecodeError:
-            # Fallback: extract outermost JSON object via regex (handles extra explanation text)
+            # Fallback: extract outermost JSON object via regex (handles preamble text)
             m = _re.search(r'\{[\s\S]*\}', clean)
             if m:
-                return _json.loads(m.group())
-            raise
+                try:
+                    return _json.loads(m.group())
+                except _json.JSONDecodeError:
+                    pass
+            # Include a preview of what Haiku actually said to help diagnose
+            preview = raw[:300].replace('\n', ' ')
+            raise HTTPException(
+                status_code=502,
+                detail=f"Lexi returned an unexpected format. Response preview: {preview}"
+            )
     except HTTPException:
         raise
     except _anthropic.APITimeoutError:
