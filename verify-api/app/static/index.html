@@ -1254,7 +1254,7 @@ let _liveFeedInterval = null;
 let _lastStage = '';
 
 function startLiveFeed(matterId) {
-  stopLiveFeed(); // clear any previously running feed before starting a new one
+  if (_liveFeedInterval) { clearInterval(_liveFeedInterval); _liveFeedInterval = null; } // clear stale interval only — do NOT hide overlay
   const log   = document.getElementById('liveFeedLog');
   const title = document.getElementById('liveFeedTitle');
   const fIdx  = document.getElementById('liveFeedFileIdx');
@@ -1400,17 +1400,16 @@ async function runQuickScan(){
 
     if (_lft) _lft.textContent = 'ANALYSIS COMPLETE';
 
-    // Snap bar back to ≤80% then animate to 100% over 3s — always a visible fill
+    // Reset bar to 0 then fill to 100% — guaranteed full animation every time
     if (_lfb) {
-      const snapPct = Math.min(parseFloat(_lfb.style.width) || 22, 80);
       _lfb.style.transition = 'none';
-      _lfb.style.width = snapPct + '%';
+      _lfb.style.width = '0%';
       void _lfb.offsetWidth;
-      _lfb.style.transition = 'width 3s ease';
+      _lfb.style.transition = 'width 4s ease';
       _lfb.style.width = '100%';
     }
 
-    // Hold at ANALYSIS COMPLETE for 5 full seconds (bar fills during this time)
+    // Unconditional 5-second hold — bar fills during this time
     await new Promise(r => setTimeout(r, 5000));
 
     // Hide overlay then fade results in — never show both at once (avoids layout shift)
