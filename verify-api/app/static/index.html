@@ -76,6 +76,33 @@ body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:
 .view{display:none}.view.active{display:block}
 
 /* ════════════════════════════════
+   TERMS & PRIVACY
+════════════════════════════════ */
+#view-terms{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px;background:var(--navy);position:fixed;inset:0;z-index:500;overflow-y:auto}
+.tc-card{position:relative;z-index:2;width:100%;max-width:560px;border:1px solid var(--border2);background:var(--navy2)}
+.tc-head{padding:32px 40px 22px;border-bottom:1px solid var(--border)}
+.tc-kicker{font-size:8px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.tc-kicker::before{content:'';width:20px;height:1px;background:var(--gold)}
+.tc-h{font-family:var(--serif);font-size:26px;font-weight:300;color:var(--cream);line-height:1.15}
+.tc-h em{font-style:italic;color:var(--gold)}
+.tc-version{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:6px;letter-spacing:.06em}
+.tc-body{padding:24px 40px;max-height:340px;overflow-y:auto;border-bottom:1px solid var(--border)}
+.tc-body::-webkit-scrollbar{width:4px}.tc-body::-webkit-scrollbar-track{background:var(--navy3)}.tc-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.tc-section{margin-bottom:18px}
+.tc-section-title{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.tc-section p{font-size:11px;color:rgba(220,210,190,.75);line-height:1.75;margin:0}
+.tc-footer{padding:22px 40px 28px}
+.tc-accept-row{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;cursor:pointer}
+.tc-checkbox{width:16px;height:16px;min-width:16px;border:1px solid var(--border2);background:var(--navy3);appearance:none;-webkit-appearance:none;cursor:pointer;margin-top:1px;position:relative;transition:border-color .2s,background .2s}
+.tc-checkbox:checked{background:var(--gold);border-color:var(--gold)}
+.tc-checkbox:checked::after{content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:10px;color:var(--navy);font-weight:700}
+.tc-accept-label{font-size:11px;color:rgba(220,210,190,.75);line-height:1.6;cursor:pointer}
+.tc-accept-label strong{color:var(--cream)}
+.tc-btn{width:100%;padding:15px;background:var(--gold);color:var(--navy);font-size:9px;letter-spacing:.25em;text-transform:uppercase;font-weight:500;border:none;cursor:pointer;font-family:var(--sans);transition:background .2s,opacity .2s}
+.tc-btn:disabled{opacity:.35;cursor:not-allowed}
+.tc-btn:not(:disabled):hover{background:var(--gold2)}
+
+/* ════════════════════════════════
    LOGIN
 ════════════════════════════════ */
 #view-login{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:40px;background:var(--navy);position:fixed;inset:0;z-index:200}
@@ -482,6 +509,59 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
 </style>
 </head>
 <body>
+
+<!-- ════ TERMS & PRIVACY ════ -->
+<div id="view-terms" style="display:none">
+  <div class="login-bg"></div><div class="login-glow"></div>
+  <div class="tc-card">
+    <div class="tc-head">
+      <div class="tc-kicker">LexCrypta Verify</div>
+      <div class="tc-h">Terms of Access<br>&amp; <em>Privacy Notice</em></div>
+      <div class="tc-version">Version 1.0 &nbsp;·&nbsp; Effective May 2026 &nbsp;·&nbsp; Lexcrypta LLC</div>
+    </div>
+    <div class="tc-body" id="tcScrollBody">
+      <div class="tc-section">
+        <div class="tc-section-title">1. Authorized Access Only</div>
+        <p>LexCrypta Verify is provided exclusively to licensed legal professionals, certified accountants, court-appointed trustees, and authorized personnel of their firms. Access by any other party is strictly prohibited. By proceeding, you confirm you are an authorized user operating within your professional capacity.</p>
+      </div>
+      <div class="tc-section">
+        <div class="tc-section-title">2. Purpose of Use</div>
+        <p>This platform is a forensic financial analysis tool designed to assist professionals in identifying financial anomalies, asset patterns, and evidentiary signals within bank statement data. All analysis outputs are provided for informational purposes to support professional judgment. Nothing produced by this platform constitutes legal advice, accounting advice, or a final determination of fact.</p>
+      </div>
+      <div class="tc-section">
+        <div class="tc-section-title">3. Data Handling &amp; Storage</div>
+        <p>Documents uploaded to LexCrypta Verify are transmitted over encrypted HTTPS connections and processed on secure cloud infrastructure hosted in the United States (Railway). Matter data, extracted transactions, and analysis results are stored in an encrypted PostgreSQL database (Supabase) accessible only to authorized users of your licensed deployment. Lexcrypta LLC does not access, review, or share your uploaded documents or client data with any third party.</p>
+      </div>
+      <div class="tc-section">
+        <div class="tc-section-title">4. Your Professional Obligations</div>
+        <p>You remain solely responsible for ensuring that any documents uploaded comply with your professional duties of confidentiality, applicable privacy legislation (including but not limited to the Privacy Act, GDPR, or state equivalents), and any applicable court orders or obligations. You must have lawful authority to upload and process any documents submitted to this platform.</p>
+      </div>
+      <div class="tc-section">
+        <div class="tc-section-title">5. Accuracy &amp; No Warranty</div>
+        <p>Analysis signals are computational indicators derived from pattern matching and statistical inference across transaction data. Lexcrypta LLC makes no warranty, express or implied, as to the accuracy, completeness, or fitness for purpose of any analysis output. Outputs must be independently verified by qualified professionals before being relied upon in any legal, financial, or advisory context.</p>
+      </div>
+      <div class="tc-section">
+        <div class="tc-section-title">6. Intellectual Property</div>
+        <p>The LexCrypta Verify platform, including its algorithms, signal libraries, scoring systems, user interface, and all generated reports, is the proprietary intellectual property of Lexcrypta LLC. You may not reverse engineer, copy, redistribute, sublicense, or exploit any component of this platform beyond your licensed engagement scope.</p>
+      </div>
+      <div class="tc-section">
+        <div class="tc-section-title">7. Limitation of Liability</div>
+        <p>To the maximum extent permitted by law, Lexcrypta LLC shall not be liable for any direct, indirect, incidental, or consequential loss arising from your use of or reliance on this platform, including losses arising from errors, omissions, or system unavailability. Your use of LexCrypta Verify is entirely at your professional discretion and risk.</p>
+      </div>
+      <div class="tc-section">
+        <div class="tc-section-title">8. Privacy</div>
+        <p>Lexcrypta LLC collects platform usage metadata (login events, matter activity, feature usage) for service quality and product improvement purposes. This data does not include the content of uploaded documents or client matter details. We do not sell, rent, or share usage data with third parties. For full details, contact privacy@lexcrypta.com.</p>
+      </div>
+    </div>
+    <div class="tc-footer">
+      <label class="tc-accept-row">
+        <input type="checkbox" class="tc-checkbox" id="tcCheckbox" onchange="toggleTcBtn()">
+        <span class="tc-accept-label">I have read and understood the Terms of Access and Privacy Notice. I confirm I am an <strong>authorized legal or accounting professional</strong> and I agree to be bound by these terms.</span>
+      </label>
+      <button class="tc-btn" id="tcAcceptBtn" disabled onclick="acceptTerms()">Accept &amp; Continue</button>
+    </div>
+  </div>
+</div>
 
 <!-- ════ LICENSE ════ -->
 <div id="view-license" style="display:none;align-items:center;justify-content:center;min-height:100vh;padding:40px;background:var(--navy);position:fixed;inset:0;z-index:300">
@@ -2107,9 +2187,24 @@ function showNotify(msg,title='Lexi'){
 /* ══ INIT ══ */
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('view-login').style.display = 'none';
+  document.getElementById('view-terms').style.display = 'none';
   document.getElementById('appShell').style.display = 'none';
-  await checkLicense();
+  if (sessionStorage.getItem('lx_terms_v1') === 'accepted') {
+    await checkLicense();
+  } else {
+    document.getElementById('view-terms').style.display = 'flex';
+  }
 });
+
+function toggleTcBtn() {
+  document.getElementById('tcAcceptBtn').disabled = !document.getElementById('tcCheckbox').checked;
+}
+
+async function acceptTerms() {
+  sessionStorage.setItem('lx_terms_v1', 'accepted');
+  document.getElementById('view-terms').style.display = 'none';
+  await checkLicense();
+}
 
 async function checkLicense() {
   try {
