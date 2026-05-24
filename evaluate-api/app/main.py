@@ -1488,7 +1488,7 @@ async def _run_propertytrace(text: str, market: str) -> dict:
             system=system_prompt,
             messages=[{
                 "role": "user",
-                "content": f"Analyse this anonymised bank statement for property ownership signals. Return only JSON.\n\nTRANSACTION DATA:\n{text[:8000]}"
+                "content": f"Analyse this anonymised bank statement for property ownership signals. Return only JSON.\n\nTRANSACTION DATA:\n{text[:12000]}"
             }]
         )
         raw   = message.content[0].text.strip()

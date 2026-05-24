@@ -370,28 +370,93 @@ async def run_property_trace(
 
     import pdfplumber as _pp
     import io         as _io
+    import base64     as _b64
+    import subprocess as _sub
+    import tempfile   as _tmp
+
+    async def _vision_ocr(pdf_bytes: bytes) -> str:
+        """Render PDF pages with pdftoppm → Haiku vision OCR. Returns extracted text."""
+        _ak = os.getenv("ANTHROPIC_API_KEY", "")
+        if not _ak:
+            return ""
+        try:
+            import anthropic as _ant
+            with _tmp.TemporaryDirectory() as _td:
+                _ppath = os.path.join(_td, "doc.pdf")
+                with open(_ppath, "wb") as _fh:
+                    _fh.write(pdf_bytes)
+                _sub.run(
+                    ["pdftoppm", "-r", "150", "-jpeg", "-l", "5", _ppath,
+                     os.path.join(_td, "pg")],
+                    capture_output=True, timeout=25,
+                )
+                _imgs = sorted(
+                    f for f in os.listdir(_td) if f.endswith(".jpg")
+                )
+                if not _imgs:
+                    return ""
+                _content: list = []
+                for _img in _imgs[:5]:
+                    with open(os.path.join(_td, _img), "rb") as _fh:
+                        _content.append({
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": _b64.b64encode(_fh.read()).decode(),
+                            },
+                        })
+                _content.append({
+                    "type": "text",
+                    "text": (
+                        "Extract all transaction text from these bank statement pages. "
+                        "Output only raw text: dates, merchant descriptions, amounts, "
+                        "account headers. No analysis, no explanation."
+                    ),
+                })
+                _cl = _ant.AsyncAnthropic(api_key=_ak, timeout=28.0)
+                _msg = await _cl.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=2000,
+                    messages=[{"role": "user", "content": _content}],
+                )
+                return _msg.content[0].text if _msg.content else ""
+        except Exception:
+            return ""
+
     text_parts = []
     for doc in docs:
-        try:
-            if doc.filename and doc.filename.lower().endswith(".pdf"):
-                with _pp.open(_io.BytesIO(doc.content)) as pdf:
-                    for page in pdf.pages:
-                        t = page.extract_text()
-                        if t:
-                            text_parts.append(t)
-            else:
-                text_parts.append(doc.content.decode("utf-8", errors="replace"))
-        except Exception:
-            pass  # skip unreadable docs — partial data is still useful
+        _doc_text = ""
+        _is_pdf = doc.filename and doc.filename.lower().endswith(".pdf")
+        if _is_pdf:
+            # Try pdfplumber first (fast, works for digital PDFs)
+            try:
+                with _pp.open(_io.BytesIO(doc.content)) as _pdf:
+                    for _page in _pdf.pages:
+                        _t = _page.extract_text()
+                        if _t:
+                            _doc_text += _t + "\n"
+            except Exception:
+                pass
+            # If no text extracted (image/scanned PDF), fall back to vision OCR
+            if not _doc_text.strip():
+                _doc_text = await _vision_ocr(doc.content)
+        else:
+            try:
+                _doc_text = doc.content.decode("utf-8", errors="replace")
+            except Exception:
+                pass
+        if _doc_text.strip():
+            text_parts.append(_doc_text.strip())
 
     if not text_parts:
         raise HTTPException(
             status_code=422,
-            detail="No readable text found in uploaded bank statements. "
-                   "PDFs may be image-based — use the standalone PropertyTrace AU tool for scanned documents.",
+            detail="No readable text could be extracted from the uploaded bank statements. "
+                   "Check that valid PDF or CSV files were uploaded.",
         )
 
-    combined = "\n".join(text_parts)[:8000]
+    combined = "\n\n---\n\n".join(text_parts)[:12000]
 
     # ── Auto-detect market from bank text ─────────────────────────────────────
     import re as _re
