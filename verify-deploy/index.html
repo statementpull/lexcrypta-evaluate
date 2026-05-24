@@ -1410,23 +1410,30 @@ async function runQuickScan(){
       _lfb.style.width = '100%';
     }
 
+    // Pre-render results into DOM while overlay is still fully visible
+    // so the browser paints them before the overlay fades — zero blank flash
+    renderScanResults(result);
+    const _resEl = document.getElementById('scanResults');
+    if (_resEl) { _resEl.style.display = 'block'; _resEl.style.opacity = '0'; }
+
     // Hold at ANALYSIS COMPLETE for 5 full seconds (bar fills during this time)
     await new Promise(r => setTimeout(r, 5000));
 
-    // Fade overlay out over 0.6s — smooth reveal instead of instant snap
+    // Fade overlay out and results in simultaneously over 0.6s
     const _ov2 = document.getElementById('scanOverlay');
     if (_ov2) {
       _ov2.style.transition = 'opacity 0.6s ease';
       _ov2.style.opacity = '0';
-      await new Promise(r => setTimeout(r, 650));
-      _ov2.style.display = 'none';
-      _ov2.style.opacity = '';
-      _ov2.style.transition = '';
     }
+    if (_resEl) {
+      _resEl.style.transition = 'opacity 0.6s ease';
+      _resEl.style.opacity = '1';
+    }
+    await new Promise(r => setTimeout(r, 650));
 
-    // Render and reveal results only after overlay is fully gone
-    renderScanResults(result);
-    document.getElementById('scanResults').style.display = 'block';
+    // Clean up
+    if (_ov2) { _ov2.style.display = 'none'; _ov2.style.opacity = ''; _ov2.style.transition = ''; }
+    if (_resEl) { _resEl.style.transition = ''; }
   } catch(err) {
     stopLiveFeed();
     document.getElementById('scanUploadSection').style.display = 'block';
@@ -2204,11 +2211,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('view-login').style.display = 'none';
   document.getElementById('view-terms').style.display = 'none';
   document.getElementById('appShell').style.display = 'none';
-  if (sessionStorage.getItem('lx_terms_v1') === 'accepted') {
-    await checkLicense();
-  } else {
-    document.getElementById('view-terms').style.display = 'flex';
-  }
+  // Always show T&C on every page load — no sessionStorage skip
+  document.getElementById('view-terms').style.display = 'flex';
 });
 
 function toggleTcBtn() {
@@ -2216,7 +2220,6 @@ function toggleTcBtn() {
 }
 
 async function acceptTerms() {
-  sessionStorage.setItem('lx_terms_v1', 'accepted');
   document.getElementById('view-terms').style.display = 'none';
   await checkLicense();
 }
