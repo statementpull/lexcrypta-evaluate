@@ -320,6 +320,75 @@ def get_results(
     return json.loads(ar.result_json)
 
 
+# ── PropertyTrace ─────────────────────────────────────────────────────────────
+
+@app.post("/matters/{matter_id}/property-trace")
+async def run_property_trace(
+    matter_id: int,
+    db: Session = Depends(get_db),
+    _: bool = Depends(require_license),
+):
+    """
+    Run PropertyTrace forensic property intelligence on uploaded bank statements.
+    Extracts text from bank statement PDFs using pdfplumber, then calls the
+    Evaluate Railway PropertyTrace endpoint. Returns standard PropertyTrace JSON.
+    """
+    m = db.query(Matter).filter(Matter.id == matter_id).first()
+    if not m:
+        raise HTTPException(status_code=404, detail="Matter not found.")
+
+    # Use bank-zone documents first; fall back to all docs if no zone filter matches
+    docs = db.query(Document).filter(
+        Document.matter_id == matter_id,
+        Document.zone == "bank",
+    ).all()
+    if not docs:
+        docs = db.query(Document).filter(Document.matter_id == matter_id).all()
+    if not docs:
+        raise HTTPException(status_code=400, detail="No documents uploaded for this matter.")
+
+    import pdfplumber as _pp
+    import io         as _io
+    text_parts = []
+    for doc in docs:
+        try:
+            if doc.filename and doc.filename.lower().endswith(".pdf"):
+                with _pp.open(_io.BytesIO(doc.content)) as pdf:
+                    for page in pdf.pages:
+                        t = page.extract_text()
+                        if t:
+                            text_parts.append(t)
+            else:
+                text_parts.append(doc.content.decode("utf-8", errors="replace"))
+        except Exception:
+            pass  # skip unreadable docs — partial data is still useful
+
+    if not text_parts:
+        raise HTTPException(
+            status_code=422,
+            detail="No readable text found in uploaded bank statements. "
+                   "PDFs may be image-based — use the standalone PropertyTrace AU tool for scanned documents.",
+        )
+
+    combined = "\n".join(text_parts)[:8000]
+
+    import httpx as _httpx
+    _PT_URL = "https://lexcrypta-evaluate-production.up.railway.app/propertytrace/analyse"
+    try:
+        async with _httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.post(_PT_URL, json={"text": combined, "market": "au"})
+        if not r.is_success:
+            detail = r.json().get("detail", r.text) if r.content else r.reason_phrase
+            raise HTTPException(status_code=502, detail=f"PropertyTrace engine: {detail}")
+        return r.json()
+    except HTTPException:
+        raise
+    except _httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="PropertyTrace analysis timed out — try again.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PropertyTrace error: {str(e)}")
+
+
 # ── Reports ───────────────────────────────────────────────────────────────────
 
 @app.get("/reports/{matter_id}", response_class=HTMLResponse)
