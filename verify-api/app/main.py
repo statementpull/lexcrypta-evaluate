@@ -82,6 +82,41 @@ def require_license(db: Session = Depends(get_db)):
     return True
 
 
+# ── Schema migrations ─────────────────────────────────────────────────────────
+
+def _run_migrations():
+    from sqlalchemy import text as _text
+    _migrations = [
+        "ALTER TABLE verify.matters ADD COLUMN IF NOT EXISTS report_tier VARCHAR(20) DEFAULT 'trustee'",
+        "ALTER TABLE verify.matters ADD COLUMN IF NOT EXISTS debtor_name VARCHAR(200) DEFAULT ''",
+        "ALTER TABLE verify.matters ADD COLUMN IF NOT EXISTS case_number VARCHAR(100) DEFAULT ''",
+        "ALTER TABLE verify.matters ADD COLUMN IF NOT EXISTS jurisdiction VARCHAR(20) DEFAULT 'US'",
+        """CREATE TABLE IF NOT EXISTS verify.transaction_revisions (
+            id SERIAL PRIMARY KEY,
+            matter_id INTEGER NOT NULL,
+            txn_hash VARCHAR(64) NOT NULL,
+            rev_type VARCHAR(20) NOT NULL,
+            field VARCHAR(50) DEFAULT '',
+            orig_value TEXT DEFAULT '',
+            new_value TEXT DEFAULT '',
+            note TEXT DEFAULT '',
+            signal_override VARCHAR(100) DEFAULT '',
+            severity_override VARCHAR(10) DEFAULT '',
+            is_false_positive BOOLEAN DEFAULT FALSE,
+            analyst_id VARCHAR(100) DEFAULT '',
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )""",
+    ]
+    try:
+        with engine.connect() as conn:
+            for sql in _migrations:
+                conn.execute(_text(sql))
+            conn.commit()
+        logger.info("Schema migrations applied successfully")
+    except Exception:
+        logger.exception("Schema migration failed — some features may be unavailable")
+
+
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(title="LexCrypta Verify", version="1.0.0")
@@ -110,6 +145,7 @@ def startup():
     try:
         create_verify_schema()
         Base.metadata.create_all(bind=engine)
+        _run_migrations()
     except Exception:
         logger.exception("Database initialisation failed — check DATABASE_URL")
         raise
