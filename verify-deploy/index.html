@@ -1161,7 +1161,7 @@ async function loadMattersFromAPI() {
     if (!r.ok) return;
     const apiMatters = await r.json();
     MATTERS.length = 0;
-    MATTERS.push(...apiMatters.map(normalizeApiMatter));
+    MATTERS.push(...apiMatters.map(normalizeApiMatter).filter(m=>!(m.ref&&m.ref.startsWith('QS-'))));
   } catch (e) { /* backend unavailable — MATTERS stays as local demo data */ }
 }
 
@@ -1308,15 +1308,13 @@ async function runQuickScan(){
     startLiveFeed(scanMatterId);
 
     const runRes = await fetch(`${API_BASE}/matters/${scanMatterId}/run`, { method:'POST' });
-    stopLiveFeed();
-    if(!runRes.ok) throw new Error('Analysis failed');
+    if(!runRes.ok) { stopLiveFeed(); throw new Error('Analysis failed'); }
     const result = await runRes.json();
 
-    // Purge the temp matter — Quick Scan results are local-only, not persisted in queue
-    // Matter is kept so the report endpoint stays accessible after scan completes
-
+    // Render results into DOM before hiding the overlay so there is no blank flash
     renderScanResults(result);
     document.getElementById('scanResults').style.display='block';
+    stopLiveFeed();
   } catch(err) {
     stopLiveFeed();
     document.getElementById('scanUploadSection').style.display = 'block';
@@ -1510,7 +1508,7 @@ function renderDashboard(){
 }
 function renderMattersList(id,matters){
   const el=document.getElementById(id);if(!el) return;
-  el.innerHTML=matters.map(m=>{
+  el.innerHTML=matters.filter(m=>!(m.ref&&m.ref.startsWith('QS-'))).map(m=>{
     const inQ=queueItems.some(q=>q.id===m.id);
     return `<div class="matter-row" onclick="openMatter(${m.id})">
       <div class="matter-att att-${m.att}"></div>
