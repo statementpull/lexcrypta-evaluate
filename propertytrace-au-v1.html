@@ -766,38 +766,23 @@ async function processFiles() {
   appState = 'confirm'; render();
 }
 
-async function readOneFile(f) {
-  const ext = f.name.split('.').pop().toLowerCase();
+// ── Validate extracted text looks like real transaction data ──
+// Prevents garbled PDF.js fake-worker output from reaching Lexi.
+// On file:// protocol the fake worker may return short/binary text that
+// passes a simple length check — this ensures it actually has transaction signals.
+function looksLikeTransactionData(text) {
+  if (!text || text.trim().length < 80) return false;
+  const hasAmount  = /\d+\.\d{2}/.test(text);
+  const hasDate    = /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i.test(text);
+  const hasKeyword = /WESTPAC|NAB|ANZ|CBA|COMMBANK|ST\.?\s*GEORGE|BPAY|DIRECT\s*DEBIT|DEPOSIT|TRANSFER|WITHDRAWAL|BALANCE|TRANSACTION/i.test(text);
+  // Require at least two of three signals — garbled output never passes this
+  return (hasAmount ? 1 : 0) + (hasDate ? 1 : 0) + (hasKeyword ? 1 : 0) >= 2;
+}
 
-  // ── Non-PDF files: read as plain text ───────────────────────
-  if (ext !== 'pdf') {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload  = e => resolve(e.target.result);
-      reader.onerror = () => reject(new Error('FileReader error reading ' + f.name));
-      reader.readAsText(f);
-    });
-  }
-
-  // ── PDF: try PDF.js in browser first ────────────────────────
-  try {
-    const b64 = await new Promise((res, rej) => {
-      const reader = new FileReader();
-      reader.onload  = e => res(e.target.result.split(',')[1]);
-      reader.onerror = () => rej(new Error('FileReader error'));
-      reader.readAsDataURL(f);
-    });
-    const text = await extractPdfText(b64);
-    if (text && text.trim().length >= 10) return text;
-    // Fall through to server-side if no text extracted
-  } catch (_) {
-    // PDF.js failed (file:// protocol restriction, worker issue, etc.)
-    // Fall through to server-side pdfplumber extraction
-  }
-
-  // ── PDF fallback: pdfplumber on Railway backend ──────────────
-  // PDF bytes sent to our own server for extraction only — not stored, not sent to AI.
-  // PII stripping still happens client-side on the returned text.
+// ── Server-side PDF extraction via pdfplumber ────────────────
+// PDF bytes sent to Railway for text extraction only — not stored, not sent to AI.
+// PII stripping still happens client-side on the returned text before Lexi call.
+async function readPdfViaPdfplumber(f) {
   const fd = new FormData();
   fd.append('file', f, f.name);
   const r = await fetch(EXTRACT_API, {
@@ -811,6 +796,47 @@ async function readOneFile(f) {
   }
   const { text } = await r.json();
   return text;
+}
+
+async function readOneFile(f) {
+  const ext = f.name.split('.').pop().toLowerCase();
+
+  // ── Non-PDF files: read as plain text ───────────────────────
+  if (ext !== 'pdf') {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = e => resolve(e.target.result);
+      reader.onerror = () => reject(new Error('FileReader error reading ' + f.name));
+      reader.readAsText(f);
+    });
+  }
+
+  // ── PDF on file:// protocol: skip PDF.js entirely ────────────
+  // Chrome blocks CDN workers from null-origin (file://) pages.
+  // Fake-worker fallback runs on main thread but produces garbled/binary
+  // text for Westpac PDFs, which causes Anthropic 502s downstream.
+  // pdfplumber on Railway is the reliable path — same library that works in Verify.
+  if (window.location.protocol === 'file:') {
+    return readPdfViaPdfplumber(f);
+  }
+
+  // ── PDF on http/https: try PDF.js first, validate, fall back ─
+  try {
+    const b64 = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload  = e => res(e.target.result.split(',')[1]);
+      reader.onerror = () => rej(new Error('FileReader error'));
+      reader.readAsDataURL(f);
+    });
+    const text = await extractPdfText(b64);
+    // Only accept PDF.js output if it actually looks like transaction data
+    if (looksLikeTransactionData(text)) return text;
+    // Text failed quality check — fall through to pdfplumber
+  } catch (_) {
+    // PDF.js failed — fall through to server-side extraction
+  }
+
+  return readPdfViaPdfplumber(f);
 }
 
 async function extractPdfText(b64) {

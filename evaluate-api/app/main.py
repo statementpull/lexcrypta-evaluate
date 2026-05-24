@@ -1504,7 +1504,11 @@ async def _run_propertytrace(text: str, market: str) -> dict:
             detail="Analysis timed out — statement data is too large. Try uploading fewer months at once (3-4 statements recommended for multi-file)."
         )
     except _anthropic.APIStatusError as e:
-        raise HTTPException(status_code=502, detail=f"Analysis engine error: {e.message}")
+        # Surface the real Anthropic error (rate limit, invalid content, etc.)
+        _body  = getattr(e, 'body', {}) or {}
+        _inner = _body.get('error', {}).get('message', '') if isinstance(_body, dict) else ''
+        _msg   = _inner or getattr(e, 'message', str(e))
+        raise HTTPException(status_code=502, detail=f"Lexi API error {e.status_code}: {_msg}")
     except _json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="Lexi returned an unexpected response format — please try again.")
     except Exception as e:
