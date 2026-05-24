@@ -455,8 +455,25 @@ function renderExtracting() {
   return `<div class="extract-wrap">
     <div class="extract-spinner"></div>
     <div class="extract-label">READING DOCUMENT</div>
-    <div class="extract-sub">Extracting text · Applying privacy shield...</div>
+    <div class="extract-sub" id="extract-status">Extracting text · Applying privacy shield...</div>
+    <div id="extract-log" style="margin-top:14px;font-size:11px;font-family:monospace;text-align:left;width:100%;max-width:480px;max-height:180px;overflow-y:auto;padding:8px 10px;background:rgba(0,0,0,0.3);border:1px solid rgba(200,169,110,0.15);border-radius:4px;"></div>
   </div>`;
+}
+
+// ── Live extraction log ───────────────────────────────────────
+function xlog(msg, type) {
+  const el = document.getElementById('extract-log');
+  if (!el) return;
+  const c = { ok:'#86EFAC', warn:'#FBBF24', err:'#F87171', dim:'rgba(255,255,255,0.35)' };
+  const d = document.createElement('div');
+  d.style.color = c[type] || 'rgba(200,169,110,0.8)';
+  d.textContent = msg;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+function xstatus(msg) {
+  const el = document.getElementById('extract-status');
+  if (el) el.textContent = msg;
 }
 
 // ── Confirm (privacy shield) ──────────────────────────────────
@@ -729,14 +746,17 @@ async function processFiles() {
   const skipped  = [];
 
   for (const f of selectedFiles) {
+    xlog(`▶ ${f.name} (${Math.round(f.size/1024)} KB)`);
     try {
       const text = await readOneFile(f);
+      xlog(`  ✓ ${text.trim().length} chars extracted`, 'ok');
       if (selectedFiles.length > 1) {
         parts.push(`\n--- DOCUMENT: ${f.name} ---\n${text}`);
       } else {
         parts.push(text);
       }
     } catch(err) {
+      xlog(`  ✗ ${err.message}`, 'err');
       // Don't abort on one bad file — skip it and continue with the rest
       skipped.push({ name: f.name, reason: err.message });
     }
@@ -815,42 +835,57 @@ async function renderPdfPagesToJpegs(f) {
 // PII stripping still happens client-side on the returned text before Lexi call.
 // If pdfplumber finds no text (scanned PDF), falls back to Claude Vision OCR.
 async function readPdfViaPdfplumber(f) {
+  xlog('  → pdfplumber (server-side text extraction)...', 'dim');
   const fd = new FormData();
   fd.append('file', f, f.name);
-  const r = await fetch(EXTRACT_API, {
-    method: 'POST',
-    body:   fd,
-    signal: AbortSignal.timeout(30000)
-  });
+  let r;
+  try {
+    r = await fetch(EXTRACT_API, {
+      method: 'POST',
+      body:   fd,
+      signal: AbortSignal.timeout(30000)
+    });
+  } catch (fetchErr) {
+    throw new Error(`Network error reaching extraction server: ${fetchErr.message}`);
+  }
 
   if (r.status === 422) {
-    // No text layer — this is a scanned/image PDF (common with court exhibit copies).
-    // Render pages to canvas and send images to Claude Vision for OCR extraction.
+    xlog('  → No text layer — scanned/image PDF. Trying Vision OCR...', 'warn');
+    xstatus('Scanned PDF detected — using Vision OCR...');
     let pages;
     try {
       pages = await renderPdfPagesToJpegs(f);
+      xlog(`  → Rendered ${pages.length} page(s) for OCR`, 'dim');
     } catch (renderErr) {
-      throw new Error(`Scanned PDF detected and could not render for OCR: ${renderErr.message}. Export this statement directly from Westpac Online Banking as a PDF or CSV.`);
+      throw new Error(`Scanned PDF — could not render pages: ${renderErr.message}`);
     }
-    const vr = await fetch(VISION_API, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ pages, market: MARKET }),
-      signal:  AbortSignal.timeout(55000)
-    });
+    xlog('  → Sending to Claude Vision...', 'dim');
+    let vr;
+    try {
+      vr = await fetch(VISION_API, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ pages, market: MARKET }),
+        signal:  AbortSignal.timeout(55000)
+      });
+    } catch (vFetchErr) {
+      throw new Error(`Network error reaching Vision OCR: ${vFetchErr.message}`);
+    }
     if (!vr.ok) {
       const e = await vr.json().catch(() => ({}));
-      throw new Error(e.detail || `Vision OCR failed (${vr.status})`);
+      throw new Error(e.detail || `Vision OCR failed (HTTP ${vr.status})`);
     }
     const { text } = await vr.json();
+    xlog(`  → Vision extracted ${text.trim().length} chars`, 'ok');
     return text;
   }
 
   if (!r.ok) {
     const e = await r.json().catch(() => ({}));
-    throw new Error(e.detail || `PDF extraction failed (${r.status})`);
+    throw new Error(e.detail || `pdfplumber failed (HTTP ${r.status})`);
   }
   const { text } = await r.json();
+  xlog('  → pdfplumber OK', 'dim');
   return text;
 }
 
