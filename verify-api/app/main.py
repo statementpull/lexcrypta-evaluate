@@ -493,8 +493,8 @@ def get_results(
 def get_analysis_progress(matter_id: int):
     p = _analysis_progress.get(matter_id)
     if not p:
-        return {"stage": "idle", "file_index": 0, "file_total": 0,
-                "txn_count": 0, "signals": [], "done": True}
+        return {"stage": "QUEUED", "file_index": 0, "file_total": 0,
+                "txn_count": 0, "signals": [], "done": False}
     return p
 
 

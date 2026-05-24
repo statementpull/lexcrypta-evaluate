@@ -724,6 +724,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
       <div class="db-checks-grid" id="dbChecksGrid"></div>
     </div>
 
+    <div id="matterUploadSection">
     <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:12px;margin-bottom:12px"><span>Document Upload</span><span style="flex:1;height:1px;background:var(--border);display:block"></span></div>
 
     <div class="upload-zones">
@@ -771,6 +772,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
       <div class="run-status" id="runStatus">— 7 documents ready · click Analyse to run Lexi</div>
       <button class="btn btn-gold" onclick="runDemo()">Analyse with Lexi</button>
     </div>
+    </div><!-- /matterUploadSection -->
 
     <div id="resultsSection" style="display:none">
       <div class="lexi-audit">
@@ -1733,6 +1735,18 @@ function finishQueue(){
 function openMatter(id){
   const m=MATTERS.find(x=>x.id===id);if(!m) return;
   activeMatter=m;
+  // Clear demo pills so previous matter's files never bleed into a new matter
+  ['pillsBank','pillsCC','pillsTax'].forEach(pid => {
+    const el = document.getElementById(pid); if (el) el.innerHTML = '';
+  });
+  ['bsCount','ccCount','trCount'].forEach(cid => {
+    const el = document.getElementById(cid);
+    if (el) { el.textContent = '0 files'; el.classList.remove('has'); }
+  });
+  // Quick Scan matters are results-only — hide the upload section entirely
+  const uploadSection = document.getElementById('matterUploadSection');
+  const isQS = m.ref && m.ref.startsWith('QS-');
+  if (uploadSection) uploadSection.style.display = isQS ? 'none' : 'block';
   const psBlock = document.getElementById('pursueSkipBlock');
   if (psBlock) psBlock.style.display = 'none';
   const dbPanel = document.getElementById('dbChecksPanel');
