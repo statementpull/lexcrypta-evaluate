@@ -1782,18 +1782,19 @@ function renderPursueSkip(las, reportTier) {
   const isPursue = (las.score ?? 0) >= 50;
   vEl.textContent = isPursue ? 'PURSUE' : 'SKIP';
   vEl.className   = 'ps-verdict ' + (isPursue ? 'pursue' : 'skip');
-  sEl.textContent = `Indicator Score: ${las.score}/100`;
+  sEl.textContent = `Indicator Score: ${las.score ?? '—'}/100`;
 
+  const esc     = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const reason  = las.reason || '';
   const bullets = reason.split(' · ').filter(Boolean);
-  bEl.innerHTML = bullets.map(b => `<span>${b}</span>`).join('');
+  bEl.innerHTML = bullets.map(b => `<span>${esc(b)}</span>`).join('');
   block.style.display = 'block';
 }
 
 function renderDbChecks(show) {
   const panel = document.getElementById('dbChecksPanel');
   const grid  = document.getElementById('dbChecksGrid');
-  if (!panel) return;
+  if (!panel || !grid) return;
   if (!show) { panel.style.display = 'none'; return; }
 
   grid.innerHTML = DB_CHECKS_DEMO.map(c => `
