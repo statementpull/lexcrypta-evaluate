@@ -8,7 +8,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --navy:#0e1c2e;--navy2:#132538;--navy3:#1a3050;--navy4:#213a60;
+  --navy:#0d2040;--navy2:#112649;--navy3:#1a3560;--navy4:#214070;
   --border:rgba(255,255,255,0.11);--border2:rgba(255,255,255,0.20);
   --gold:#c8963e;--gold2:#e0aa52;--golddim:rgba(200,150,62,0.09);
   --cream:#f2ede4;--muted:#8a9bb4;--text:#bcc8dc;
@@ -648,6 +648,8 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
         <div class="mh-subject" id="mhSubject">—</div>
         <div class="mh-meta">
           <div><span class="mhf-lbl">Ref</span><span class="mhf-val" id="mhRef">—</span></div>
+          <div id="mhDebtorWrap" style="display:none"><span class="mhf-lbl">Debtor</span><span class="mhf-val" id="mhDebtorName">—</span></div>
+          <div id="mhCaseWrap" style="display:none"><span class="mhf-lbl">Case #</span><span class="mhf-val" id="mhCaseNumber">—</span></div>
           <div><span class="mhf-lbl">Filing Date</span><span class="mhf-val" id="mhDate">—</span></div>
           <div><span class="mhf-lbl">Last Run</span><span class="mhf-val" id="mhLastRun">Not yet analysed</span></div>
           <div id="mhTxnWrap" style="display:none"><span class="mhf-lbl">Transactions</span><span class="mhf-val" id="mhTxnCount">—</span></div>
@@ -787,7 +789,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
 <!-- ════ QUICK SCAN ════ -->
 <div id="view-scan" class="view">
   <div class="topbar">
-    <div class="topbar-title">Quick Scan <em>·</em> Bank Statement Analysis</div>
+    <div class="topbar-title">Verify<sup style="font-size:9px;vertical-align:super">+</sup> <em>·</em> Trustee Forensic Intelligence</div>
     <div class="topbar-actions">
       <button class="btn" onclick="resetScan()">Clear</button>
       <button class="btn btn-gold" id="scanRunBtn" onclick="runQuickScan()" disabled>Run Analysis</button>
@@ -947,8 +949,16 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
         <div class="field"><div class="field-label" id="nmDateLabel">Filing Date</div><input class="field-input" type="date" id="nmDate"></div>
         <div class="field"><div class="field-label">Assigned To</div><select class="field-input" id="nmAssigned"><option>Michael Anderson</option><option>Sarah Chen</option><option>James Okafor</option><option>Rachel Torres</option></select></div>
       </div>
-      <div class="form-row full" style="margin-bottom:0">
+      <div class="form-row full" style="margin-bottom:10px">
         <div class="field"><div class="field-label">Notes (optional)</div><input class="field-input" type="text" id="nmNotes" placeholder="Brief description of the matter…"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><div class="field-label">Debtor Name</div><input class="field-input" type="text" id="fDebtorName" placeholder="e.g. John Vincent Lombardo"></div>
+        <div class="field"><div class="field-label">Case Number</div><input class="field-input" type="text" id="fCaseNumber" placeholder="e.g. 2024-BK-04467"></div>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <div class="field"><div class="field-label">Jurisdiction</div><select class="field-input" id="fJurisdiction"><option value="US">US Chapter 7</option><option value="AU">AU Bankruptcy</option></select></div>
+        <div class="field"><div class="field-label">Report Tier</div><select class="field-input" id="fReportTier"><option value="trustee">Trustee in Bankruptcy</option><option value="divorce">Family Law / Divorce</option><option value="civil">Civil Litigation</option><option value="criminal">Criminal / Fraud Investigation</option><option value="probate">Estate / Probate</option></select></div>
       </div>
     </div>
     <div class="modal-foot">
@@ -1554,6 +1564,10 @@ function openMatter(id){
   document.getElementById('mhLastRun').textContent=m.lastRun==='—'?'Not yet analysed':m.lastRun;
   document.getElementById('mhType').textContent=m.typeLabel+' Matter';
   document.getElementById('matterTopTitle').innerHTML=m.subject+' — <em>'+m.typeLabel+'</em>';
+  const mhDebtor=document.getElementById('mhDebtorName');
+  const mhCase=document.getElementById('mhCaseNumber');
+  if(mhDebtor){mhDebtor.textContent=m.debtor_name||'';document.getElementById('mhDebtorWrap').style.display=m.debtor_name?'block':'none';}
+  if(mhCase){mhCase.textContent=m.case_number||'';document.getElementById('mhCaseWrap').style.display=m.case_number?'block':'none';}
   const exp=document.getElementById('mhExposure');
   if(m.analysed){exp.style.display='block';exp.className='exp-badge exp-'+m.exposure;exp.textContent=m.exposure;}
   else exp.style.display='none';
@@ -1791,7 +1805,7 @@ function onFiles(input,zone){
 }
 
 /* ══ NEW MATTER ══ */
-function openNewMatter(){document.getElementById('nmSubject').value='';document.getElementById('nmRef').value='';document.getElementById('nmDate').value='';document.getElementById('nmNotes').value='';document.getElementById('newMatterModal').classList.add('show');}
+function openNewMatter(){document.getElementById('nmSubject').value='';document.getElementById('nmRef').value='';document.getElementById('nmDate').value='';document.getElementById('nmNotes').value='';document.getElementById('fDebtorName').value='';document.getElementById('fCaseNumber').value='';document.getElementById('fJurisdiction').value='US';document.getElementById('fReportTier').value='trustee';document.getElementById('newMatterModal').classList.add('show');}
 function closeNewMatter(){document.getElementById('newMatterModal').classList.remove('show');}
 function selectType(type,el){
   selectedType=type;
@@ -1809,6 +1823,10 @@ async function createMatter() {
   fd.append('matter_date', document.getElementById('nmDate').value || '');
   fd.append('assigned_to', document.getElementById('nmAssigned').value || '');
   fd.append('notes', document.getElementById('nmNotes').value || '');
+  fd.append('report_tier', document.getElementById('fReportTier')?.value || 'trustee');
+  fd.append('debtor_name', document.getElementById('fDebtorName')?.value?.trim() || '');
+  fd.append('case_number', document.getElementById('fCaseNumber')?.value?.trim() || '');
+  fd.append('jurisdiction', document.getElementById('fJurisdiction')?.value || 'US');
   try {
     const r = await fetch(`${API_BASE}/matters`, { method: 'POST', body: fd });
     const m = await r.json();
