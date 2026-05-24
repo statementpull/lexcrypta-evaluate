@@ -1469,18 +1469,20 @@ async def _run_propertytrace(text: str, market: str) -> dict:
         import anthropic as _anthropic
         # Use AsyncAnthropic so the await below is non-blocking — sync client in async def
         # blocks FastAPI's entire event loop and causes Railway's 30s proxy to 502.
-        # Hard timeout at 25s keeps us inside Railway's limit regardless of input size.
-        client = _anthropic.AsyncAnthropic(api_key=api_key, timeout=25.0)
+        # Hard timeout at 28s keeps us well inside Railway's 30s proxy limit.
+        client = _anthropic.AsyncAnthropic(api_key=api_key, timeout=28.0)
         system_prompt = _get_propertytrace_system(market)
-        # Cap input at 14000 chars — enough for 8 months of AU bank transactions,
-        # keeps Anthropic response time well under Railway's 30s proxy limit.
+        # Haiku 4.5 is used here deliberately: PropertyTrace is pattern recognition
+        # on transaction descriptions — no complex reasoning required. Haiku outputs
+        # at 200-400 tok/s vs Sonnet's 60-80 tok/s, keeping total latency under 10s
+        # and well within Railway's 30s proxy limit even for 8-file statement sets.
         message = await client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1800,
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1200,
             system=system_prompt,
             messages=[{
                 "role": "user",
-                "content": f"Analyse this anonymised bank statement for property ownership signals. Return only JSON.\n\nTRANSACTION DATA:\n{text[:14000]}"
+                "content": f"Analyse this anonymised bank statement for property ownership signals. Return only JSON.\n\nTRANSACTION DATA:\n{text[:12000]}"
             }]
         )
         raw   = message.content[0].text.strip()
