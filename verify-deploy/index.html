@@ -1410,30 +1410,23 @@ async function runQuickScan(){
       _lfb.style.width = '100%';
     }
 
-    // Pre-render results into DOM while overlay is still fully visible
-    // so the browser paints them before the overlay fades — zero blank flash
-    renderScanResults(result);
-    const _resEl = document.getElementById('scanResults');
-    if (_resEl) { _resEl.style.display = 'block'; _resEl.style.opacity = '0'; }
-
     // Hold at ANALYSIS COMPLETE for 5 full seconds (bar fills during this time)
     await new Promise(r => setTimeout(r, 5000));
 
-    // Fade overlay out and results in simultaneously over 0.6s
+    // Hide overlay then fade results in — never show both at once (avoids layout shift)
     const _ov2 = document.getElementById('scanOverlay');
-    if (_ov2) {
-      _ov2.style.transition = 'opacity 0.6s ease';
-      _ov2.style.opacity = '0';
-    }
-    if (_resEl) {
-      _resEl.style.transition = 'opacity 0.6s ease';
-      _resEl.style.opacity = '1';
-    }
-    await new Promise(r => setTimeout(r, 650));
+    if (_ov2) _ov2.style.display = 'none';
 
-    // Clean up
-    if (_ov2) { _ov2.style.display = 'none'; _ov2.style.opacity = ''; _ov2.style.transition = ''; }
-    if (_resEl) { _resEl.style.transition = ''; }
+    renderScanResults(result);
+    const _resEl = document.getElementById('scanResults');
+    if (_resEl) {
+      _resEl.style.opacity = '0';
+      _resEl.style.display = 'block';
+      void _resEl.offsetWidth; // flush layout so transition fires
+      _resEl.style.transition = 'opacity 0.4s ease';
+      _resEl.style.opacity = '1';
+      setTimeout(() => { _resEl.style.transition = ''; }, 500);
+    }
   } catch(err) {
     stopLiveFeed();
     document.getElementById('scanUploadSection').style.display = 'block';
