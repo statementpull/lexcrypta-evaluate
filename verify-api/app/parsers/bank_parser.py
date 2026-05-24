@@ -30,7 +30,7 @@ def _parse_float(s: str) -> float:
 # ── Date patterns — AU and US ─────────────────────────────────────────────────
 # Matches at the START of a line (after optional whitespace):
 #   AU:  02 May 2025  |  02/05/2025  |  2 May 25  |  02-05-25
-#   US:  05/02/2025   |  May 2, 2025 |  05-02-2025
+#   US:  05/02/2025   |  May 2, 2025 |  05-02-2025 | 10/17 (MM/DD no year — Chase, BofA)
 
 _DATE_RE = re.compile(
     r"""^[\s]*
@@ -38,14 +38,16 @@ _DATE_RE = re.compile(
       \d{1,2}[\s/\-](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s/\-]\d{2,4}
       | (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}
       | \d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}
+      | \d{1,2}/\d{1,2}(?=\s)           # MM/DD without year (Chase, BofA, Wells Fargo)
     )
     [\s,]+
     """,
     re.IGNORECASE | re.VERBOSE,
 )
 
-# Monetary amounts: optional $ then digits, optional comma separators, mandatory cents
-_MONEY_RE = re.compile(r"\$?([\d,]{1,12}\.\d{2})")
+# Monetary amounts: optional leading minus, optional $, digits with optional commas, mandatory cents
+# e.g. -$3,200.00  |  $9,200.00  |  -9.99  |  3,650.18
+_MONEY_RE = re.compile(r"(-?\$?[\d,]{1,12}\.\d{2})")
 
 # Noise lines to skip — headers, balance carries, page breaks
 _SKIP_RE = re.compile(
@@ -82,24 +84,23 @@ def _parse_text_lines(text: str) -> list[dict]:
         if not amounts:
             continue
 
-        # The description is the rest with all monetary values stripped
+        # The description is the rest with all monetary values and currency symbols stripped
         desc = _MONEY_RE.sub("", rest).strip()
-        # Remove trailing DR/CR markers and stray $
+        # Remove trailing DR/CR markers, orphaned $ signs, and extra whitespace
         desc = re.sub(r"\s*\b(DR|CR)\b.*$", "", desc, flags=re.IGNORECASE).strip()
-        desc = re.sub(r"\s*\$\s*$", "", desc).strip()
+        desc = re.sub(r"\s*-?\$+\s*", " ", desc).strip()
+        desc = re.sub(r"\s{2,}", " ", desc).strip()
         if not desc or len(desc) < 2:
             continue
 
-        # First amount is debit/credit (transaction amount), last may be balance
-        # Heuristic: if only one amount, use it.
-        # If two+, first is the transaction amount; last is likely balance (ignore).
-        raw_amount = amounts[0].replace(",", "")
+        # First amount = transaction amount; last amount (if different) = running balance
+        raw_amount = amounts[0].replace(",", "").replace("$", "")
         try:
             amount = float(raw_amount)
         except ValueError:
             continue
 
-        # Determine sign: DR suffix or amount is in a "debit" position
+        # DR suffix means debit (outflow) → negative
         is_debit = bool(re.search(r"\bDR\b", rest, re.IGNORECASE))
         if is_debit and amount > 0:
             amount = -amount
