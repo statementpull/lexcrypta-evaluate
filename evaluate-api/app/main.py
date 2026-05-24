@@ -1532,3 +1532,38 @@ async def propertytrace_analyse_au(req: PropertyTraceRequest):
     """
     result = await _run_propertytrace(req.text, "au")
     return JSONResponse(result)
+
+
+@app.post("/propertytrace/extract-text")
+async def propertytrace_extract_text(file: UploadFile = File(...)):
+    """
+    Server-side PDF text extraction using pdfplumber.
+    Called as fallback when browser-side PDF.js fails (file:// protocol restriction).
+    PDF bytes are processed in memory and immediately discarded — nothing is stored.
+    Client strips PII from the returned text before sending to Lexi.
+    """
+    if not (file.filename or "").lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported for server-side extraction.")
+    try:
+        import pdfplumber as _pdfplumber
+        import io as _io
+        contents = await file.read()
+        text_parts = []
+        page_count = 0
+        with _pdfplumber.open(_io.BytesIO(contents)) as pdf:
+            page_count = len(pdf.pages)
+            for page in pdf.pages:
+                t = page.extract_text()
+                if t:
+                    text_parts.append(t)
+        text = "\n".join(text_parts).strip()
+        if not text:
+            raise HTTPException(
+                status_code=422,
+                detail="No text found in this PDF — it may be a scanned/image PDF. Export as CSV from Westpac Online Banking instead."
+            )
+        return JSONResponse({"text": text, "pages": page_count})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF extraction error: {str(e)}")

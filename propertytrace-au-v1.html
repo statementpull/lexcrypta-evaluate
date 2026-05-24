@@ -353,8 +353,9 @@ async function ensurePdfWorker() {
   _pdfWorkerReady = true;
 }
 
-// ── Railway endpoint — AU market ─────────────────────────────
+// ── Railway endpoints ────────────────────────────────────────
 const PROPERTYTRACE_API = 'https://lexcrypta-evaluate-production.up.railway.app/propertytrace/analyse';
+const EXTRACT_API       = 'https://lexcrypta-evaluate-production.up.railway.app/propertytrace/extract-text';
 const MARKET = 'au';
 
 // ── Theme ───────────────────────────────────────────────────
@@ -765,30 +766,51 @@ async function processFiles() {
   appState = 'confirm'; render();
 }
 
-function readOneFile(f) {
-  return new Promise((resolve, reject) => {
-    const ext = f.name.split('.').pop().toLowerCase();
-    if (ext === 'pdf') {
-      const reader = new FileReader();
-      reader.onload = async e => {
-        try {
-          const b64 = e.target.result.split(',')[1];
-          const text = await extractPdfText(b64);
-          if (!text || text.trim().length < 10)
-            reject(new Error('No text layer — this appears to be a scanned image PDF. Export a text-based PDF from your internet banking portal.'));
-          else
-            resolve(text);
-        } catch(err) { reject(err); }
-      };
-      reader.onerror = () => reject(new Error('FileReader error'));
-      reader.readAsDataURL(f);
-    } else {
+async function readOneFile(f) {
+  const ext = f.name.split('.').pop().toLowerCase();
+
+  // ── Non-PDF files: read as plain text ───────────────────────
+  if (ext !== 'pdf') {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload  = e => resolve(e.target.result);
-      reader.onerror = () => reject(new Error('FileReader error'));
+      reader.onerror = () => reject(new Error('FileReader error reading ' + f.name));
       reader.readAsText(f);
-    }
+    });
+  }
+
+  // ── PDF: try PDF.js in browser first ────────────────────────
+  try {
+    const b64 = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload  = e => res(e.target.result.split(',')[1]);
+      reader.onerror = () => rej(new Error('FileReader error'));
+      reader.readAsDataURL(f);
+    });
+    const text = await extractPdfText(b64);
+    if (text && text.trim().length >= 10) return text;
+    // Fall through to server-side if no text extracted
+  } catch (_) {
+    // PDF.js failed (file:// protocol restriction, worker issue, etc.)
+    // Fall through to server-side pdfplumber extraction
+  }
+
+  // ── PDF fallback: pdfplumber on Railway backend ──────────────
+  // PDF bytes sent to our own server for extraction only — not stored, not sent to AI.
+  // PII stripping still happens client-side on the returned text.
+  const fd = new FormData();
+  fd.append('file', f, f.name);
+  const r = await fetch(EXTRACT_API, {
+    method: 'POST',
+    body:   fd,
+    signal: AbortSignal.timeout(30000)
   });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.detail || `PDF extraction failed (${r.status})`);
+  }
+  const { text } = await r.json();
+  return text;
 }
 
 async function extractPdfText(b64) {
