@@ -11,7 +11,8 @@ logger = logging.getLogger("verify")
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -55,6 +56,10 @@ def require_license(db: Session = Depends(get_db)):
 
 app = FastAPI(title="LexCrypta Verify", version="1.0.0")
 
+_STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+if os.path.isdir(os.path.join(_STATIC_DIR, "fonts")):
+    app.mount("/fonts", StaticFiles(directory=os.path.join(_STATIC_DIR, "fonts")), name="fonts")
+
 _cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
@@ -90,6 +95,22 @@ def startup():
             db.close()
     except Exception:
         logger.exception("Demo seed failed — continuing without demo data")
+
+
+# ── Frontend ──────────────────────────────────────────────────────────────────
+
+@app.get("/", include_in_schema=False)
+def serve_frontend():
+    idx = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    if os.path.exists(idx):
+        with open(idx, "rb") as f:
+            content = f.read()
+        return Response(
+            content=content,
+            media_type="text/html",
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+        )
+    return {"product": "LexCrypta Verify API"}
 
 
 # ── Health / Version ──────────────────────────────────────────────────────────
