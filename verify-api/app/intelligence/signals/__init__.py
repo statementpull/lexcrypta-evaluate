@@ -604,6 +604,7 @@ def _compute_date_range(transactions: list) -> dict | None:
                 months.append(int(parts[0]))
             except ValueError:
                 pass
+    months = [m for m in months if 1 <= m <= 12]
     if not months:
         return None
     lo, hi = min(months), max(months)
