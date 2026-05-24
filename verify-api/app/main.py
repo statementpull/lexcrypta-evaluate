@@ -13,6 +13,7 @@ logger = logging.getLogger("verify")
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -120,6 +121,10 @@ def _run_migrations():
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(title="LexCrypta Verify", version="1.0.0")
+
+_STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+if os.path.isdir(os.path.join(_STATIC_DIR, "fonts")):
+    app.mount("/fonts", StaticFiles(directory=os.path.join(_STATIC_DIR, "fonts")), name="fonts")
 
 _cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
