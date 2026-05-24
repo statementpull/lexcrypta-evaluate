@@ -446,7 +446,9 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
 .scan-sig-table th{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border)}
 .scan-sig-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:11px}
 .scan-sig-table tr:hover td{background:rgba(255,255,255,.02)}
+@keyframes lf-pulse{0%,100%{border-color:var(--border)}50%{border-color:rgba(200,150,62,.45)}}
 .live-feed-container{background:var(--navy2);border:1px solid var(--border);padding:24px;width:100%}
+.live-feed-container.scanning{animation:lf-pulse 1.8s ease-in-out infinite}
 .live-feed-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
 .live-feed-title{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--gold)}
 .live-feed-count{font-family:var(--mono);font-size:10px;color:var(--muted)}
@@ -662,7 +664,9 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
     <div class="topbar-actions">
       <button class="btn" onclick="showView('dashboard')">← Dashboard</button>
       <button class="btn" id="btnAddQueue" onclick="addToQueue()">+ Add to Queue</button>
-      <button class="btn btn-gold" onclick="openMatterReport()">Generate Report</button>
+      <button class="btn btn-gold" onclick="openMatterReport('forensic')" title="Full forensic detail — all signals, all transactions">Forensic Report</button>
+      <button class="btn" style="background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('brief')" title="Key findings only — professional summary">Lawyer Brief</button>
+      <button class="btn" style="background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('snapshot')" title="One-page verdict + action pathways">Snapshot</button>
     </div>
   </div>
   <div class="content">
@@ -687,7 +691,11 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
           <div class="mh-las-verdict" id="mhLASVerdict"></div>
         </div>
         <div class="exp-badge" id="mhExposure" style="display:none">—</div>
-        <button id="btnViewReport" class="btn btn-gold" style="display:none;font-size:9px;padding:6px 14px;margin-top:6px" onclick="openMatterReport()">↓ View Report</button>
+        <div id="btnViewReport" style="display:none;margin-top:8px;display:flex;flex-direction:column;gap:4px">
+          <button class="btn btn-gold" style="font-size:8px;padding:5px 12px" onclick="openMatterReport('forensic')">Forensic Report</button>
+          <button class="btn" style="font-size:8px;padding:5px 12px;background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('brief')">Lawyer Brief</button>
+          <button class="btn" style="font-size:8px;padding:5px 12px;background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('snapshot')">Snapshot</button>
+        </div>
       </div>
     </div>
 
@@ -875,7 +883,9 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
           <div style="font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Exposure</div>
           <div id="scanExposureBadge" style="display:inline-block;padding:4px 12px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;margin-bottom:14px"></div>
           <div id="scanAttFlag" style="font-size:10px;color:var(--muted);margin-bottom:16px"></div>
-          <button class="btn btn-gold" onclick="downloadScanReport()">↓ Download Report</button>
+          <button class="btn btn-gold" onclick="downloadScanReport('forensic')">Forensic Report</button>
+          <button class="btn" style="background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="downloadScanReport('brief')">Lawyer Brief</button>
+          <button class="btn" style="background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="downloadScanReport('snapshot')">Snapshot</button>
         </div>
       </div>
 
@@ -1224,7 +1234,28 @@ function renderScanFileList(){
 async function runQuickScan(){
   if(!scanFiles.length) return;
   const btn = document.getElementById('scanRunBtn');
-  btn.disabled = true; btn.textContent = 'Analysing…';
+  btn.disabled = true;
+
+  // Show live feed immediately — before matter creation
+  _lastStage = '';
+  document.getElementById('scanUploadSection').style.display = 'none';
+  const _ov = document.getElementById('scanOverlay');
+  _ov.style.display = 'block';
+  const _lfc = _ov.querySelector('.live-feed-container');
+  if (_lfc) _lfc.classList.add('scanning');
+  const _lfl = document.getElementById('liveFeedLog');
+  const _lft = document.getElementById('liveFeedTitle');
+  const _lfb = document.getElementById('liveFeedBarFill');
+  const _addLog = (msg, cls='lf-dim') => {
+    if (!_lfl) return;
+    const d = document.createElement('div'); d.className = cls;
+    d.textContent = '› ' + msg; _lfl.appendChild(d);
+    _lfl.scrollTop = _lfl.scrollHeight;
+  };
+  if (_lft) _lft.textContent = 'PREPARING FILES...';
+  if (_lfb) _lfb.style.width = '5%';
+  _addLog(`${scanFiles.length} file${scanFiles.length > 1 ? 's' : ''} queued for analysis`);
+
   try {
     const ref = 'QS-' + Date.now();
     const mRes = await fetch(`${API_BASE}/matters`, {
@@ -1234,17 +1265,20 @@ async function runQuickScan(){
     if(!mRes.ok) throw new Error('Could not create matter');
     const matter = await mRes.json();
     scanMatterId = matter.id;
+    if (_lft) _lft.textContent = 'UPLOADING DOCUMENTS...';
+    if (_lfb) _lfb.style.width = '15%';
+    _addLog('Secure upload channel established');
 
     const upForm = new FormData();
     scanFiles.forEach(f => upForm.append('files', f));
     upForm.append('zone','bank');
     const upRes = await fetch(`${API_BASE}/matters/${scanMatterId}/upload`, { method:'POST', body:upForm });
     if(!upRes.ok) throw new Error('Upload failed');
-
-    // Show live feed while analysis runs
-    _lastStage = '';
-    document.getElementById('scanUploadSection').style.display = 'none';
-    document.getElementById('scanOverlay').style.display = 'block';
+    if (_lft) _lft.textContent = 'LOADING ANALYSIS ENGINE...';
+    if (_lfb) _lfb.style.width = '22%';
+    _addLog(`${scanFiles.length} document${scanFiles.length > 1 ? 's' : ''} received — initialising forensic engine`);
+    _addLog('Running 20 intelligence signals...', 'lf-signal');
+    if (_lfc) _lfc.classList.remove('scanning'); // real progress takes over
     startLiveFeed(scanMatterId);
 
     const runRes = await fetch(`${API_BASE}/matters/${scanMatterId}/run`, { method:'POST' });
@@ -1392,11 +1426,11 @@ function copyScanBrief() {
   if (!txt) return;
   navigator.clipboard.writeText(txt).then(() => showNotify('Intelligence brief copied to clipboard.', 'Lexi'));
 }
-function openMatterReport(){
-  if(activeMatter && activeMatter.id) window.open(`${API_BASE}/reports/${activeMatter.id}`, '_blank');
+function openMatterReport(fmt='forensic'){
+  if(activeMatter && activeMatter.id) window.open(`${API_BASE}/reports/${activeMatter.id}?format=${fmt}`, '_blank');
 }
-function downloadScanReport(){
-  if(scanMatterId) window.open(`${API_BASE}/reports/${scanMatterId}`, '_blank');
+function downloadScanReport(fmt='forensic'){
+  if(scanMatterId) window.open(`${API_BASE}/reports/${scanMatterId}?format=${fmt}`, '_blank');
 }
 function resetScan(){
   scanFiles = []; scanMatterId = null;

@@ -730,6 +730,171 @@ def sync_dfat(
 
 # ── Reports ───────────────────────────────────────────────────────────────────
 
+def _brief_cashflow(cs: dict) -> str:
+    if not cs:
+        return ""
+    ic = f"${cs.get('total_credits', 0):,.0f}"
+    oc = f"${cs.get('total_debits', 0):,.0f}"
+    return (
+        f'<div style="margin-top:6px;font-size:10px;color:var(--muted)">'
+        f'Inflows: <b style="color:#f2ede4">{ic}</b> &nbsp; '
+        f'Outflows: <b style="color:#f2ede4">{oc}</b></div>'
+    )
+
+
+def _report_base_css() -> str:
+    return """
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono&display=swap');
+    :root{--navy:#0e1c2e;--navy2:#152336;--navy3:#1c2f44;--gold:#c8963e;--cream:#f2ede4;--text:#ccd6e8;--muted:#8a9bb4;--red:#c0392b;--green:#2e7d52;--border:#243650}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'IBM Plex Sans',Arial,sans-serif;background:var(--navy);color:var(--text);font-size:12px;line-height:1.6}
+    .page{max-width:860px;margin:0 auto;padding:48px 40px}
+    h2{font-family:Georgia,serif;color:var(--gold);font-weight:300;font-size:13px;letter-spacing:.18em;text-transform:uppercase;margin:28px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+    .print-btn{position:fixed;top:20px;right:20px;background:var(--gold);color:var(--navy);border:none;padding:9px 20px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;font-weight:500}
+    """
+
+
+def _report_brief(m, result: dict) -> str:
+    """Lawyer Brief — key findings only, no signal table or monthly data."""
+    las   = result.get("las", {})
+    intel = result.get("intel", [])
+    cs    = result.get("cash_summary", {})
+    score = las.get("score", 0)
+    verdict = las.get("verdict", "REVIEW")
+    reason  = las.get("reason", "")
+    tier    = m.report_tier or "trustee"
+    tier_lbl, tier_desc = _ATTY_LABELS.get(tier, ("Legal Report", ""))
+    now_str = datetime.now(timezone.utc).strftime("%d %b %Y · %H:%M UTC")
+    v_col = "#c0392b" if score >= 60 else "#d4860a" if score >= 30 else "#2e7d52"
+
+    bullets = "".join(
+        f'<li style="margin-bottom:8px">{i["title"]} — <span style="color:#b8c4d4">'
+        f'{i["narrative"][:140].rstrip(" ,")}{"…" if len(i["narrative"]) > 140 else ""}</span></li>'
+        for i in intel[:6]
+    ) or "<li>No significant signals detected.</li>"
+
+    purpose = (
+        f'<div style="border:2px solid #000;border-left:6px solid #c8963e;padding:12px 18px;'
+        f'margin:16px 0 24px;background:#f9f6ef;color:#111">'
+        f'<div style="font-size:8px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">REPORT PURPOSE</div>'
+        f'<div style="font-size:11px;font-weight:700;margin-bottom:4px">{tier_lbl}</div>'
+        f'<div style="font-size:11px">{tier_desc}</div></div>'
+    ) if tier_lbl else ""
+
+    debtor_line = f"<b>Debtor:</b> {m.debtor_name}<br>" if m.debtor_name else ""
+    case_line   = f"<b>Case:</b> {m.case_number}<br>" if m.case_number else ""
+
+    return f"""<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><title>Lawyer Brief — {m.subject} — LexCrypta Verify</title>
+<style>{_report_base_css()}
+  .score-big{{font-family:Georgia,serif;font-size:52px;line-height:1;color:{v_col}}}
+  .verdict-lbl{{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:{v_col};margin-top:4px}}
+  .finding-list{{list-style:none;padding:0;margin:0}}
+  .finding-list li{{border-left:3px solid #c8963e;padding:10px 14px;margin-bottom:8px;background:var(--navy2);font-size:11px;line-height:1.7}}
+  .finding-list li b{{color:var(--cream)}}
+</style></head><body>
+<button class="print-btn" onclick="window.print()">Print / Export PDF</button>
+<div class="page">
+  <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">LEXCRYPTA VERIFY — LAWYER BRIEF</div>
+  <div style="font-family:Georgia,serif;font-size:24px;color:var(--cream);font-weight:300;margin-bottom:4px">{m.subject}</div>
+  <div style="font-size:10px;color:var(--muted);margin-bottom:20px">{debtor_line}{case_line}Generated: {now_str}</div>
+  {purpose}
+  <div style="display:flex;align-items:flex-start;gap:40px;margin:20px 0 28px">
+    <div><div class="score-big">{score}</div><div class="verdict-lbl">{verdict}</div>
+    <div style="font-size:9px;color:var(--muted);margin-top:4px">Lexi Attention Score / 100</div></div>
+    <div style="flex:1;border-left:1px solid var(--border);padding-left:24px">
+      <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Summary</div>
+      <div style="font-size:12px;line-height:1.8;color:var(--text)">{" · ".join(reason.split(" · ")[:3]) if reason else "Analysis complete."}</div>
+      {_brief_cashflow(cs)}
+    </div>
+  </div>
+  <h2>Key Findings</h2>
+  <ul class="finding-list">{bullets}</ul>
+  <div style="margin-top:32px;font-size:9px;color:var(--muted);border-top:1px solid var(--border);padding-top:12px">
+    This Lawyer Brief is a condensed summary prepared for professional review. For full forensic detail including all flagged transactions, signal analysis, and evidentiary appendices, request the Forensic Report.
+    LexCrypta Verify · Lexcrypta LLC · {now_str}
+  </div>
+</div></body></html>"""
+
+
+def _report_snapshot(m, result: dict) -> str:
+    """Snapshot — one-page verdict + immediate action pathways."""
+    las   = result.get("las", {})
+    intel = result.get("intel", [])
+    cs    = result.get("cash_summary", {})
+    score = las.get("score", 0)
+    verdict = las.get("verdict", "REVIEW")
+    reason  = las.get("reason", "")
+    tier    = m.report_tier or "trustee"
+    now_str = datetime.now(timezone.utc).strftime("%d %b %Y · %H:%M UTC")
+    is_pursue = (tier == "trustee" and score >= 50) or (tier != "trustee" and score >= 60)
+    v_word = "PURSUE" if is_pursue else "SKIP"
+    v_col  = "#2e9e6b" if is_pursue else "#c0392b"
+
+    bullets = "".join(
+        f'<div style="padding-left:14px;position:relative;margin-bottom:6px;font-size:12px;color:var(--text);line-height:1.7">'
+        f'<span style="position:absolute;left:0;color:var(--gold)">›</span>{b}</div>'
+        for b in reason.split(" · ") if b
+    ) or '<div style="color:var(--muted)">Review flagged transactions for full detail.</div>'
+
+    # Build action pathways from intel signals
+    pathways = []
+    for i in intel[:5]:
+        if i.get("path"):
+            pathways.append(i["path"])
+    # Generic LexCrypta Trace pathway always appended
+    pathways.append(
+        "Contact LexCrypta Trace to file exchange subpoenas and recover transaction records "
+        "from Gemini, Binance, Coinbase, and CashApp. LexCrypta Trace handles the full subpoena "
+        "and records recovery process for digital asset exchanges."
+    )
+    if cs.get("total_credits", 0) > 100_000:
+        pathways.append(
+            "Bank subpoena recommended — contact LexCrypta Trace to obtain full account history, "
+            "counterparty details, and wire transfer records from financial institutions."
+        )
+
+    pathways_html = "".join(
+        f'<div style="border-left:3px solid #c8963e;padding:10px 14px;margin-bottom:8px;background:var(--navy2);font-size:11px;line-height:1.7;color:var(--text)">'
+        f'<span style="font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:#c8963e;display:block;margin-bottom:4px">Action {idx+1}</span>'
+        f'{p}</div>'
+        for idx, p in enumerate(pathways[:5])
+    )
+
+    debtor_line = f"{m.debtor_name} · " if m.debtor_name else ""
+    case_line   = f"Case {m.case_number} · " if m.case_number else ""
+
+    return f"""<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><title>Snapshot — {m.subject} — LexCrypta Verify</title>
+<style>{_report_base_css()}
+  @media print{{.print-btn{{display:none}}}}
+</style></head><body>
+<button class="print-btn" onclick="window.print()">Print / Export PDF</button>
+<div class="page">
+  <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">LEXCRYPTA VERIFY — CASE SNAPSHOT</div>
+  <div style="font-family:Georgia,serif;font-size:22px;color:var(--cream);font-weight:300;margin-bottom:2px">{m.subject}</div>
+  <div style="font-size:10px;color:var(--muted);margin-bottom:24px">{debtor_line}{case_line}{now_str}</div>
+
+  <div style="display:flex;align-items:center;gap:32px;margin-bottom:28px;padding:20px 24px;background:var(--navy2);border:1px solid var(--border)">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:56px;font-weight:700;letter-spacing:.06em;color:{v_col};line-height:1">{v_word}</div>
+    <div>
+      <div style="font-size:28px;font-family:Georgia,serif;color:var(--cream)">{score}<span style="font-size:13px;color:var(--muted)">/100</span></div>
+      <div style="font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)">Lexi Attention Score</div>
+    </div>
+  </div>
+
+  <h2>Findings</h2>
+  {bullets}
+
+  <h2>Immediate Next Steps</h2>
+  {pathways_html}
+
+  <div style="margin-top:28px;font-size:9px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px">
+    Case snapshot prepared by LexCrypta Verify · Lexcrypta LLC · {now_str} · For full forensic detail, request the Forensic Report.
+  </div>
+</div></body></html>"""
+
+
 _ATTY_LABELS = {
     "trustee":  ("Trustee in Bankruptcy",
                  "This report has been prepared for use by a trustee in bankruptcy. "
@@ -759,6 +924,7 @@ _ATTY_LABELS = {
 @app.get("/reports/{matter_id}", response_class=HTMLResponse)
 def get_report(
     matter_id: int,
+    format: str = "forensic",
     db: Session = Depends(get_db),
     _: bool = Depends(require_license),
 ):
@@ -767,6 +933,10 @@ def get_report(
     if not m or not ar:
         raise HTTPException(status_code=404, detail="Report not found.")
     result = json.loads(ar.result_json)
+    if format == "brief":
+        return _report_brief(m, result)
+    if format == "snapshot":
+        return _report_snapshot(m, result)
     las    = result.get("las", {})
     cs     = result.get("cash_summary", {})
     dr     = result.get("date_range", {})
