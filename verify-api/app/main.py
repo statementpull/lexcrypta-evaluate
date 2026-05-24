@@ -12,14 +12,14 @@ logger = logging.getLogger("verify")
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from .config import DEMO_KEY, LICENSE_SECRET, MAX_CSV_MB, MAX_PDF_MB
 from .database import Base, create_verify_schema, engine, get_db
 from .intelligence.signals import build_verify_result, run_signals
-from .models import AnalysisResult, Counterparty, Document, License, Matter
+from .models import AnalysisResult, Counterparty, Document, License, Matter, TransactionRevision
 from .parsers.bank_parser import parse_bank_csv_text, parse_bank_pdf
 from .parsers.file_detector import detect_file_type
 from .parsers.security_scanner import scan_pdf_bytes, validate_pdf_header
@@ -37,10 +37,28 @@ from .services import ofac_service, dfat_service
 _analysis_progress: dict = {}
 
 
+def _txn_hash(t: dict) -> str:
+    key = f"{t.get('date','')}|{t.get('merchant','')}|{t.get('amount','')}|{t.get('direction','')}"
+    return hashlib.md5(key.encode()).hexdigest()
+
+
 # ── License ───────────────────────────────────────────────────────────────────
 
 class LicenseRequest(BaseModel):
     key: str
+
+
+class RevisionRequest(BaseModel):
+    txn_hash: str
+    rev_type: str          # correct | annotate | reclassify
+    field: str = ""
+    orig_value: str = ""
+    new_value: str = ""
+    note: str = ""
+    signal_override: str = ""
+    severity_override: str = ""
+    is_false_positive: bool = False
+    analyst_id: str = ""
 
 
 def _validate_license_key(key: str) -> bool:
@@ -449,6 +467,67 @@ def get_analysis_progress(matter_id: int):
         return {"stage": "idle", "file_index": 0, "file_total": 0,
                 "txn_count": 0, "signals": [], "done": True}
     return p
+
+
+# ── Revisions ─────────────────────────────────────────────────────────────────
+
+@app.post("/matters/{matter_id}/revisions")
+def add_revision(matter_id: int, req: RevisionRequest,
+                 db: Session = Depends(get_db),
+                 _lic = Depends(require_license)):
+    rev = TransactionRevision(
+        matter_id         = matter_id,
+        txn_hash          = req.txn_hash,
+        rev_type          = req.rev_type,
+        field             = req.field,
+        orig_value        = req.orig_value,
+        new_value         = req.new_value,
+        note              = req.note,
+        signal_override   = req.signal_override,
+        severity_override = req.severity_override,
+        is_false_positive = req.is_false_positive,
+        analyst_id        = req.analyst_id,
+    )
+    db.add(rev)
+    db.commit()
+    db.refresh(rev)
+    return {"id": rev.id, "txn_hash": rev.txn_hash, "rev_type": rev.rev_type}
+
+
+@app.get("/matters/{matter_id}/revisions")
+def get_revisions(matter_id: int, db: Session = Depends(get_db),
+                  _lic = Depends(require_license)):
+    revs = db.query(TransactionRevision).filter_by(matter_id=matter_id).all()
+    return [{"id": r.id, "txn_hash": r.txn_hash, "rev_type": r.rev_type,
+             "field": r.field, "orig_value": r.orig_value, "new_value": r.new_value,
+             "note": r.note, "signal_override": r.signal_override,
+             "severity_override": r.severity_override,
+             "is_false_positive": r.is_false_positive,
+             "analyst_id": r.analyst_id,
+             "created_at": r.created_at.isoformat() if r.created_at else ""} for r in revs]
+
+
+@app.delete("/matters/{matter_id}/revisions/{rev_id}")
+def delete_revision(matter_id: int, rev_id: int, db: Session = Depends(get_db),
+                    _lic = Depends(require_license)):
+    rev = db.query(TransactionRevision).filter_by(id=rev_id, matter_id=matter_id).first()
+    if not rev:
+        raise HTTPException(status_code=404, detail="Revision not found")
+    db.delete(rev)
+    db.commit()
+    return {"deleted": rev_id}
+
+
+# ── Documents ─────────────────────────────────────────────────────────────────
+
+@app.get("/matters/{matter_id}/documents/{doc_id}")
+def serve_document(matter_id: int, doc_id: int, db: Session = Depends(get_db),
+                   _lic = Depends(require_license)):
+    doc = db.query(Document).filter_by(id=doc_id, matter_id=matter_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return Response(content=bytes(doc.content), media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="{doc.filename}"'})
 
 
 # ── Demo ─────────────────────────────────────────────────────────────────────
