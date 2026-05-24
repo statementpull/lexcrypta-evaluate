@@ -477,11 +477,16 @@ function renderConfirm() {
     <div class="sending-block">
       <div class="sending-head">
         <div class="section-label" style="margin-bottom:0">What will be transmitted</div>
-        <span class="sending-count">${d.lineCount} LINES · ${selectedFiles.length > 1 ? `${selectedFiles.length} FILES · ` : ''}TRANSACTION DATA ONLY</span>
+        <span class="sending-count">${d.lineCount} LINES · ${(selectedFiles.length - (d.skipped||[]).length) > 1 ? `${selectedFiles.length - (d.skipped||[]).length} FILES · ` : ''}TRANSACTION DATA ONLY</span>
       </div>
       <div style="height:8px"></div>
       <div class="sending-preview">${preview}</div>
     </div>
+    ${d.skipped && d.skipped.length ? `<div class="error-box" style="margin:12px 0;font-size:11px">
+      ⚠ ${d.skipped.length} file${d.skipped.length > 1 ? 's' : ''} could not be read and will be skipped:<br/>
+      ${d.skipped.map(s => `<strong>${escHtml(s.name)}</strong>: ${escHtml(s.reason)}`).join('<br/>')}
+      <br/><br/>Tip: Export from Westpac Online Banking as CSV for guaranteed text extraction.
+    </div>` : ''}
     <div class="privacy-note">
       <span class="lock">🔒</span>
       <span>Only the transaction descriptions shown above are sent to the Anthropic API. No name, no account number, no BSB, no ABN, no address. Data is processed then discarded — not stored, not trained on.</span>
@@ -682,13 +687,15 @@ function renderResults() {
 
 // ── Error ────────────────────────────────────────────────────
 function renderError() {
-  const msg = analysisResult?.error || 'An unexpected error occurred.';
+  const msg   = analysisResult?.error   || 'An unexpected error occurred.';
+  const stage = analysisResult?.stage   || '';
+  const tip   = analysisResult?.tip     || '';
   return `<div class="step">
-    <p class="step-label">ANALYSIS ERROR</p>
+    <p class="step-label">ANALYSIS ERROR${stage ? ' · ' + stage : ''}</p>
     <h2 class="step-title">Lexi couldn't complete the scan.</h2>
     <div class="error-box">${escHtml(msg)}</div>
-    <p class="step-sub">Check the file format and try again. If the problem persists, contact LexCrypta support.</p>
-    <button class="btn-secondary" id="btn-new" style="margin-top:4px">TRY AGAIN</button>
+    ${tip ? `<p class="step-sub" style="margin-top:12px">${escHtml(tip)}</p>` : ''}
+    <button class="btn-secondary" id="btn-new" style="margin-top:16px">TRY AGAIN</button>
   </div>`;
 }
 
@@ -706,7 +713,9 @@ function setFiles(fileList) {
 
 async function processFiles() {
   appState = 'extracting'; render();
-  const parts = [];
+  const parts    = [];
+  const skipped  = [];
+
   for (const f of selectedFiles) {
     try {
       const text = await readOneFile(f);
@@ -716,16 +725,33 @@ async function processFiles() {
         parts.push(text);
       }
     } catch(err) {
-      analysisResult = { error: `Could not read "${f.name}": ${err.message}` };
-      appState = 'error'; render(); return;
+      // Don't abort on one bad file — skip it and continue with the rest
+      skipped.push({ name: f.name, reason: err.message });
     }
   }
-  rawText = parts.join('\n');
-  if (!rawText || rawText.trim().length < 50) {
-    analysisResult = { error: 'No readable text found in the uploaded file(s). If uploading PDFs, ensure they are text-based (not scanned images). Export as PDF or CSV from your internet banking portal.' };
+
+  // If ALL files failed to read, show error
+  if (parts.length === 0) {
+    const firstErr = skipped[0];
+    const isPdf    = firstErr?.name?.toLowerCase().endsWith('.pdf');
+    analysisResult = {
+      stage: 'FILE READING',
+      error: skipped.length === 1
+        ? `Could not read "${firstErr.name}": ${firstErr.reason}`
+        : `Could not read any of the ${skipped.length} files. First error: ${firstErr?.reason}`,
+      tip: isPdf
+        ? 'Westpac PDFs must be downloaded as text-based PDFs from Westpac Online Banking (not printed/scanned). Try exporting as CSV instead: Westpac Online Banking → Transactions → Export → CSV.'
+        : 'Check the file format and try again.'
+    };
     appState = 'error'; render(); return;
   }
+
+  rawText = parts.join('\n');
   cleanData = stripPII(rawText);
+
+  // If some files were skipped, attach a warning to cleanData so confirm screen can show it
+  cleanData.skipped = skipped;
+
   appState = 'confirm'; render();
 }
 
