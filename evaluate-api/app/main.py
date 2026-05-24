@@ -1305,9 +1305,9 @@ def purge_deal(deal_id: int, db: Session = Depends(get_db), _: bool = Depends(re
     return {"purged": True, "deal_id": deal_id}
 
 
-# ── PropertyTrace — Lexi Asset Intelligence ──────────────────────────────────
+# ── PropertyTrace — Lexi Asset Intelligence (US + AU) ────────────────────────
 
-_LEXI_PROPERTYTRACE_SYSTEM = """You are Lexi, LexCrypta's forensic property intelligence engine. You analyse anonymised bank statement transaction data to identify signals indicating undisclosed property ownership.
+_LEXI_PROPERTYTRACE_SYSTEM_US = """You are Lexi, LexCrypta's forensic property intelligence engine. You analyse anonymised bank statement transaction data to identify signals indicating undisclosed property ownership.
 
 IMPORTANT: The data has already been anonymised — personal names and account numbers stripped. You see only transaction descriptions and amounts. This is intentional.
 
@@ -1348,7 +1348,7 @@ Respond ONLY with valid JSON. No markdown. No explanation outside the JSON.
   ],
   "cluster_finding": "2-4 sentence forensic narrative. Be direct. If the signals constitute a finding say so plainly. Name the jurisdiction.",
   "jurisdictions": [
-    { "city": "city or area (use 'Unknown city' if not determinable)", "state": "State and County if determinable", "confidence": "XX%", "signal_count": 3, "basis": "which signals and why they cluster", "search_zones": ["County deed registry", "State property tax roll"], "next_step": "exact instruction for the attorney — what to submit to LexisNexis Accurint, TLO, or county records portal" }
+    { "city": "city or area (use 'Unknown city' if not determinable)", "state": "State and County if determinable", "confidence": "XX%", "signal_count": 3, "basis": "which signals and why they cluster", "search_zones": ["County deed registry", "State property tax roll"], "next_step": "exact instruction for the attorney — what to search in LexisNexis Accurint, TLO, or the county records portal" }
   ],
   "no_signals_found": false
 }
@@ -1356,17 +1356,96 @@ Respond ONLY with valid JSON. No markdown. No explanation outside the JSON.
 If no signals: { "signals": [], "cluster_finding": "No property-linked payment signals identified.", "jurisdictions": [], "no_signals_found": true }"""
 
 
+_LEXI_PROPERTYTRACE_SYSTEM_AU = """You are Lexi, LexCrypta's forensic property intelligence engine. You analyse anonymised Australian bank statement transaction data to identify signals indicating undisclosed property ownership.
+
+IMPORTANT: The data has already been anonymised — personal names, BSB numbers, and account numbers stripped. You see only transaction descriptions and amounts. This is intentional.
+
+SIGNAL CATEGORIES — detect all that apply:
+
+1. STRATA / BODY CORPORATE / OC LEVIES:
+   Key terms: "STRATA LEVY", "BODY CORP", "OWNERS CORP", "OC LEVY", "BODY CORPORATE FEE", "STRATA PLAN", "STRATA MANAGER"
+   Management companies: PICA Group, Strata Community Australia, Bright & Duggan, Ace Body Corporate, Knight Frank Strata, Strata Title Management, City Strata, Whittles, Abode Strata, CHU Strata
+
+2. UTILITY PROVIDERS (strong geographic signals — each provider is state/territory-specific):
+   Victoria: AGL VIC, Origin Energy VIC, EnergyAustralia VIC, CitiPower, Powercor, United Energy, Jemena Gas, South East Water, Yarra Valley Water, Melbourne Water, City West Water, AusNet Services
+   New South Wales: Ausgrid, Endeavour Energy, Essential Energy, Transgrid, Jemena NSW, ActewAGL (ACT border), Sydney Water, Hunter Water, Central Coast Council Water
+   Queensland: Energex, Ergon Energy, Origin Energy QLD, AGL QLD, Queensland Urban Utilities, Unitywater, Gold Coast Water, Logan Water
+   South Australia: SA Power Networks, AGL SA, Origin Energy SA, SA Water, Allgas Energy
+   Western Australia: Western Power, Synergy, Horizon Power, Alinta Energy WA, Water Corporation WA
+   Tasmania: TasNetworks, Aurora Energy, Hydro Tasmania, TasWater
+   Northern Territory: Power and Water Corporation NT, Jacana Energy
+   National retailers (any state): AGL, Origin Energy, EnergyAustralia, Simply Energy, Momentum Energy, Lumo Energy, Click Energy, ReAmped Energy, Tango Energy, Alinta Energy
+
+3. PROPERTY INSURANCE (strong signal — many are state-branded):
+   National: AAMI, Suncorp Insurance, CGU, Allianz Australia, QBE Insurance, Budget Direct, CommInsure, ANZ Home Insurance, Westpac Home Insurance, NAB Home Insurance, NRMA Insurance, RAC Insurance, RACQ Insurance, RACV Insurance, Real Insurance, Youi, Virgin Money Insurance
+   State-specific strong signals: RAA (South Australia only), RAC (Western Australia only), RACQ (Queensland only), RACV (Victoria only), NRMA (NSW/ACT only)
+   Strata specialist (ownership indicator): CHU Underwriting, Flex Insurance, Honan Strata, BMS Insurance
+
+4. COUNCIL RATES / LAND TAX (very strong ownership signal):
+   Key terms: "COUNCIL RATES", "LAND TAX", "RATE NOTICE", "MUNICIPAL RATES", "SHIRE RATES"
+   State Revenue Offices: SRO VIC (State Revenue Office Victoria), Revenue NSW, Queensland Revenue Office (QRO), RevenueSA, Landgate WA, State Revenue Tasmania
+   Local councils: any "CITY OF [X]", "SHIRE OF [X]", "COUNCIL OF [X]" payment
+   Water authorities: SA Water, City West Water, South East Water, Yarra Valley Water, Sydney Water, Unity Water
+
+5. STORAGE UNITS (recurring monthly — may indicate main residence is elsewhere):
+   National: National Storage, Kennards Self Storage, Storage King, Spacer, Fort Knox Storage, Taxibox, Uncle Bob's Self Storage
+
+6. MORTGAGE / HOME LOAN PAYMENTS (definitive ownership signal):
+   Big Four: Commonwealth Bank (CBA) home loan, NAB Home Loan, Westpac Home Loan, ANZ Home Loan
+   Other lenders: ING Australia, St George Bank, Bank of Melbourne, BankSA, Macquarie Bank, Bankwest, Suncorp Bank, Bendigo Bank, ME Bank, AMP Bank, Pepper Money, Liberty Financial, Firstmac, La Trobe Financial, Resimac, Athena Home Loans
+   Key terms: "HOME LOAN REPAYMENT", "MORTGAGE REPAYMENT", "LOAN REPAYMENT", "RESI LOAN"
+
+7. PROPERTY MANAGEMENT / RENTAL INCOME DEPOSITS (may indicate investment property):
+   Key terms: rent receipts from property managers, "RENTAL INCOME", "RENT TRUST", "PROPERTY MANAGEMENT"
+   Managers: Ray White, LJ Hooker, Harcourts, McGrath, Barry Plant, Nelson Alexander, Jellis Craig, Biggin & Scott, Raine & Horne, Century 21
+
+8. RECURRING TRAVEL (signals secondary location):
+   Domestic: Virgin Australia, Qantas, Rex Airlines, Bonza, Jetstar — repeated routes suggest regular secondary residence
+
+9. MAINTENANCE (strong secondary property signal when paired with other signals):
+   Jim's Mowing, Jim's Building & Maintenance, Hipages, ServiceSeeking, pool service companies, pest control (Rentokil, Flick), gardening services
+
+CLUSTER LOGIC:
+- State-specific utility provider alone = 50-65% (narrows to one state)
+- State-specific insurer (RAA, RACV, RACQ, NRMA, RAC) alone = 55-70% (strong geographic pin)
+- Strata levy + utility = 70-80% (apartment/unit ownership confirmed, state narrowed)
+- Council rates payment = 75-85% standalone (near-definitive ownership signal)
+- Mortgage repayment = 85-90% standalone (definitive ownership signal)
+- Three or more corroborating signals = 85-95%
+
+SEARCH GUIDANCE (Australian-specific):
+- Land title searches by state: VIC: Land Use Victoria (Titles Victoria / LANDATA) | NSW: NSW Land Registry Services | QLD: Titles Queensland | WA: Landgate | SA: Land Services SA (SAILIS) | TAS: Land Tasmania (LIST) | ACT: Access Canberra | NT: NT DIPL
+- Rate/tax roll: council rates notices are public record; land tax via State Revenue Office
+- ASIC search for any business payments identified
+
+Respond ONLY with valid JSON. No markdown. No explanation outside the JSON.
+
+{
+  "signals": [
+    { "type": "strata|utility|insurance|council_rates|land_tax|storage|travel|mortgage|rental|maintenance|other", "description": "transaction as it appears", "amount": "amount or frequency", "jurisdiction_hint": "Australian state or territory" }
+  ],
+  "cluster_finding": "2-4 sentence forensic narrative written for a solicitor. Be direct. If the signals constitute a finding say so plainly. Name the state and type of property (unit/house/investment).",
+  "jurisdictions": [
+    { "city": "suburb or LGA if determinable (use 'Unknown suburb' if not)", "state": "Australian state or territory", "confidence": "XX%", "signal_count": 3, "basis": "which signals and why they cluster", "search_zones": ["Titles Victoria LANDATA", "State Revenue Office VIC"], "next_step": "exact instruction for the solicitor — what portal to search, what to request, and what evidence to preserve for court" }
+  ],
+  "no_signals_found": false
+}
+
+If no signals: { "signals": [], "cluster_finding": "No property-linked payment signals identified in Australian transaction data.", "jurisdictions": [], "no_signals_found": true }"""
+
+
 class PropertyTraceRequest(BaseModel):
     text: str
+    market: str = "us"  # "us" or "au"
 
 
-@app.post("/propertytrace/analyse")
-async def propertytrace_analyse(req: PropertyTraceRequest):
-    """
-    PropertyTrace — Lexi forensic property intelligence.
-    Accepts anonymised transaction text, returns JSON signal analysis.
-    Requires ANTHROPIC_API_KEY in Railway environment.
-    """
+def _get_propertytrace_system(market: str) -> str:
+    if market.lower() == "au":
+        return _LEXI_PROPERTYTRACE_SYSTEM_AU
+    return _LEXI_PROPERTYTRACE_SYSTEM_US
+
+
+async def _run_propertytrace(text: str, market: str) -> dict:
     import json as _json
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
@@ -1377,21 +1456,45 @@ async def propertytrace_analyse(req: PropertyTraceRequest):
     try:
         import anthropic as _anthropic
         client = _anthropic.Anthropic(api_key=api_key)
+        system_prompt = _get_propertytrace_system(market)
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=1500,
-            system=_LEXI_PROPERTYTRACE_SYSTEM,
+            max_tokens=1800,
+            system=system_prompt,
             messages=[{
                 "role": "user",
-                "content": f"Analyse this anonymised bank statement for property ownership signals. Return only JSON.\n\nTRANSACTION DATA:\n{req.text[:20000]}"
+                "content": f"Analyse this anonymised bank statement for property ownership signals. Return only JSON.\n\nTRANSACTION DATA:\n{text[:20000]}"
             }]
         )
         raw   = message.content[0].text.strip()
         clean = raw.replace("```json", "").replace("```", "").strip()
-        return JSONResponse(_json.loads(clean))
+        return _json.loads(clean)
     except _anthropic.APIStatusError as e:
         raise HTTPException(status_code=502, detail=f"Analysis engine error: {e.message}")
     except _json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="Lexi returned an unexpected response format. Please try again.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PropertyTrace error: {str(e)}")
+
+
+@app.post("/propertytrace/analyse")
+async def propertytrace_analyse(req: PropertyTraceRequest):
+    """
+    PropertyTrace — Lexi forensic property intelligence.
+    Accepts anonymised transaction text, returns JSON signal analysis.
+    market: "us" (default) or "au"
+    Requires ANTHROPIC_API_KEY in Railway environment.
+    """
+    result = await _run_propertytrace(req.text, req.market)
+    return JSONResponse(result)
+
+
+@app.post("/propertytrace/analyse-au")
+async def propertytrace_analyse_au(req: PropertyTraceRequest):
+    """
+    PropertyTrace AU — Australian jurisdiction forensic property intelligence.
+    Detects strata levies, council rates, state utilities, AU mortgage servicers,
+    AU-specific insurers (RACV, RACQ, NRMA, RAA, RAC), and land tax signals.
+    """
+    result = await _run_propertytrace(req.text, "au")
+    return JSONResponse(result)
