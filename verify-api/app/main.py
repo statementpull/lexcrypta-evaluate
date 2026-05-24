@@ -330,7 +330,7 @@ async def run_analysis(
         try:
             raw = bytes(doc.content)  # memoryview → bytes for pdfplumber
             if doc.filename.lower().endswith(".pdf"):
-                txns = parse_bank_pdf(raw)
+                txns = parse_bank_pdf(raw, doc.filename)
             else:
                 txns = parse_bank_csv_text(raw.decode("utf-8", errors="replace"))
             transactions.extend(txns)
@@ -422,7 +422,7 @@ async def demo_analyse(
                 detail=f"{file.filename}: security threat detected — {'; '.join(threat['meta']['threats_found'])}. File rejected.",
             )
         try:
-            txns = parse_bank_pdf(content)
+            txns = parse_bank_pdf(content, file.filename)
             doc_signals += [t for t in txns if t.get("signal_type") == "document_integrity"]
             all_transactions += [t for t in txns if t.get("signal_type") != "document_integrity"]
         except Exception as e:
