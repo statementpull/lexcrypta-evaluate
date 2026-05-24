@@ -26,6 +26,10 @@ class Matter(Base):
     las_verdict = Column(String(20))
     las_verdict_cls = Column(String(10))
     las_reason = Column(Text)
+    report_tier = Column(String(20), default="trustee")  # trustee | divorce | civil | criminal | probate
+    debtor_name = Column(String(200), default="")
+    case_number = Column(String(100), default="")
+    jurisdiction = Column(String(20), default="US")       # US | AU
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     documents = relationship("Document", back_populates="matter", cascade="all, delete-orphan")
@@ -131,3 +135,23 @@ class DfatEntry(Base):
     is_alias = Column(Boolean, default=False)
     reference_code = Column(String(50), nullable=True)       # DFAT reference code for the parent entry
     cached_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class TransactionRevision(Base):
+    """Analyst corrections, annotations, and reclassifications on parsed transactions."""
+    __tablename__ = "transaction_revisions"
+    __table_args__ = {"schema": "verify"}
+
+    id          = Column(Integer, primary_key=True)
+    matter_id   = Column(Integer, ForeignKey("verify.matters.id"), nullable=False, index=True)
+    txn_hash    = Column(String(64), nullable=False)   # md5(date|merchant|amount|direction)
+    rev_type    = Column(String(20), nullable=False)   # correct | annotate | reclassify
+    field       = Column(String(50), default="")       # for 'correct': which field changed
+    orig_value  = Column(Text, default="")             # original machine value
+    new_value   = Column(Text, default="")             # analyst value
+    note        = Column(Text, default="")             # free text annotation
+    signal_override   = Column(String(100), default="")  # for reclassify
+    severity_override = Column(String(10), default="")   # red | amber | green
+    is_false_positive = Column(Boolean, default=False)
+    analyst_id  = Column(String(100), default="")
+    created_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc))
