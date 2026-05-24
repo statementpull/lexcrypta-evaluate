@@ -329,13 +329,29 @@
 </div>
 
 <script>
-// ── PDF.js ──────────────────────────────────────────────────
-// When opened from file://, Chrome blocks CDN worker loads — run inline instead
-if (window.location.protocol !== 'file:') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// ── PDF.js worker ────────────────────────────────────────────
+const _PDFJS_WORKER_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let _pdfWorkerReady = false;
+
+async function ensurePdfWorker() {
+  if (_pdfWorkerReady) return;
+  if (window.location.protocol !== 'file:') {
+    // Normal http/https — set CDN worker directly
+    pdfjsLib.GlobalWorkerOptions.workerSrc = _PDFJS_WORKER_CDN;
+  } else {
+    // file:// protocol: Chrome blocks CDN URLs as worker sources.
+    // Fetch the worker JS and create a blob: URL — blob: URLs bypass this restriction.
+    try {
+      const r    = await fetch(_PDFJS_WORKER_CDN);
+      const blob = await r.blob();
+      pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
+    } catch (e) {
+      // No internet or fetch failed — PDF.js will attempt fake worker (main thread)
+      pdfjsLib.GlobalWorkerOptions.workerSrc = _PDFJS_WORKER_CDN;
+    }
+  }
+  _pdfWorkerReady = true;
 }
-// If file:// protocol, workerSrc stays '' — PDF.js uses its built-in fake worker (main thread, no CORS)
 
 // ── Railway endpoint — AU market ─────────────────────────────
 const PROPERTYTRACE_API = 'https://lexcrypta-evaluate-production.up.railway.app/propertytrace/analyse';
@@ -552,16 +568,29 @@ async function runAnalysis() {
 
 // ── Lexi API call — routes through Railway backend (AU mode) ──
 async function callLexi() {
-  const response = await fetch(PROPERTYTRACE_API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: cleanData.clean, market: MARKET })
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 29000); // 29s client-side timeout
+
+  let response;
+  try {
+    response = await fetch(PROPERTYTRACE_API, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ text: cleanData.clean, market: MARKET }),
+      signal:  controller.signal
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new Error('Request timed out (29s). Check your internet connection or try fewer statements at once.');
+    throw new Error('Network error — check your internet connection and try again.');
+  }
+  clearTimeout(timer);
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     const msg = err.detail || `Analysis error ${response.status}`;
     if (response.status === 503) throw new Error(msg + ' — contact LexCrypta support.');
+    if (response.status === 504) throw new Error(msg);
     throw new Error(msg);
   }
 
@@ -727,6 +756,7 @@ function readOneFile(f) {
 }
 
 async function extractPdfText(b64) {
+  await ensurePdfWorker();
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
