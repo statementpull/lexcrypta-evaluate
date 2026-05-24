@@ -430,6 +430,16 @@ function renderUpload() {
     </div>
     ${fileList}` : ''}
     <hr/>
+    <div class="field" style="margin-bottom:4px">
+      <label class="field-label" style="cursor:pointer" id="paste-toggle">▶ OR PASTE TRANSACTION DATA DIRECTLY (no file needed)</label>
+      <textarea id="paste-input" placeholder="Paste rows from Westpac internet banking, CSV text, or any transaction list here...
+Example:
+01/05/2026  WESTPAC HOME LOAN REP  -1842.50
+02/05/2026  RACV HOME INSURANCE  -145.00
+03/05/2026  CITY OF MELBOURNE COUNCIL RATES  -320.00" style="display:none;width:100%;height:110px;margin-top:8px;background:var(--bg-input);color:var(--text-strong);border:1px solid var(--border-field);border-radius:6px;padding:10px;font-size:11px;font-family:monospace;resize:vertical"></textarea>
+      <button class="btn-primary" id="btn-analyse-paste" style="display:none;margin-top:8px;font-size:11px">ANALYSE PASTED TEXT →</button>
+    </div>
+    <hr/>
     <div class="field">
       <label class="field-label">CASE REFERENCE (OPTIONAL)</label>
       <input type="text" id="case-ref-input" placeholder="e.g. CI-24-04467 or VID/2024/0441" value="${caseRef}"/>
@@ -928,6 +938,29 @@ function attachHandlers() {
 
   const rm = document.getElementById('remove-file');
   if (rm) rm.onclick = e => { e.stopPropagation(); selectedFiles=[]; fileName=''; fileSize=''; rawText=''; cleanData=null; render(); };
+
+  const pt = document.getElementById('paste-toggle');
+  if (pt) pt.onclick = () => {
+    const ta = document.getElementById('paste-input');
+    const pb = document.getElementById('btn-analyse-paste');
+    const open = ta.style.display === 'none';
+    ta.style.display  = open ? 'block' : 'none';
+    pb.style.display  = open ? 'block' : 'none';
+    pt.textContent = (open ? '▼' : '▶') + ' OR PASTE TRANSACTION DATA DIRECTLY (no file needed)';
+  };
+
+  const bp2 = document.getElementById('btn-analyse-paste');
+  if (bp2) bp2.onclick = () => {
+    const ta = document.getElementById('paste-input');
+    const text = (ta && ta.value.trim()) || '';
+    if (!text) { alert('Please paste some transaction data first.'); return; }
+    selectedFiles = [];
+    fileName  = 'Pasted transaction data';
+    fileSize  = text.length + ' chars';
+    rawText   = text;
+    cleanData = stripPII(text);
+    appState  = 'confirm'; render();
+  };
 
   const cr = document.getElementById('case-ref-input');
   if (cr) cr.addEventListener('input', () => { caseRef = cr.value; });
