@@ -208,7 +208,11 @@ def serve_frontend():
         with open(idx, "rb") as f:
             content = f.read()
         from fastapi.responses import Response as _Resp
-        return _Resp(content=content, media_type="text/html")
+        return _Resp(
+            content=content,
+            media_type="text/html",
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+        )
     return {"product": "LexCrypta Verify API"}
 
 
