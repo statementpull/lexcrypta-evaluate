@@ -52,6 +52,16 @@ body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:
 .sidebar-footer{padding:14px 24px;border-top:1px solid var(--border);font-size:9px;color:var(--muted)}
 .lib-dot{width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;flex-shrink:0}
 
+/* ── JURISDICTION TOGGLE ── */
+.sidebar-jurisdiction{padding:10px 24px 12px;border-bottom:1px solid var(--border)}
+.jur-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.jur-toggle{display:flex;background:var(--navy3);border:1px solid var(--border);overflow:hidden}
+.jur-btn{flex:1;padding:7px 0;font-size:9px;letter-spacing:.12em;text-transform:uppercase;border:none;border-right:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:var(--sans);font-weight:400;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:5px}
+.jur-btn:last-child{border-right:none}
+.jur-btn.active{background:var(--gold);color:var(--navy);font-weight:600}
+.jur-btn:not(.active):hover{color:var(--text);background:rgba(255,255,255,.04)}
+.jur-mode-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--muted);padding:3px 8px;border:1px solid var(--border);background:var(--navy3)}
+
 /* ── MAIN ── */
 .main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--border);background:var(--navy2);position:sticky;top:0;z-index:40}
@@ -614,6 +624,13 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
     <div class="logo-name">LexCrypta</div>
     <div class="logo-sub">Verify Terminal</div>
   </div>
+  <div class="sidebar-jurisdiction">
+    <div class="jur-label">Jurisdiction Mode</div>
+    <div class="jur-toggle">
+      <button class="jur-btn active" id="jurBtnAU" onclick="setJurisdiction('AU')">🇦🇺 Australia</button>
+      <button class="jur-btn" id="jurBtnUS" onclick="setJurisdiction('US')">🇺🇸 USA</button>
+    </div>
+  </div>
   <div class="sidebar-user">
     <span class="sidebar-user-name">Michael Anderson</span>
     <span class="sidebar-user-role">Senior Associate</span>
@@ -670,6 +687,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
   <div class="topbar">
     <div class="topbar-title">Good morning, <em>Michael.</em></div>
     <div class="topbar-actions">
+      <div id="topbarJurBadge" class="jur-mode-badge" title="Jurisdiction mode — change in sidebar">🇦🇺 AU</div>
       <button class="btn" onclick="showView('queue')">Lexi Queue <span id="tbQueueCount" style="font-family:var(--mono);font-size:9px;color:var(--teal);margin-left:4px">2</span></button>
       <button class="btn btn-gold" onclick="openNewMatter()">+ New Matter</button>
     </div>
@@ -911,7 +929,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
         <div id="ptBody">
           <div style="background:var(--navy2);border:1px solid var(--border);padding:18px 20px;display:flex;align-items:center;gap:14px">
             <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--gold);fill:none;stroke-width:1.5;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span style="font-size:11px;color:var(--muted);line-height:1.6">Scan Australian bank statements for undisclosed property ownership — council rates, strata levies, mortgage repayments, insurance, and offset accounts. Results appear here. <em style="color:var(--gold);font-style:normal">AU statements only.</em></span>
+            <span id="ptJurDesc" style="font-size:11px;color:var(--muted);line-height:1.6">Scan Australian bank statements for undisclosed property ownership — council rates, strata levies, mortgage repayments, insurance, and offset accounts. Results appear here. <em style="color:var(--gold);font-style:normal">AU statements only.</em></span>
           </div>
         </div>
       </div>
@@ -1206,6 +1224,79 @@ const INTEL=[
   {catCls:'obfuscation',cat:'OBFUSCATION',title:'Structuring — Possible',narrative:'Cash withdrawals clustering below reporting thresholds. Consistent with deliberate structuring to avoid transaction record.',rec:'Low Recovery',recCls:'low',tier:'Behavioural Signal',path:'Document for trustee report. Subpoena ATM records to establish withdrawal locations — may identify secondary addresses or associates.'},
 ];
 
+/* ══ JURISDICTION MODE ══ */
+let jurisdictionMode = localStorage.getItem('lx_jur') || 'AU';
+
+function setJurisdiction(mode) {
+  jurisdictionMode = mode;
+  localStorage.setItem('lx_jur', mode);
+  document.getElementById('jurBtnAU').classList.toggle('active', mode === 'AU');
+  document.getElementById('jurBtnUS').classList.toggle('active', mode === 'US');
+  // Update PropertyTrace description
+  const ptDesc = document.getElementById('ptJurDesc');
+  if (ptDesc) {
+    ptDesc.innerHTML = mode === 'AU'
+      ? 'Scan Australian bank statements for undisclosed property ownership — council rates, strata levies, mortgage repayments, insurance, and offset accounts. Results appear here. <em style="color:var(--gold);font-style:normal">AU statements only.</em>'
+      : 'Scan US bank statements for undisclosed property ownership — HOA fees, property tax payments, mortgage servicer payments, and homeowner\'s insurance. Results appear here. <em style="color:var(--gold);font-style:normal">US statements only.</em>';
+  }
+  // Update PropertyTrace run button label
+  const ptBtn = document.getElementById('ptRunBtn');
+  if (ptBtn) ptBtn.textContent = 'Run PropertyTrace ' + mode + ' Scan →';
+  // Update new matter default jurisdiction
+  const jurSelect = document.getElementById('fJurisdiction');
+  if (jurSelect) jurSelect.value = mode === 'AU' ? 'AU' : 'US';
+  // Update topbar badge
+  const badge = document.getElementById('topbarJurBadge');
+  if (badge) badge.textContent = mode === 'AU' ? '🇦🇺 AU' : '🇺🇸 US';
+  // Re-render lists with correct date format
+  renderDashboard();
+  renderMatters && renderMatters();
+}
+
+function fmtDate(val) {
+  if (!val || val === '—') return val;
+  // Already nicely formatted string (e.g. "14 Mar 2024 · 09:14") — reformat date part only
+  const hasTime = val.includes('·');
+  const datePart = hasTime ? val.split('·')[0].trim() : val.trim();
+  const timePart = hasTime ? ' · ' + val.split('·').slice(1).join('·').trim() : '';
+  try {
+    const d = new Date(datePart);
+    if (isNaN(d.getTime())) return val; // unparseable — return as-is
+    const formatted = jurisdictionMode === 'AU'
+      ? d.toLocaleDateString('en-AU', {day:'2-digit', month:'short', year:'numeric'})
+      : d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    return formatted + timePart;
+  } catch(e) { return val; }
+}
+
+function fmtNow(includeTime) {
+  const d = new Date();
+  const datePart = jurisdictionMode === 'AU'
+    ? d.toLocaleDateString('en-AU', {day:'2-digit', month:'short', year:'numeric'})
+    : d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  if (!includeTime) return datePart;
+  const timePart = d.toLocaleTimeString(jurisdictionMode === 'AU' ? 'en-AU' : 'en-US',
+    {hour:'2-digit', minute:'2-digit'});
+  return timePart + ', ' + datePart;
+}
+
+function initJurisdiction() {
+  const mode = jurisdictionMode;
+  document.getElementById('jurBtnAU').classList.toggle('active', mode === 'AU');
+  document.getElementById('jurBtnUS').classList.toggle('active', mode === 'US');
+  const badge = document.getElementById('topbarJurBadge');
+  if (badge) badge.textContent = mode === 'AU' ? '🇦🇺 AU' : '🇺🇸 US';
+  const jurSelect = document.getElementById('fJurisdiction');
+  if (jurSelect) jurSelect.value = mode === 'AU' ? 'AU' : 'US';
+  // Update PropertyTrace description on init too
+  const ptDesc = document.getElementById('ptJurDesc');
+  if (ptDesc && mode === 'US') {
+    ptDesc.innerHTML = 'Scan US bank statements for undisclosed property ownership — HOA fees, property tax payments, mortgage servicer payments, and homeowner\'s insurance. Results appear here. <em style="color:var(--gold);font-style:normal">US statements only.</em>';
+  }
+  const ptBtn = document.getElementById('ptRunBtn');
+  if (ptBtn) ptBtn.textContent = 'Run PropertyTrace ' + mode + ' Scan →';
+}
+
 /* ══ STATE ══ */
 let queueItems=[{id:1,status:'waiting'},{id:4,status:'waiting'}];
 let queueRunning=false,queueInterval=null,activeMatter=MATTERS[0],selectedType='bankruptcy';
@@ -1214,6 +1305,7 @@ let queueRunning=false,queueInterval=null,activeMatter=MATTERS[0],selectedType='
 async function doLogin() {
   document.getElementById('view-login').style.display = 'none';
   document.getElementById('appShell').style.display = 'flex';
+  initJurisdiction();
   await loadMattersFromAPI();
   renderDashboard();
   renderQueue();
@@ -1642,7 +1734,7 @@ function renderMattersList(id,matters){
         <div class="matter-ref">${m.ref}</div>
         <div class="matter-meta">
           <div class="m-type ${m.type}">${m.typeLabel}</div>
-          <div class="m-date">${m.matterDate}</div>
+          <div class="m-date">${fmtDate(m.matterDate)}</div>
           <div class="m-date">${m.docs} docs</div>
           ${m.attFlag?`<div class="m-flag">${m.attFlag}</div>`:''}
         </div>
@@ -1650,7 +1742,7 @@ function renderMattersList(id,matters){
       <div class="matter-right">
         <button class="q-btn ${inQ?'queued':''}" onclick="toggleQueue(event,${m.id})">${inQ?'✓ Queued':'+ Queue'}</button>
         <div class="exp-badge exp-${m.exposure}">${m.exposure}</div>
-        <div class="m-last">${m.lastRun==='—'?'Not run':m.lastRun}</div>
+        <div class="m-last">${m.lastRun==='—'?'Not run':fmtDate(m.lastRun)}</div>
         <svg class="m-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     </div>`;
@@ -1823,7 +1915,7 @@ async function processNext() {
       m.exposure = result.exposure;
       m.att = result.att;
       m.att_flag = result.att_flag;
-      m.lastRun = new Date().toLocaleDateString('en-AU', {day:'2-digit',month:'short',year:'numeric'});
+      m.lastRun = fmtNow(false) + ' · ' + new Date().toLocaleTimeString(jurisdictionMode==='AU'?'en-AU':'en-US',{hour:'2-digit',minute:'2-digit'});
     }
     qi.status = 'done';
     renderQueue(); renderDashboard(); updateQueueBadges();
@@ -2328,7 +2420,7 @@ function runDemo(){
       document.getElementById('mhLAS').style.display='block';
       document.getElementById('mhLASNum').textContent='84';
       const vEl=document.getElementById('mhLASVerdict');vEl.textContent='DO FIRST';vEl.className='mh-las-verdict lv-high';
-      document.getElementById('auditTime').textContent=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'})+', '+new Date().toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'});
+      document.getElementById('auditTime').textContent=fmtNow(true);
       renderSignals();renderIntel();
       status.textContent='— Analysis complete · Lexi Attention Score: 84 · DO FIRST · Library v2026.03';
       showNotify('LAS: 84 · DO FIRST · HIGH exposure · 9 signals detected.','Lexi');
