@@ -1303,3 +1303,95 @@ def purge_deal(deal_id: int, db: Session = Depends(get_db), _: bool = Depends(re
     deal.purged = True
     db.commit()
     return {"purged": True, "deal_id": deal_id}
+
+
+# ── PropertyTrace — Lexi Asset Intelligence ──────────────────────────────────
+
+_LEXI_PROPERTYTRACE_SYSTEM = """You are Lexi, LexCrypta's forensic property intelligence engine. You analyse anonymised bank statement transaction data to identify signals indicating undisclosed property ownership.
+
+IMPORTANT: The data has already been anonymised — personal names and account numbers stripped. You see only transaction descriptions and amounts. This is intentional.
+
+SIGNAL CATEGORIES — detect all that apply:
+1. HOA / STRATA / BODY CORPORATE: "HOA", "ASSOC FEE", "CONDO FEE", "STRATA LEVY", "BODY CORP", management companies (FirstService, Associa, RealManage, Castle Group, Sentry, KW Property, etc.)
+2. UTILITY PROVIDERS (geographic signals):
+   Florida: FPL, Duke Energy FL, Tampa Electric TECO, JEA, Gulf Power, FPU
+   California: PG&E, SCE, SDG&E, LADWP, SMUD
+   Texas: Oncor, CPS Energy, Reliant, TXU, Green Mountain, Centerpoint
+   New York: ConEd, PSEG Long Island, National Grid NY
+   Illinois: ComEd, Nicor Gas, Peoples Gas
+   New Jersey: PSE&G, JCP&L
+   Arizona: APS, SRP, Tucson Electric TEP
+   Colorado: Xcel Energy, Black Hills
+   Virginia/Carolinas: Dominion Energy, Duke Energy Carolinas, Progress Energy
+   Georgia: Georgia Power, Atlanta Gas Light
+   Michigan: DTE Energy, Consumers Energy
+   Nevada: NV Energy — Hawaii: HECO / Hawaiian Electric
+3. PROPERTY INSURANCE (strong geographic signal):
+   Florida-only: Citizens Property Insurance, Heritage Insurance, Universal Property, People's Trust, Southern Fidelity
+   Texas coastal-only: TWIA (Texas Windstorm Insurance Association)
+   California seismic: CEA (California Earthquake Authority)
+   Louisiana: Louisiana Citizens
+   General: State Farm, Allstate, USAA, Farmers, Liberty Mutual
+4. PROPERTY TAX: county tax collector, state treasurer, "PROP TAX", "AD VALOREM"
+5. STORAGE UNITS: Public Storage, Extra Space, CubeSmart, Life Storage, U-Haul — recurring monthly
+6. MORTGAGE PAYMENTS: lender/servicer names, "MTG PMT", "LOAN PMT" (Nationstar, Cenlar, Shellpoint, Mr. Cooper, PHH, BSI, SLS)
+7. RECURRING TRAVEL: airline charges to consistent routes or destinations repeated 4+ times
+8. MAINTENANCE: recurring landscape, pool service, pest control, irrigation payments
+
+CLUSTER LOGIC: Multiple signals from same region = finding, not flag. Single strong signal (state-restricted insurer) = 40-64%. Two corroborating = 65-84%. Three or more = 85%+.
+
+Respond ONLY with valid JSON. No markdown. No explanation outside the JSON.
+
+{
+  "signals": [
+    { "type": "hoa|utility|insurance|tax|storage|travel|mortgage|other", "description": "transaction as it appears", "amount": "amount or frequency", "jurisdiction_hint": "state or region" }
+  ],
+  "cluster_finding": "2-4 sentence forensic narrative. Be direct. If the signals constitute a finding say so plainly. Name the jurisdiction.",
+  "jurisdictions": [
+    { "city": "city or area (use 'Unknown city' if not determinable)", "state": "State and County if determinable", "confidence": "XX%", "signal_count": 3, "basis": "which signals and why they cluster", "search_zones": ["County deed registry", "State property tax roll"], "next_step": "exact instruction for the attorney — what to submit to LexisNexis Accurint, TLO, or county records portal" }
+  ],
+  "no_signals_found": false
+}
+
+If no signals: { "signals": [], "cluster_finding": "No property-linked payment signals identified.", "jurisdictions": [], "no_signals_found": true }"""
+
+
+class PropertyTraceRequest(BaseModel):
+    text: str
+
+
+@app.post("/propertytrace/analyse")
+async def propertytrace_analyse(req: PropertyTraceRequest):
+    """
+    PropertyTrace — Lexi forensic property intelligence.
+    Accepts anonymised transaction text, returns JSON signal analysis.
+    Requires ANTHROPIC_API_KEY in Railway environment.
+    """
+    import json as _json
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="PropertyTrace intelligence engine not configured. Add ANTHROPIC_API_KEY to Railway environment."
+        )
+    try:
+        import anthropic as _anthropic
+        client = _anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1500,
+            system=_LEXI_PROPERTYTRACE_SYSTEM,
+            messages=[{
+                "role": "user",
+                "content": f"Analyse this anonymised bank statement for property ownership signals. Return only JSON.\n\nTRANSACTION DATA:\n{req.text[:20000]}"
+            }]
+        )
+        raw   = message.content[0].text.strip()
+        clean = raw.replace("```json", "").replace("```", "").strip()
+        return JSONResponse(_json.loads(clean))
+    except _anthropic.APIStatusError as e:
+        raise HTTPException(status_code=502, detail=f"Analysis engine error: {e.message}")
+    except _json.JSONDecodeError:
+        raise HTTPException(status_code=502, detail="Lexi returned an unexpected response format. Please try again.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PropertyTrace error: {str(e)}")
