@@ -107,7 +107,7 @@ def _classify_wf_amount(word: dict) -> str:
 def _parse_wellsfargo_pdf(pdf_bytes: bytes) -> list[dict]:
     txns = []
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        for page in pdf.pages:
+        for page_num, page in enumerate(pdf.pages, start=1):
             text = page.extract_text() or ""
             if "Transaction history" not in text:
                 continue
@@ -155,6 +155,7 @@ def _parse_wellsfargo_pdf(pdf_bytes: bytes) -> list[dict]:
                         "description": " ".join(desc_parts),
                         "credit": credit,
                         "debit": debit,
+                        "page_number": page_num,
                     }
                 elif current is not None:
                     if _WF_SKIP_RE.search(line_text):
@@ -181,6 +182,7 @@ def _finalise_wf_txn(t: dict) -> dict:
         "amount": amount,
         "credit": t["credit"],
         "debit": t["debit"],
+        "page_number": t.get("page_number", 0),
         "raw": {"description": desc},
     }
 
@@ -190,7 +192,7 @@ def _finalise_wf_txn(t: dict) -> dict:
 def _parse_generic_pdf(pdf_bytes: bytes) -> list[dict]:
     txns = []
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        for page in pdf.pages:
+        for page_num, page in enumerate(pdf.pages, start=1):
             table = page.extract_table()
             if not table:
                 continue
@@ -209,6 +211,7 @@ def _parse_generic_pdf(pdf_bytes: bytes) -> list[dict]:
                     "transaction_date": date,
                     "merchant": _normalise_merchant(desc),
                     "amount": normalise_amount(debit, credit),
+                    "page_number": page_num,
                     "raw": row_dict,
                 })
     return txns
@@ -331,11 +334,13 @@ def _clean_chase_desc(raw: str) -> str:
 def _parse_chase_pdf(pdf_bytes: bytes) -> list[dict]:
     txns = []
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        full_text = "\n".join(
-            page.extract_text() or "" for page in pdf.pages
-        )
+        # Build a list of (line_text, page_num) to preserve page provenance
+        tagged_lines = []
+        for page_num, page in enumerate(pdf.pages, start=1):
+            page_text = page.extract_text() or ""
+            for line in page_text.splitlines():
+                tagged_lines.append((line, page_num))
 
-    lines = full_text.splitlines()
     current_section = ""
     is_credit_section = False
     is_debit_section  = False
@@ -353,10 +358,11 @@ def _parse_chase_pdf(pdf_bytes: bytes) -> list[dict]:
             "amount": amt,
             "credit": amt if amt > 0 else 0.0,
             "debit":  abs(amt) if amt < 0 else 0.0,
+            "page_number": t.get("page_number", 0),
             "raw": {"description": desc},
         })
 
-    for line in lines:
+    for line, line_page_num in tagged_lines:
         stripped = line.strip()
         if not stripped:
             continue
@@ -419,7 +425,7 @@ def _parse_chase_pdf(pdf_bytes: bytes) -> list[dict]:
 
             # Sign: credits positive, debits negative
             signed_amount = raw_amount if is_credit_section else -raw_amount
-            current = {"date": date, "description": desc_part, "amount": signed_amount}
+            current = {"date": date, "description": desc_part, "amount": signed_amount, "page_number": line_page_num}
         elif current:
             # Continuation of prior description — only append non-amount text
             am = _CHASE_AMOUNT_RE.search(stripped)
@@ -483,7 +489,7 @@ def _classify_wp_amount(word: dict) -> str | None:
 def _parse_westpac_pdf(pdf_bytes: bytes) -> list[dict]:
     txns = []
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        for page in pdf.pages:
+        for page_num, page in enumerate(pdf.pages, start=1):
             words = page.extract_words()
             lines = _group_lines(words, y_tol=3.0)
             in_txn_section = False
@@ -524,6 +530,7 @@ def _parse_westpac_pdf(pdf_bytes: bytes) -> list[dict]:
                         "description": " ".join(desc_parts),
                         "debit": debit,
                         "credit": credit,
+                        "page_number": page_num,
                     }
                 elif current is not None:
                     for w in line:
@@ -550,6 +557,7 @@ def _finalise_wp_txn(t: dict) -> dict:
         "amount": amount,
         "credit": t["credit"],
         "debit": t["debit"],
+        "page_number": t.get("page_number", 0),
         "raw": {"description": desc},
     }
 
@@ -628,7 +636,7 @@ def _nab_date_from_line(line: list) -> str | None:
 def _parse_nab_pdf(pdf_bytes: bytes) -> list[dict]:
     txns = []
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        for page in pdf.pages:
+        for page_num, page in enumerate(pdf.pages, start=1):
             words = page.extract_words()
             lines = _group_lines(words, y_tol=3.0)
             current = None
@@ -663,6 +671,7 @@ def _parse_nab_pdf(pdf_bytes: bytes) -> list[dict]:
                         "description": " ".join(desc_parts),
                         "debit": debit,
                         "credit": credit,
+                        "page_number": page_num,
                     }
                 elif current is not None:
                     # Continuation or dotted-leader line — pick up amounts, append description
@@ -693,6 +702,7 @@ def _finalise_nab_txn(t: dict) -> dict:
         "amount": amount,
         "credit": t["credit"],
         "debit": t["debit"],
+        "page_number": t.get("page_number", 0),
         "raw": {"description": desc},
     }
 
@@ -765,7 +775,7 @@ def _parse_mf_pdf(pdf_bytes: bytes) -> list[dict]:
     in_summary_section = False
 
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        for page in pdf.pages:
+        for page_num, page in enumerate(pdf.pages, start=1):
             words = page.extract_words()
             lines = _group_lines(words, y_tol=3.0)
             current = None
@@ -811,6 +821,7 @@ def _parse_mf_pdf(pdf_bytes: bytes) -> list[dict]:
                         "description": " ".join(desc_parts),
                         "addition": addition,
                         "subtraction": subtraction,
+                        "page_number": page_num,
                     }
                 elif current is not None:
                     # ACH continuation line (ID: XXXXXX CO: NAME) or other continuation
@@ -835,13 +846,14 @@ def _finalise_mf_txn(t: dict) -> dict:
         "amount": amount,
         "credit": t["addition"],
         "debit": t["subtraction"],
+        "page_number": t.get("page_number", 0),
         "raw": {"description": desc},
     }
 
 
 # ── Public interface ───────────────────────────────────────────────────────────
 
-def parse_bank_pdf(pdf_bytes: bytes) -> list[dict]:
+def parse_bank_pdf(pdf_bytes: bytes, filename: str = "") -> list[dict]:
     # Detect bank from first two pages (some banks print identifying text on page 2)
     try:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
@@ -866,6 +878,10 @@ def parse_bank_pdf(pdf_bytes: bytes) -> list[dict]:
                 meta_signal = _extract_pdf_metadata(pdf_bytes)
                 if meta_signal:
                     txns.append(meta_signal)
+                # Safety pass: ensure page_number and source_file on every transaction
+                for t in txns:
+                    t.setdefault("page_number", 0)
+                    t.setdefault("source_file", filename)
                 return txns
 
     # Fallback to generic table parser
@@ -873,6 +889,10 @@ def parse_bank_pdf(pdf_bytes: bytes) -> list[dict]:
     meta_signal = _extract_pdf_metadata(pdf_bytes)
     if meta_signal:
         txns.append(meta_signal)
+    # Safety pass: ensure page_number and source_file on every transaction
+    for t in txns:
+        t.setdefault("page_number", 0)
+        t.setdefault("source_file", filename)
     return txns
 
 
