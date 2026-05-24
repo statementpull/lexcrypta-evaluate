@@ -3,6 +3,7 @@ import hashlib
 import hmac as _hmac
 import io
 import os
+from pathlib import Path
 import uuid
 from collections import defaultdict
 from datetime import date as _date, datetime, timedelta, timezone
@@ -1675,3 +1676,20 @@ async def propertytrace_extract_text_vision(req: PropertyTracePagesRequest):
                 detail="Vision OCR timed out — try uploading fewer pages at once (maximum 5 pages per file)."
             )
         raise HTTPException(status_code=500, detail=f"Vision extraction error: {str(e)}")
+
+
+# ── PropertyTrace AU — hosted frontend ───────────────────────────────────────
+# Serves the PropertyTrace AU tool as a web page so Carmen and the team
+# can access it via browser without running a local server.
+# URL: https://lexcrypta-evaluate-production.up.railway.app/propertytrace-au
+
+_PROPERTYTRACE_HTML = Path(__file__).parent / "static" / "propertytrace-au.html"
+
+
+@app.get("/propertytrace-au", response_class=HTMLResponse)
+async def serve_propertytrace_au():
+    """Serve the PropertyTrace AU forensic tool frontend."""
+    try:
+        return HTMLResponse(content=_PROPERTYTRACE_HTML.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="PropertyTrace AU frontend not found.")
