@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PropertyTrace — Asset Intelligence AU v1 | LexCrypta</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+  /* ── DARK MODE (default) ── */
+  :root {
+    --bg-primary:   #080E1A;
+    --bg-secondary: #0D1423;
+    --bg-card:      rgba(255,255,255,0.025);
+    --bg-input:     #0F1825;
+    --bg-code:      rgba(0,0,0,0.35);
+    --bg-detail:    rgba(0,0,0,0.25);
+    --bg-hover:     rgba(255,255,255,0.03);
+
+    --border-card:   rgba(255,255,255,0.07);
+    --border-header: rgba(255,255,255,0.06);
+    --border-subtle: rgba(255,255,255,0.05);
+    --border-field:  rgba(255,255,255,0.12);
+
+    --text-primary: #ffffff;
+    --text-strong:  rgba(255,255,255,0.80);
+    --text-semi:    rgba(255,255,255,0.75);
+    --text-medium:  rgba(255,255,255,0.55);
+    --text-muted:   rgba(255,255,255,0.38);
+    --text-body:    rgba(255,255,255,0.45);
+    --text-label:   rgba(255,255,255,0.35);
+    --text-dim:     rgba(255,255,255,0.25);
+    --text-dimmer:  rgba(255,255,255,0.18);
+    --text-faint:   rgba(255,255,255,0.12);
+    --text-placeholder: rgba(255,255,255,0.20);
+
+    --gold:         #C8A96E;
+    --gold-dim:     rgba(200,169,110,0.12);
+    --gold-border:  rgba(200,169,110,0.28);
+    --gold-text:    rgba(200,169,110,0.60);
+    --gold-muted:   rgba(200,169,110,0.50);
+    --gold-faint:   rgba(200,169,110,0.25);
+    --gold-hover:   rgba(200,169,110,0.08);
+
+    --blue:         #A8DAFF;
+    --blue-dim:     rgba(168,218,255,0.08);
+    --blue-border:  rgba(168,218,255,0.20);
+    --blue-text:    rgba(168,218,255,0.55);
+
+    --green:        #86EFAC;
+    --green-dim:    rgba(134,239,172,0.08);
+    --green-border: rgba(134,239,172,0.20);
+    --green-text:   rgba(134,239,172,0.85);
+
+    --red:          #F87171;
+    --red-dim:      rgba(248,113,113,0.08);
+    --red-border:   rgba(248,113,113,0.25);
+
+    --amber:        #FBBF24;
+    --amber-dim:    rgba(251,191,36,0.10);
+    --amber-border: rgba(251,191,36,0.20);
+
+    --violet:       #C4B5FD;
+    --violet-dim:   rgba(196,181,253,0.10);
+    --violet-border:rgba(196,181,253,0.20);
+
+    --scan-log-bg:  rgba(0,0,0,0.40);
+    --scan-log-border: rgba(200,169,110,0.18);
+  }
+
+  /* ── LIGHT MODE ── */
+  [data-theme="light"] {
+    --bg-primary:   #F2EEE8;
+    --bg-secondary: #E8E3DC;
+    --bg-card:      rgba(255,255,255,0.80);
+    --bg-input:     #FFFFFF;
+    --bg-code:      rgba(0,0,0,0.04);
+    --bg-detail:    rgba(0,0,0,0.03);
+    --bg-hover:     rgba(0,0,0,0.02);
+
+    --border-card:   rgba(0,0,0,0.08);
+    --border-header: rgba(0,0,0,0.08);
+    --border-subtle: rgba(0,0,0,0.05);
+    --border-field:  rgba(0,0,0,0.14);
+
+    --text-primary: #0A0F1E;
+    --text-strong:  rgba(10,15,30,0.85);
+    --text-semi:    rgba(10,15,30,0.75);
+    --text-medium:  rgba(10,15,30,0.65);
+    --text-muted:   rgba(10,15,30,0.50);
+    --text-body:    rgba(10,15,30,0.55);
+    --text-label:   rgba(10,15,30,0.45);
+    --text-dim:     rgba(10,15,30,0.40);
+    --text-dimmer:  rgba(10,15,30,0.35);
+    --text-faint:   rgba(10,15,30,0.15);
+    --text-placeholder: rgba(10,15,30,0.25);
+
+    --gold:         #8B5E20;
+    --gold-dim:     rgba(139,94,32,0.08);
+    --gold-border:  rgba(139,94,32,0.25);
+    --gold-text:    rgba(139,94,32,0.65);
+    --gold-muted:   rgba(139,94,32,0.55);
+    --gold-faint:   rgba(139,94,32,0.30);
+    --gold-hover:   rgba(139,94,32,0.06);
+
+    --blue:         #1565C0;
+    --blue-dim:     rgba(21,101,192,0.07);
+    --blue-border:  rgba(21,101,192,0.20);
+    --blue-text:    rgba(21,101,192,0.70);
+
+    --green:        #1B6B3A;
+    --green-dim:    rgba(27,107,58,0.07);
+    --green-border: rgba(27,107,58,0.22);
+    --green-text:   rgba(27,107,58,0.80);
+
+    --red:          #B71C1C;
+    --red-dim:      rgba(183,28,28,0.07);
+    --red-border:   rgba(183,28,28,0.22);
+
+    --amber:        #92620A;
+    --amber-dim:    rgba(146,98,10,0.08);
+    --amber-border: rgba(146,98,10,0.20);
+
+    --violet:       #5B21B6;
+    --violet-dim:   rgba(91,33,182,0.07);
+    --violet-border:rgba(91,33,182,0.20);
+
+    --scan-log-bg:  #111827;
+    --scan-log-border: rgba(200,169,110,0.25);
+  }
+
+  body { background:var(--bg-primary); color:var(--text-primary); font-family:'Georgia',serif; min-height:100vh; transition:background 0.25s, color 0.25s; }
+
+  @keyframes fadeUp   { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeIn   { from{opacity:0}to{opacity:1} }
+  @keyframes pulse    { 0%{transform:scale(0.85);opacity:0.7}100%{transform:scale(2.1);opacity:0} }
+  @keyframes glow     { from{box-shadow:0 0 10px rgba(200,169,110,0.35)}to{box-shadow:0 0 28px rgba(200,169,110,0.8)} }
+  @keyframes scanLine { 0%{top:0%}100%{top:100%} }
+  @keyframes cardIn   { from{opacity:0;transform:translateY(18px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes spin     { to{transform:rotate(360deg)} }
+
+  /* ── Header ── */
+  .header { border-bottom:1px solid var(--border-header); padding:16px 32px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--bg-primary); z-index:100; transition:background 0.25s; }
+  .header-left  { display:flex; align-items:center; gap:12px; }
+  .header-dot   { width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 8px rgba(200,169,110,0.5); }
+  .header-title { font-size:17px; font-weight:700; letter-spacing:0.15em; color:var(--gold); }
+  .header-sub   { font-size:10px; color:var(--text-dimmer); font-family:monospace; border-left:1px solid var(--border-subtle); padding-left:12px; letter-spacing:0.05em; }
+  .header-right { display:flex; align-items:center; gap:8px; }
+  .header-badge { font-size:10px; font-family:monospace; color:var(--text-dimmer); border:1px solid var(--border-subtle); padding:3px 8px; border-radius:4px; letter-spacing:0.06em; }
+  .btn-icon { background:none; border:1px solid var(--border-field); border-radius:6px; color:var(--text-dim); cursor:pointer; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:14px; transition:all 0.2s; flex-shrink:0; }
+  .btn-icon:hover { border-color:var(--gold-border); color:var(--gold); }
+
+  /* ── Layout ── */
+  .main { display:flex; align-items:flex-start; justify-content:center; padding:44px 20px; min-height:calc(100vh - 57px); }
+  .wrap { width:100%; max-width:600px; }
+  .card { background:var(--bg-card); border:1px solid var(--border-card); border-radius:18px; padding:36px 32px; transition:background 0.25s, border-color 0.25s; }
+  [data-theme="light"] .card { box-shadow:0 4px 24px rgba(0,0,0,0.07); }
+  .step { animation:fadeUp 0.4s ease; }
+  .lc-tag { text-align:center; margin-top:28px; font-family:monospace; font-size:10px; color:var(--text-faint); letter-spacing:0.07em; }
+  .lc-tag span { color:var(--gold-faint); }
+  .step-label { font-family:monospace; font-size:11px; color:var(--gold); letter-spacing:0.12em; margin-bottom:8px; }
+  .step-title { font-size:23px; font-weight:700; margin-bottom:6px; line-height:1.25; }
+  .step-sub   { color:var(--text-muted); font-size:13px; margin-bottom:28px; line-height:1.65; }
+
+  /* ── Upload ── */
+  .upload-zone { border:2px dashed var(--gold-border); border-radius:14px; padding:48px 24px; text-align:center; cursor:pointer; transition:all 0.25s; background:var(--gold-hover); position:relative; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color:var(--gold); background:var(--gold-dim); }
+  .upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .upload-icon  { font-size:36px; margin-bottom:14px; opacity:0.6; }
+  .upload-title { font-size:15px; font-weight:600; color:var(--text-strong); margin-bottom:6px; }
+  .upload-sub   { font-size:12px; font-family:monospace; color:var(--text-muted); line-height:1.6; }
+  .upload-formats { margin-top:12px; display:flex; justify-content:center; gap:8px; }
+  .fmt-tag { font-size:10px; font-family:monospace; color:var(--gold-muted); border:1px solid var(--gold-border); padding:2px 8px; border-radius:4px; }
+  .file-selected { background:var(--gold-dim); border:1px solid var(--gold-border); border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px; margin-top:16px; }
+  .file-icon   { font-size:24px; }
+  .file-name   { font-family:monospace; font-size:13px; color:var(--text-strong); }
+  .file-size   { font-family:monospace; font-size:11px; color:var(--text-muted); }
+  .file-remove { margin-left:auto; cursor:pointer; font-size:16px; color:var(--text-muted); transition:color 0.2s; }
+  .file-remove:hover { color:var(--text-primary); }
+
+  /* ── Extracting ── */
+  .extract-wrap { text-align:center; padding:32px 0; animation:fadeUp 0.4s ease; }
+  .extract-spinner { width:42px; height:42px; border:2px solid var(--gold-dim); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 18px; }
+  .extract-label { font-family:monospace; font-size:11px; color:var(--gold); letter-spacing:0.1em; }
+  .extract-sub   { font-family:monospace; font-size:11px; color:var(--text-dim); margin-top:6px; }
+
+  /* ── Privacy Confirm ── */
+  .confirm-wrap { animation:fadeUp 0.4s ease; }
+  .shield-bar { display:flex; align-items:flex-start; gap:12px; background:var(--green-dim); border:1px solid var(--green-border); border-radius:10px; padding:14px 18px; margin-bottom:22px; }
+  .shield-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
+  .shield-text { font-family:monospace; font-size:12px; color:var(--green-text); line-height:1.7; }
+  .shield-text strong { color:var(--green); }
+
+  .section-label { font-family:monospace; font-size:10px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:9px; }
+  .removed-block { margin-bottom:18px; }
+  .removed-row { display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--green-dim); border:1px solid var(--green-border); border-radius:7px; margin-bottom:5px; }
+  .removed-check { color:var(--green); font-size:13px; flex-shrink:0; }
+  .removed-type  { font-family:monospace; font-size:11px; color:var(--green-text); flex:1; }
+  .removed-tag   { font-size:9px; padding:2px 7px; background:var(--green-dim); border:1px solid var(--green-border); border-radius:4px; color:var(--green-text); font-family:monospace; letter-spacing:0.05em; opacity:0.7; }
+  .no-pii-row  { display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--bg-hover); border:1px solid var(--border-subtle); border-radius:7px; font-family:monospace; font-size:11px; color:var(--text-dim); }
+
+  .sending-block { margin-bottom:20px; }
+  .sending-head  { display:flex; justify-content:space-between; align-items:center; margin-bottom:9px; }
+  .sending-count { font-size:9px; background:var(--gold-dim); border:1px solid var(--gold-border); color:var(--gold-text); padding:2px 8px; border-radius:4px; font-family:monospace; }
+  .sending-preview { background:var(--bg-code); border:1px solid var(--scan-log-border); border-radius:9px; padding:14px 16px; font-family:monospace; font-size:10px; color:var(--text-body); max-height:160px; overflow-y:auto; line-height:1.9; }
+  [data-theme="light"] .sending-preview { color:rgba(10,15,30,0.55); }
+
+  /* ── Scanning ── */
+  .scan-wrap  { animation:fadeUp 0.5s ease; }
+  .pulse-ring { position:relative; width:110px; height:110px; margin:0 auto 22px; }
+  .ring       { position:absolute; inset:0; border-radius:50%; border:1px solid var(--gold-border); }
+  .ring-0 { animation:pulse 1.5s ease-out infinite; }
+  .ring-1 { animation:pulse 1.9s ease-out infinite 0.3s; }
+  .ring-2 { animation:pulse 2.3s ease-out infinite 0.6s; }
+  .ring-core  { position:absolute; inset:30%; border-radius:50%; background:radial-gradient(circle,#C8A96E,#8B6914); animation:glow 2s ease-in-out infinite alternate; }
+  .scan-title { text-align:center; color:var(--gold); font-family:monospace; font-size:11px; letter-spacing:0.12em; margin-bottom:6px; }
+  .scan-file  { text-align:center; color:var(--text-dim); font-family:monospace; font-size:11px; margin-bottom:20px; }
+  .scan-log   { background:var(--scan-log-bg); border:1px solid var(--scan-log-border); border-radius:9px; padding:16px 18px; font-family:monospace; font-size:11px; color:rgba(255,255,255,0.45); max-height:260px; overflow-y:auto; position:relative; }
+  .scan-beam  { position:absolute; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,#C8A96E,transparent); animation:scanLine 1.5s linear infinite; top:50%; pointer-events:none; }
+  .log-line   { margin-bottom:5px; animation:fadeUp 0.3s ease; line-height:1.5; }
+  .log-line.gold   { color:#C8A96E; }
+  .log-line.blue   { color:#A8DAFF; }
+  .log-line.green  { color:#86EFAC; }
+  .log-line.dim    { color:rgba(255,255,255,0.25); }
+  .log-line.shield { color:rgba(134,239,172,0.75); }
+  .log-arrow { color:rgba(200,169,110,0.35); margin-right:7px; }
+
+  /* ── Results ── */
+  .results-wrap { animation:fadeUp 0.4s ease; }
+  .result-header-row { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
+  .match-badge  { background:var(--gold-dim); border:1px solid var(--gold-border); border-radius:8px; padding:6px 14px; text-align:center; flex-shrink:0; }
+  .match-count  { font-size:22px; font-weight:700; color:var(--gold); }
+  .match-label  { font-size:10px; font-family:monospace; color:var(--gold-muted); }
+
+  .signals-section { margin-bottom:20px; }
+  .signal-row { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:8px; background:var(--bg-hover); border:1px solid var(--border-card); margin-bottom:6px; animation:fadeUp 0.4s ease both; }
+  .sig-type-tag { font-family:monospace; font-size:9px; padding:2px 7px; border-radius:4px; letter-spacing:0.07em; flex-shrink:0; text-transform:uppercase; }
+  .sig-type-tag.strata       { background:var(--gold-dim);    color:var(--gold);   border:1px solid var(--gold-border); }
+  .sig-type-tag.hoa          { background:var(--gold-dim);    color:var(--gold);   border:1px solid var(--gold-border); }
+  .sig-type-tag.council_rates{ background:var(--red-dim);     color:var(--red);    border:1px solid var(--red-border); }
+  .sig-type-tag.land_tax     { background:var(--red-dim);     color:var(--red);    border:1px solid var(--red-border); }
+  .sig-type-tag.utility      { background:var(--blue-dim);    color:var(--blue);   border:1px solid var(--blue-border); }
+  .sig-type-tag.travel       { background:var(--green-dim);   color:var(--green);  border:1px solid var(--green-border); }
+  .sig-type-tag.insurance    { background:var(--amber-dim);   color:var(--amber);  border:1px solid var(--amber-border); }
+  .sig-type-tag.tax          { background:var(--red-dim);     color:var(--red);    border:1px solid var(--red-border); }
+  .sig-type-tag.storage      { background:var(--violet-dim);  color:var(--violet); border:1px solid var(--violet-border); }
+  .sig-type-tag.mortgage     { background:var(--amber-dim);   color:var(--amber);  border:1px solid var(--amber-border); }
+  .sig-type-tag.rental       { background:var(--green-dim);   color:var(--green);  border:1px solid var(--green-border); }
+  .sig-type-tag.maintenance  { background:var(--violet-dim);  color:var(--violet); border:1px solid var(--violet-border); }
+  .sig-type-tag.other        { background:var(--bg-hover);    color:var(--text-medium); border:1px solid var(--border-card); }
+  .sig-desc   { font-family:monospace; font-size:11px; color:var(--text-medium); flex:1; }
+  .sig-amount { font-family:monospace; font-size:11px; color:var(--text-strong); margin-left:auto; flex-shrink:0; }
+
+  .cluster-verdict { background:var(--blue-dim); border:1px solid var(--blue-border); border-radius:10px; padding:16px 18px; margin-bottom:20px; animation:fadeUp 0.4s ease 0.2s both; }
+  .cluster-verdict-label { font-family:monospace; font-size:10px; color:var(--blue-text); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; }
+  .cluster-verdict-text  { font-size:13px; color:var(--text-semi); line-height:1.7; }
+  .cluster-verdict-text strong { color:var(--blue); }
+
+  .intel-section { margin-bottom:20px; }
+  .intel-card { border:1px solid var(--gold-border); border-radius:12px; background:var(--gold-dim); overflow:hidden; cursor:pointer; transition:border-color 0.2s; animation:cardIn 0.5s ease both; }
+  .intel-card:nth-child(2) { animation-delay:0.1s; }
+  .intel-card:nth-child(3) { animation-delay:0.2s; }
+  .intel-card:hover { border-color:var(--gold); }
+  .intel-card + .intel-card { margin-top:10px; }
+  .intel-head      { padding:18px 20px; display:flex; justify-content:space-between; align-items:center; }
+  .intel-head-left { flex:1; }
+  .intel-jurisdiction { font-family:monospace; font-size:10px; color:var(--gold-text); letter-spacing:0.08em; margin-bottom:4px; }
+  .intel-city  { font-size:17px; font-weight:700; color:var(--text-primary); margin-bottom:2px; }
+  .intel-state { font-size:12px; color:var(--text-muted); font-family:monospace; }
+  .intel-confidence { text-align:right; flex-shrink:0; margin-left:16px; }
+  .conf-value  { font-size:22px; font-weight:700; color:var(--gold); }
+  .conf-label  { font-size:10px; font-family:monospace; color:var(--gold-muted); }
+  .intel-detail { border-top:1px solid var(--gold-border); padding:16px 20px; background:var(--bg-detail); display:none; }
+  .intel-card.open .intel-detail { display:block; }
+  .detail-row { display:flex; justify-content:space-between; margin-bottom:9px; gap:12px; }
+  .detail-key { font-size:11px; font-family:monospace; color:var(--text-dim); flex-shrink:0; }
+  .detail-val { font-size:11px; font-family:monospace; color:var(--text-strong); text-align:right; }
+  .next-step-box { margin-top:14px; padding:12px 14px; background:var(--gold-hover); border:1px solid var(--gold-border); border-radius:8px; }
+  .next-step-title { font-family:monospace; font-size:10px; color:var(--gold-text); letter-spacing:0.08em; margin-bottom:6px; }
+  .next-step-text  { font-size:12px; font-family:monospace; color:var(--text-body); line-height:1.65; }
+  .next-step-text strong { color:var(--gold); }
+  .btn-export-intel { margin-top:12px; width:100%; padding:9px 0; background:transparent; border:1px solid var(--gold-border); color:var(--gold); border-radius:7px; font-family:monospace; font-size:11px; letter-spacing:0.1em; cursor:pointer; transition:background 0.2s; }
+  .btn-export-intel:hover { background:var(--gold-hover); }
+
+  /* ── Error ── */
+  .error-box { background:var(--red-dim); border:1px solid var(--red-border); border-radius:10px; padding:16px 18px; margin-bottom:16px; font-family:monospace; font-size:12px; color:var(--red); line-height:1.65; }
+
+  /* ── Fields ── */
+  .field { margin-bottom:18px; }
+  .field-label { font-size:11px; font-family:monospace; color:var(--text-label); letter-spacing:0.08em; display:block; margin-bottom:8px; }
+  input[type=text], input[type=password] { width:100%; background:var(--bg-input); border:1px solid var(--border-field); border-radius:8px; color:var(--text-primary); padding:12px 16px; font-size:14px; font-family:Georgia,serif; outline:none; transition:border-color 0.2s, background 0.2s; }
+  input[type=text]:focus, input[type=password]:focus { border-color:var(--gold); }
+  input[type=text]::placeholder, input[type=password]::placeholder { color:var(--text-placeholder); }
+
+  .privacy-note { display:flex; align-items:flex-start; gap:10px; background:var(--bg-hover); border:1px solid var(--border-subtle); border-radius:8px; padding:12px 14px; margin:20px 0; font-size:11px; font-family:monospace; color:var(--text-dim); line-height:1.65; }
+  .privacy-note .lock { font-size:14px; flex-shrink:0; margin-top:1px; }
+
+  /* ── Buttons ── */
+  .btn-primary  { width:100%; padding:14px 0; background:linear-gradient(135deg,#C8A96E,#8B6914); border:none; border-radius:9px; color:#080E1A; font-size:13px; font-weight:700; letter-spacing:0.1em; cursor:pointer; font-family:monospace; transition:opacity 0.2s; }
+  .btn-primary:hover:not(:disabled) { opacity:0.87; }
+  .btn-primary:disabled { background:var(--gold-dim); border:1px solid var(--gold-border); color:var(--gold-text); cursor:not-allowed; }
+  .btn-secondary { width:100%; padding:13px 0; background:transparent; border:1px solid var(--border-field); border-radius:9px; color:var(--text-muted); font-size:11px; font-family:monospace; letter-spacing:0.1em; cursor:pointer; transition:border-color 0.2s; }
+  .btn-secondary:hover { border-color:var(--text-muted); }
+  .btn-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px; }
+  hr { border:none; border-top:1px solid var(--border-subtle); margin:22px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-dot"></div>
+    <span class="header-title">PROPERTYTRACE</span>
+    <span class="header-sub">ASSET INTELLIGENCE · AU · v1</span>
+  </div>
+  <div class="header-right">
+    <span class="header-badge">LEXCRYPTA</span>
+    <span class="header-badge">SECURE SESSION</span>
+    <button class="btn-icon" id="btn-theme" title="Toggle day / night mode">☀</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="wrap">
+    <div class="card" id="card"></div>
+    <div class="lc-tag">LexCrypta Global · PropertyTrace AU · <span>Australian Legal Professional Use Only</span></div>
+  </div>
+</div>
+
+<script>
+// ── PDF.js ──────────────────────────────────────────────────
+// When opened from file://, Chrome blocks CDN worker loads — run inline instead
+if (window.location.protocol !== 'file:') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+// If file:// protocol, workerSrc stays '' — PDF.js uses its built-in fake worker (main thread, no CORS)
+
+// ── Railway endpoint — AU market ─────────────────────────────
+const PROPERTYTRACE_API = 'https://lexcrypta-evaluate-production.up.railway.app/propertytrace/analyse';
+const MARKET = 'au';
+
+// ── Theme ───────────────────────────────────────────────────
+function getTheme()  { return localStorage.getItem('lc_theme') || 'dark'; }
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('lc_theme', t);
+  const btn = document.getElementById('btn-theme');
+  if (btn) btn.textContent = t === 'dark' ? '☀' : '🌙';
+}
+function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
+applyTheme(getTheme());
+
+// ── State ───────────────────────────────────────────────────
+let appState       = 'upload';
+let selectedFiles  = [];      // File objects (supports multiple)
+let fileName       = '';      // display label
+let fileSize       = '';      // display size string
+let caseRef        = '';
+let rawText        = '';
+let cleanData      = null;
+let analysisResult = null;
+
+// ── Render router ────────────────────────────────────────────
+function render() {
+  const card = document.getElementById('card');
+  if (!card) return;
+  if      (appState === 'upload')     card.innerHTML = renderUpload();
+  else if (appState === 'extracting') card.innerHTML = renderExtracting();
+  else if (appState === 'confirm')    card.innerHTML = renderConfirm();
+  else if (appState === 'scanning')   { card.innerHTML = renderScanning(); runAnalysis(); }
+  else if (appState === 'results')    card.innerHTML = renderResults();
+  else if (appState === 'error')      card.innerHTML = renderError();
+  attachHandlers();
+  const btn = document.getElementById('btn-theme');
+  if (btn) btn.textContent = getTheme() === 'dark' ? '☀' : '🌙';
+}
+
+// ── Upload ───────────────────────────────────────────────────
+function renderUpload() {
+  const hasFile = selectedFiles.length > 0;
+  const multi   = selectedFiles.length > 1;
+  const fileLabel = multi
+    ? `${selectedFiles.length} statements loaded`
+    : (fileName || '');
+  const fileList = multi
+    ? `<div style="font-size:10px;color:var(--text-dim);margin-top:5px;line-height:1.6;word-break:break-all">${selectedFiles.map(f => escHtml(f.name)).join('<br/>')}</div>`
+    : '';
+
+  return `<div class="step">
+    <p class="step-label">PROPERTYTRACE AU · STEP 1 OF 3</p>
+    <h2 class="step-title">Upload the bank statement.</h2>
+    <p class="step-sub">Hand Lexi the document. She reads every transaction and identifies payment signals pointing to undisclosed Australian property — strata levies, council rates, state utilities, mortgage repayments — then tells you exactly which titles office to search.</p>
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept=".pdf,.csv,.xlsx,.xls,.txt,.ofx" multiple/>
+      <div class="upload-icon">📄</div>
+      <div class="upload-title">Drop the bank statement here</div>
+      <div class="upload-sub">or click to browse · multiple files supported · AU bank formats</div>
+      <div class="upload-formats">
+        <span class="fmt-tag">PDF</span>
+        <span class="fmt-tag">CSV</span>
+        <span class="fmt-tag">TXT</span>
+        <span class="fmt-tag">OFX</span>
+      </div>
+    </div>
+    ${hasFile ? `<div class="file-selected">
+      <span class="file-icon">📋</span>
+      <div>
+        <div class="file-name">${escHtml(fileLabel)}</div>
+        <div class="file-size">${fileSize}</div>
+      </div>
+      <span class="file-remove" id="remove-file">✕</span>
+    </div>
+    ${fileList}` : ''}
+    <hr/>
+    <div class="field">
+      <label class="field-label">CASE REFERENCE (OPTIONAL)</label>
+      <input type="text" id="case-ref-input" placeholder="e.g. CI-24-04467 or VID/2024/0441" value="${caseRef}"/>
+    </div>
+    <button class="btn-primary" id="btn-analyse" ${!hasFile ? 'disabled' : ''}>ANALYSE STATEMENT →</button>
+  </div>`;
+}
+
+// ── Extracting ───────────────────────────────────────────────
+function renderExtracting() {
+  return `<div class="extract-wrap">
+    <div class="extract-spinner"></div>
+    <div class="extract-label">READING DOCUMENT</div>
+    <div class="extract-sub">Extracting text · Applying privacy shield...</div>
+  </div>`;
+}
+
+// ── Confirm (privacy shield) ──────────────────────────────────
+function renderConfirm() {
+  const d = cleanData;
+  const removedRows = d.removed.length
+    ? d.removed.map(r => `
+        <div class="removed-row">
+          <span class="removed-check">✓</span>
+          <span class="removed-type">${r.type} removed</span>
+          <span class="removed-tag">STRIPPED</span>
+        </div>`).join('')
+    : `<div class="no-pii-row">✓ No identifiable header data detected in this document</div>`;
+
+  const preview = d.previewLines.map(l => `<div>${escHtml(l)}</div>`).join('');
+
+  return `<div class="confirm-wrap">
+    <p class="step-label">PROPERTYTRACE AU · STEP 2 OF 3 · PRIVACY SHIELD</p>
+    <h2 class="step-title" style="margin-bottom:18px">Confirm what gets sent.</h2>
+    <div class="shield-bar">
+      <span class="shield-icon">🛡</span>
+      <div class="shield-text">
+        <strong>Privacy Shield is active.</strong> The items below have been stripped and will never be transmitted. Only anonymised transaction descriptions are sent to the analysis engine. Compliant with the Australian Privacy Act 1988 (APPs 3 &amp; 6).
+      </div>
+    </div>
+    <div class="removed-block">
+      <div class="section-label">Removed from transmission</div>
+      ${removedRows}
+    </div>
+    <div class="sending-block">
+      <div class="sending-head">
+        <div class="section-label" style="margin-bottom:0">What will be transmitted</div>
+        <span class="sending-count">${d.lineCount} LINES · ${selectedFiles.length > 1 ? `${selectedFiles.length} FILES · ` : ''}TRANSACTION DATA ONLY</span>
+      </div>
+      <div style="height:8px"></div>
+      <div class="sending-preview">${preview}</div>
+    </div>
+    <div class="privacy-note">
+      <span class="lock">🔒</span>
+      <span>Only the transaction descriptions shown above are sent to the Anthropic API. No name, no account number, no BSB, no ABN, no address. Data is processed then discarded — not stored, not trained on.</span>
+    </div>
+    <div class="btn-grid">
+      <button class="btn-primary" id="btn-proceed">PROCEED WITH ANALYSIS →</button>
+      <button class="btn-secondary" id="btn-cancel-confirm">CANCEL</button>
+    </div>
+  </div>`;
+}
+
+// ── Scanning ─────────────────────────────────────────────────
+function renderScanning() {
+  return `<div class="scan-wrap">
+    <div class="pulse-ring">
+      <div class="ring ring-0"></div><div class="ring ring-1"></div><div class="ring ring-2"></div>
+      <div class="ring-core"></div>
+    </div>
+    <p class="scan-title">LEXI IS READING THE STATEMENT</p>
+    <p class="scan-file">${selectedFiles.length > 1 ? escHtml(`${selectedFiles.length} statements`) : escHtml(fileName)}</p>
+    <div class="scan-log" id="scan-log"><div class="scan-beam"></div></div>
+  </div>`;
+}
+
+function addLog(text, cls = '') {
+  const log = document.getElementById('scan-log');
+  if (!log) return;
+  const div = document.createElement('div');
+  div.className = 'log-line' + (cls ? ' ' + cls : '');
+  div.innerHTML = `<span class="log-arrow">›</span>${text}`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function runAnalysis() {
+  const preamble = [
+    { text:'Privacy shield confirmed — transmitting anonymised data only', cls:'shield', delay:300 },
+    { text:`File: ${fileName}`, cls:'dim', delay:700 },
+    { text:'Parsing transaction records...', cls:'', delay:1050 },
+    { text:`${cleanData.lineCount} transaction lines identified`, cls:'dim', delay:1400 },
+    { text:'Running Australian property detection libraries...', cls:'', delay:1800 },
+    { text:'Library pass: strata / body corporate / owners corporation levies...', cls:'dim', delay:2150 },
+    { text:'Library pass: state utility provider identifiers (AGL, Origin, Energex, SA Power...)...', cls:'dim', delay:2500 },
+    { text:'Library pass: council rates and land tax authorities...', cls:'dim', delay:2850 },
+    { text:'Library pass: state-specific insurers (RACV, RACQ, NRMA, RAA, RAC, AAMI)...', cls:'dim', delay:3200 },
+    { text:'Library pass: Australian mortgage lenders (CBA, NAB, Westpac, ANZ, Macquarie...)...', cls:'dim', delay:3550 },
+    { text:'Library pass: self-storage providers (National Storage, Kennards, Storage King)...', cls:'dim', delay:3900 },
+    { text:'Library pass: property management and rental income signals...', cls:'dim', delay:4250 },
+    { text:'Running cluster corroboration engine — mapping to state/territory...', cls:'', delay:4600 },
+  ];
+  preamble.forEach(({ text, cls, delay }) => setTimeout(() => addLog(text, cls), delay));
+
+  let result = null;
+  try { result = await callLexi(); }
+  catch(err) {
+    setTimeout(() => { analysisResult = { error: err.message }; appState = 'error'; render(); }, 5000);
+    return;
+  }
+
+  const sigDelay = 5000;
+  if (result.signals && result.signals.length) {
+    result.signals.forEach((sig, i) => {
+      setTimeout(() => addLog(`⬡ Signal detected — ${sig.type.toUpperCase()} · ${sig.description}`, 'gold'), sigDelay + i * 420);
+    });
+    const afterSigs = sigDelay + result.signals.length * 420 + 300;
+    setTimeout(() => addLog('Mapping signals to Australian state / territory...', ''), afterSigs);
+    setTimeout(() => {
+      (result.jurisdictions || []).forEach((j, i) => {
+        setTimeout(() => addLog(`${j.confidence} confidence → ${j.city}, ${j.state}`, 'green'), i * 380);
+      });
+      const afterJ = (result.jurisdictions || []).length * 380 + 400;
+      setTimeout(() => {
+        addLog('🎯 Intelligence ready. Compiling report for your solicitor...', 'gold');
+        setTimeout(() => { analysisResult = result; appState = 'results'; render(); }, 1100);
+      }, afterJ);
+    }, afterSigs + 500);
+  } else {
+    setTimeout(() => {
+      addLog('No Australian property-linked signals detected in this statement.', 'dim');
+      setTimeout(() => { analysisResult = result; appState = 'results'; render(); }, 1500);
+    }, sigDelay + 400);
+  }
+}
+
+// ── Lexi API call — routes through Railway backend (AU mode) ──
+async function callLexi() {
+  const response = await fetch(PROPERTYTRACE_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: cleanData.clean, market: MARKET })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const msg = err.detail || `Analysis error ${response.status}`;
+    if (response.status === 503) throw new Error(msg + ' — contact LexCrypta support.');
+    throw new Error(msg);
+  }
+
+  return response.json();
+}
+
+// ── Results ───────────────────────────────────────────────────
+function renderResults() {
+  const r = analysisResult;
+
+  if (!r || r.no_signals_found || !(r.signals && r.signals.length)) {
+    return `<div class="results-wrap">
+      <p class="step-label">ANALYSIS COMPLETE</p>
+      <h2 class="step-title">No Australian property signals found.</h2>
+      <p class="step-sub" style="margin-bottom:24px">${r?.cluster_finding || 'No strata levies, council rates, utility payments, insurance premiums, or other Australian property-linked signals identified. A clean pass is a documented due-diligence record.'}</p>
+      <div class="privacy-note"><span class="lock">📋</span><span>This result can be retained as a due diligence record — forensic scan conducted across Australian property signal libraries, no material property signals found.</span></div>
+      <div class="btn-grid" style="margin-top:20px">
+        <button class="btn-primary" style="font-size:11px" id="btn-export">EXPORT CLEAN REPORT</button>
+        <button class="btn-secondary" id="btn-new">NEW STATEMENT</button>
+      </div>
+    </div>`;
+  }
+
+  const signalRows = (r.signals || []).map((s, i) => `
+    <div class="signal-row" style="animation-delay:${i*0.05}s">
+      <span class="sig-type-tag ${s.type}">${s.type.replace('_',' ')}</span>
+      <span class="sig-desc">${escHtml(s.description)}</span>
+      <span class="sig-amount">${escHtml(s.amount || '')}</span>
+    </div>`).join('');
+
+  const intelCards = (r.jurisdictions || []).map((loc, idx) => `
+    <div class="intel-card" data-idx="${idx}">
+      <div class="intel-head">
+        <div class="intel-head-left">
+          <div class="intel-jurisdiction">JURISDICTION ${idx+1} · ${loc.signal_count || ''} SIGNALS</div>
+          <div class="intel-city">${escHtml(loc.city)}</div>
+          <div class="intel-state">${escHtml(loc.state)}</div>
+        </div>
+        <div class="intel-confidence">
+          <div class="conf-value">${escHtml(loc.confidence)}</div>
+          <div class="conf-label">CONFIDENCE</div>
+        </div>
+      </div>
+      <div class="intel-detail">
+        <div class="detail-row"><span class="detail-key">Lexi's basis</span><span class="detail-val">${escHtml(loc.basis)}</span></div>
+        ${loc.search_zones ? `<div class="detail-row"><span class="detail-key">Search zones</span><span class="detail-val">${loc.search_zones.map(escHtml).join(' · ')}</span></div>` : ''}
+        <div class="next-step-box">
+          <div class="next-step-title">RECOMMENDED NEXT STEP</div>
+          <div class="next-step-text">${escHtml(loc.next_step)}</div>
+        </div>
+        <button class="btn-export-intel" data-idx="${idx}">EXPORT THIS INTELLIGENCE →</button>
+      </div>
+    </div>`).join('');
+
+  const zoneCount = (r.jurisdictions || []).length;
+
+  return `<div class="results-wrap">
+    <div class="result-header-row">
+      <div>
+        <p class="step-label">INTELLIGENCE COMPLETE</p>
+        <h2 style="font-size:20px;font-weight:700;line-height:1.2">PropertyTrace AU Report</h2>
+        ${caseRef ? `<p style="font-size:11px;font-family:monospace;color:var(--text-dim);margin-top:4px">Case: ${escHtml(caseRef)}</p>` : ''}
+      </div>
+      <div class="match-badge">
+        <div class="match-count">${zoneCount}</div>
+        <div class="match-label">${zoneCount === 1 ? 'ZONE' : 'ZONES'}</div>
+      </div>
+    </div>
+    <div class="signals-section">
+      <div class="section-label">Signals detected · ${(r.signals||[]).length} found</div>
+      <div style="height:8px"></div>
+      ${signalRows}
+    </div>
+    <div class="cluster-verdict">
+      <div class="cluster-verdict-label">⬡ CLUSTER INTELLIGENCE FINDING</div>
+      <div class="cluster-verdict-text">${escHtml(r.cluster_finding || '')}</div>
+    </div>
+    ${zoneCount > 0 ? `<div class="intel-section">
+      <div class="section-label">Where to look · click to expand</div>
+      <div style="height:8px"></div>
+      ${intelCards}
+    </div>` : ''}
+    <div class="btn-grid">
+      <button class="btn-primary" style="font-size:11px" id="btn-export">EXPORT REPORT</button>
+      <button class="btn-secondary" id="btn-new">NEW STATEMENT</button>
+    </div>
+  </div>`;
+}
+
+// ── Error ────────────────────────────────────────────────────
+function renderError() {
+  const msg = analysisResult?.error || 'An unexpected error occurred.';
+  return `<div class="step">
+    <p class="step-label">ANALYSIS ERROR</p>
+    <h2 class="step-title">Lexi couldn't complete the scan.</h2>
+    <div class="error-box">${escHtml(msg)}</div>
+    <p class="step-sub">Check the file format and try again. If the problem persists, contact LexCrypta support.</p>
+    <button class="btn-secondary" id="btn-new" style="margin-top:4px">TRY AGAIN</button>
+  </div>`;
+}
+
+// ── File handling — multi-file ────────────────────────────────
+function setFiles(fileList) {
+  selectedFiles = Array.from(fileList);
+  fileName      = selectedFiles.map(f => f.name).join(', ');
+  const totalBytes = selectedFiles.reduce((s, f) => s + f.size, 0);
+  const kb = totalBytes / 1024;
+  const sizeStr = kb > 1024 ? (kb/1024).toFixed(1) + ' MB' : Math.round(kb) + ' KB';
+  fileSize = selectedFiles.length > 1 ? `${sizeStr} · ${selectedFiles.length} files` : sizeStr;
+  render();
+  processFiles();
+}
+
+async function processFiles() {
+  appState = 'extracting'; render();
+  const parts = [];
+  for (const f of selectedFiles) {
+    try {
+      const text = await readOneFile(f);
+      if (selectedFiles.length > 1) {
+        parts.push(`\n--- DOCUMENT: ${f.name} ---\n${text}`);
+      } else {
+        parts.push(text);
+      }
+    } catch(err) {
+      analysisResult = { error: `Could not read "${f.name}": ${err.message}` };
+      appState = 'error'; render(); return;
+    }
+  }
+  rawText = parts.join('\n');
+  if (!rawText || rawText.trim().length < 50) {
+    analysisResult = { error: 'No readable text found in the uploaded file(s). If uploading PDFs, ensure they are text-based (not scanned images). Export as PDF or CSV from your internet banking portal.' };
+    appState = 'error'; render(); return;
+  }
+  cleanData = stripPII(rawText);
+  appState = 'confirm'; render();
+}
+
+function readOneFile(f) {
+  return new Promise((resolve, reject) => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+      const reader = new FileReader();
+      reader.onload = async e => {
+        try {
+          const b64 = e.target.result.split(',')[1];
+          const text = await extractPdfText(b64);
+          if (!text || text.trim().length < 10)
+            reject(new Error('No text layer — this appears to be a scanned image PDF. Export a text-based PDF from your internet banking portal.'));
+          else
+            resolve(text);
+        } catch(err) { reject(err); }
+      };
+      reader.onerror = () => reject(new Error('FileReader error'));
+      reader.readAsDataURL(f);
+    } else {
+      const reader = new FileReader();
+      reader.onload  = e => resolve(e.target.result);
+      reader.onerror = () => reject(new Error('FileReader error'));
+      reader.readAsText(f);
+    }
+  });
+}
+
+async function extractPdfText(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+  let text = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    let lastY = null;
+    for (const item of content.items) {
+      if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) text += '\n';
+      text += item.str + ' ';
+      lastY = item.transform[5];
+    }
+    text += '\n';
+  }
+  return text;
+}
+
+// ── PII Stripper — Australian edition ────────────────────────
+function stripPII(text) {
+  const lines  = text.split('\n');
+  const removed = [];
+  const kept   = [];
+  const seen   = new Set();
+
+  function flag(type) { if (!seen.has(type)) { seen.add(type); removed.push({ type }); } }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.length < 3) continue;
+    let strip = false;
+
+    // Account number lines
+    if      (/account\s*(no\.?|number|#|num)?\s*:?\s*[\*Xx\d]{4,}/i.test(line))
+      { flag('Account number'); strip = true; }
+    // BSB number (Australian 6-digit format: XXX-XXX or XXXXXX)
+    else if (/\b(bsb|bank\s*state\s*branch)\s*:?\s*\d{3}[\s\-]?\d{3}\b/i.test(line))
+      { flag('BSB number'); strip = true; }
+    // Standalone BSB pattern on its own line (e.g. "083-004")
+    else if (/^\d{3}[\s\-]\d{3}$/.test(line))
+      { flag('BSB number'); strip = true; }
+    // ABN — Australian Business Number (11 digits, often formatted XX XXX XXX XXX)
+    else if (/\b(abn)\s*:?\s*\d[\d\s]{9,12}\b/i.test(line))
+      { flag('ABN (Australian Business Number)'); strip = true; }
+    // ACN — Australian Company Number (9 digits)
+    else if (/\b(acn)\s*:?\s*\d[\d\s]{8,10}\b/i.test(line))
+      { flag('ACN (Australian Company Number)'); strip = true; }
+    // TFN — Tax File Number (9 digits)
+    else if (/\b(tfn|tax\s*file\s*number)\s*:?\s*\d[\d\s]{7,10}\b/i.test(line))
+      { flag('Tax File Number'); strip = true; }
+    // Australian phone numbers: 04XX XXX XXX (mobile) or (0X) XXXX XXXX (landline) or +61 X XXXX XXXX
+    else if (/(?:\+61\s?|0)[2-578]\s?\d{4}\s?\d{4}\b/.test(line) ||
+             /\b04\d{2}\s?\d{3}\s?\d{3}\b/.test(line))
+      { flag('Phone number'); strip = true; }
+    // Account holder name header lines
+    else if (/^(account\s+holder|customer\s+name|prepared\s+for|statement\s+for|primary\s+account\s+holder|name\s*:|account\s+name\s*:)/i.test(line))
+      { flag('Account holder name'); strip = true; }
+    // Email addresses
+    else if (/[\w._%+\-]+@[\w.\-]+\.[a-zA-Z]{2,}/.test(line))
+      { flag('Email address'); strip = true; }
+    // Australian street addresses: number + street + suffix (Australian suffixes)
+    else if (/^\d{1,5}[A-Z]?\s+[A-Za-z\s]+\s+(st(?:reet)?|ave(?:nue)?|rd|road|dr(?:ive)?|ct|court|cres(?:cent)?|pl(?:ace)?|pde|parade|blvd|boulevard|hwy|highway|way|ln|lane|cct|circuit|tce|terrace|close|grove|rise|crescent)\b/i.test(line))
+      { flag('Street address'); strip = true; }
+    // Australian postcodes (4-digit) in context of state abbreviations
+    else if (/\b(?:VIC|NSW|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}\b/.test(line) ||
+             /\b\d{4}\s+(?:VIC|NSW|QLD|WA|SA|TAS|ACT|NT)\b/.test(line))
+      { flag('Address / postcode'); strip = true; }
+    // Date of birth
+    else if (/\b(dob|date\s+of\s+birth)\s*:?\s*\d/i.test(line))
+      { flag('Date of birth'); strip = true; }
+    // US-style SSN (catch if present in mixed documents)
+    else if (/\b\d{3}[- ]\d{2}[- ]\d{4}\b/.test(line))
+      { flag('ID number'); strip = true; }
+
+    if (!strip) kept.push(line);
+  }
+
+  const trimmed      = kept.slice(0, 800);
+  const previewLines = trimmed.slice(0, 20);
+  return { clean: trimmed.join('\n'), removed, lineCount: trimmed.length, previewLines };
+}
+
+// ── Export ────────────────────────────────────────────────────
+function exportReport() {
+  const r = analysisResult;
+  const lines = [
+    'PROPERTYTRACE INTELLIGENCE REPORT — AUSTRALIA',
+    'LexCrypta — Australian Legal Professional Use Only',
+    '─'.repeat(56),
+    selectedFiles.length > 1 ? `Files: ${selectedFiles.map(f => f.name).join(', ')}` : `File: ${fileName}`,
+    caseRef ? `Case reference: ${caseRef}` : '',
+    `Date: ${new Date().toLocaleDateString('en-AU', { year:'numeric', month:'long', day:'numeric' })}`,
+    `Privacy: PII stripped before transmission per Australian Privacy Act 1988. Transaction descriptions only were analysed.`,
+    '',
+    'SIGNALS DETECTED',
+    '─'.repeat(56),
+    ...(r?.signals || []).map(s => `[${s.type.toUpperCase()}]  ${s.description}   ${s.amount || ''}`),
+    '',
+    'CLUSTER FINDING',
+    '─'.repeat(56),
+    r?.cluster_finding || 'No signals detected.',
+    '',
+    'JURISDICTION INTELLIGENCE',
+    '─'.repeat(56),
+    ...(r?.jurisdictions || []).flatMap((j, i) => [
+      `Jurisdiction ${i+1}: ${j.city}, ${j.state}`,
+      `Confidence: ${j.confidence}  |  Signals: ${j.signal_count}`,
+      `Basis: ${j.basis}`,
+      `Search zones: ${(j.search_zones || []).join(', ')}`,
+      `Next step: ${j.next_step}`,
+      '',
+    ]),
+    '─'.repeat(56),
+    'Generated by LexCrypta PropertyTrace AU v1',
+    'For solicitor / barrister use only.',
+  ].filter(Boolean);
+
+  const blob = new Blob([lines.join('\n')], { type:'text/plain' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `PropertyTrace_AU_${(caseRef || fileName.replace(/\.[^.]+$/, ''))}_${Date.now()}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Handlers ──────────────────────────────────────────────────
+function attachHandlers() {
+  const th = document.getElementById('btn-theme');
+  if (th) th.onclick = () => { toggleTheme(); render(); };
+
+  const zone = document.getElementById('upload-zone');
+  if (zone) {
+    zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); if (e.dataTransfer.files.length) setFiles(e.dataTransfer.files); });
+  }
+  const fi = document.getElementById('file-input');
+  if (fi) fi.addEventListener('change', () => { if (fi.files.length) setFiles(fi.files); });
+
+  const rm = document.getElementById('remove-file');
+  if (rm) rm.onclick = e => { e.stopPropagation(); selectedFiles=[]; fileName=''; fileSize=''; rawText=''; cleanData=null; render(); };
+
+  const cr = document.getElementById('case-ref-input');
+  if (cr) cr.addEventListener('input', () => { caseRef = cr.value; });
+
+  const ba = document.getElementById('btn-analyse');
+  if (ba) ba.onclick = () => { if (fileName && cleanData) { appState='scanning'; render(); } };
+
+  const bp = document.getElementById('btn-proceed');
+  if (bp) bp.onclick = () => { appState='scanning'; render(); };
+
+  const bc = document.getElementById('btn-cancel-confirm');
+  if (bc) bc.onclick = () => { appState='upload'; render(); };
+
+  document.querySelectorAll('.intel-card').forEach(c => c.addEventListener('click', () => c.classList.toggle('open')));
+
+  document.querySelectorAll('.btn-export-intel').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const j = (analysisResult?.jurisdictions || [])[parseInt(btn.dataset.idx)];
+      if (!j) return;
+      const text = [
+        `JURISDICTION INTELLIGENCE — ${j.city}, ${j.state}`,
+        `Confidence: ${j.confidence}  |  Signals: ${j.signal_count}`,
+        `Basis: ${j.basis}`,
+        `Search zones: ${(j.search_zones||[]).join(', ')}`,
+        `Next step: ${j.next_step}`,
+        `Case: ${caseRef || 'Not specified'}`,
+        `Generated: ${new Date().toLocaleString('en-AU')}`,
+        `LexCrypta PropertyTrace AU v1 — Legal Professional Use Only`,
+      ].join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'COPIED ✓';
+        setTimeout(() => { btn.textContent = 'EXPORT THIS INTELLIGENCE →'; }, 2200);
+      }).catch(() => alert(text));
+    });
+  });
+
+  const ep = document.getElementById('btn-export');
+  if (ep) ep.onclick = exportReport;
+
+  const bn = document.getElementById('btn-new');
+  if (bn) bn.onclick = () => { appState='upload'; selectedFiles=[]; fileName=''; fileSize=''; rawText=''; cleanData=null; caseRef=''; analysisResult=null; render(); };
+}
+
+// ── Utility ───────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Boot ──────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>

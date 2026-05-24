@@ -1305,7 +1305,7 @@ def purge_deal(deal_id: int, db: Session = Depends(get_db), _: bool = Depends(re
     return {"purged": True, "deal_id": deal_id}
 
 
-# ── PropertyTrace — Lexi Asset Intelligence (US + AU) ────────────────────────
+# ── PropertyTrace — Lexi Asset Intelligence ──────────────────────────────────
 
 _LEXI_PROPERTYTRACE_SYSTEM_US = """You are Lexi, LexCrypta's forensic property intelligence engine. You analyse anonymised bank statement transaction data to identify signals indicating undisclosed property ownership.
 
@@ -1385,15 +1385,17 @@ SIGNAL CATEGORIES — detect all that apply:
    Key terms: "COUNCIL RATES", "LAND TAX", "RATE NOTICE", "MUNICIPAL RATES", "SHIRE RATES"
    State Revenue Offices: SRO VIC (State Revenue Office Victoria), Revenue NSW, Queensland Revenue Office (QRO), RevenueSA, Landgate WA, State Revenue Tasmania
    Local councils: any "CITY OF [X]", "SHIRE OF [X]", "COUNCIL OF [X]" payment
-   Water authorities: SA Water, City West Water, South East Water, Yarra Valley Water, Sydney Water, Unity Water
+   Water authorities: SA Water, City West Water, South East Water, Yarra Valley Water, Sydney Water, Unity Water — these separately charge property owners
 
 5. STORAGE UNITS (recurring monthly — may indicate main residence is elsewhere):
-   National: National Storage, Kennards Self Storage, Storage King, Spacer, Fort Knox Storage, Taxibox, Uncle Bob's Self Storage
+   National: National Storage, Kennards Self Storage, Storage King, Spacer, Fort Knox Storage, Taxibox, Uncle Bob's Self Storage, Big Yellow Storage, Rent A Space
 
 6. MORTGAGE / HOME LOAN PAYMENTS (definitive ownership signal):
    Big Four: Commonwealth Bank (CBA) home loan, NAB Home Loan, Westpac Home Loan, ANZ Home Loan
    Other lenders: ING Australia, St George Bank, Bank of Melbourne, BankSA, Macquarie Bank, Bankwest, Suncorp Bank, Bendigo Bank, ME Bank, AMP Bank, Pepper Money, Liberty Financial, Firstmac, La Trobe Financial, Resimac, Athena Home Loans
    Key terms: "HOME LOAN REPAYMENT", "MORTGAGE REPAYMENT", "LOAN REPAYMENT", "RESI LOAN"
+   Westpac Group transaction formats (flag all as confirmed Westpac mortgage signal): "WESTPAC HOME LOAN", "WESTPAC LOAN REP", "WESTPAC RESI LOAN", "WESTPAC BANK LOAN", "WBC HOME LOAN", "WESTPAC BANK MORTGAGE", "ST GEORGE HOME LOAN", "STG HOME LOAN", "STGEORGE HOME LOAN", "BANK OF MELBOURNE HOME LOAN", "BOM HOME LOAN", "BANKSA HOME LOAN", "BSA HOME LOAN"
+   NOTE: St.George Bank, Bank of Melbourne, and BankSA are Westpac Group subsidiaries — their home loan payments are equally strong Westpac Group ownership signals.
 
 7. PROPERTY MANAGEMENT / RENTAL INCOME DEPOSITS (may indicate investment property):
    Key terms: rent receipts from property managers, "RENTAL INCOME", "RENT TRUST", "PROPERTY MANAGEMENT"
@@ -1401,22 +1403,31 @@ SIGNAL CATEGORIES — detect all that apply:
 
 8. RECURRING TRAVEL (signals secondary location):
    Domestic: Virgin Australia, Qantas, Rex Airlines, Bonza, Jetstar — repeated routes suggest regular secondary residence
+   Key routes pointing to property: e.g., consistent MEL→BNE, SYD→GC, MEL→SYD monthly or quarterly
 
 9. MAINTENANCE (strong secondary property signal when paired with other signals):
    Jim's Mowing, Jim's Building & Maintenance, Hipages, ServiceSeeking, pool service companies, pest control (Rentokil, Flick), gardening services
 
 CLUSTER LOGIC:
-- State-specific utility provider alone = 50-65% (narrows to one state)
-- State-specific insurer (RAA, RACV, RACQ, NRMA, RAC) alone = 55-70% (strong geographic pin)
+- State-specific utility provider alone = 50-65% confidence (narrows to one state)
+- State-specific insurer (RAA, RACV, RACQ, NRMA) alone = 55-70% (strong geographic pin)
 - Strata levy + utility = 70-80% (apartment/unit ownership confirmed, state narrowed)
 - Council rates payment = 75-85% standalone (near-definitive ownership signal)
 - Mortgage repayment = 85-90% standalone (definitive ownership signal)
 - Three or more corroborating signals = 85-95%
 
 SEARCH GUIDANCE (Australian-specific):
-- Land title searches by state: VIC: Land Use Victoria (Titles Victoria / LANDATA) | NSW: NSW Land Registry Services | QLD: Titles Queensland | WA: Landgate | SA: Land Services SA (SAILIS) | TAS: Land Tasmania (LIST) | ACT: Access Canberra | NT: NT DIPL
-- Rate/tax roll: council rates notices are public record; land tax via State Revenue Office
-- ASIC search for any business payments identified
+- Land title searches: each state has its own titles office — advise accordingly
+  VIC: Land Use Victoria (LANDATA / Titles Victoria)
+  NSW: NSW Land Registry Services
+  QLD: Titles Queensland / QVAS
+  WA: Landgate
+  SA: Land Services SA (SAILIS)
+  TAS: Land Tasmania (LIST)
+  ACT: ACT Government Access Canberra
+  NT: NT Department of Infrastructure, Planning and Logistics
+- Rate/tax roll searches: council rates notices are public record; land tax is State Revenue Office
+- ASIC property-linked entity search for any business payments identified
 
 Respond ONLY with valid JSON. No markdown. No explanation outside the JSON.
 
@@ -1447,6 +1458,7 @@ def _get_propertytrace_system(market: str) -> str:
 
 async def _run_propertytrace(text: str, market: str) -> dict:
     import json as _json
+    import re   as _re
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(
@@ -1468,11 +1480,21 @@ async def _run_propertytrace(text: str, market: str) -> dict:
         )
         raw   = message.content[0].text.strip()
         clean = raw.replace("```json", "").replace("```", "").strip()
-        return _json.loads(clean)
+        # Primary parse attempt
+        try:
+            return _json.loads(clean)
+        except _json.JSONDecodeError:
+            # Fallback: extract outermost JSON object via regex (handles extra explanation text)
+            m = _re.search(r'\{[\s\S]*\}', clean)
+            if m:
+                return _json.loads(m.group())
+            raise
+    except HTTPException:
+        raise
     except _anthropic.APIStatusError as e:
         raise HTTPException(status_code=502, detail=f"Analysis engine error: {e.message}")
     except _json.JSONDecodeError:
-        raise HTTPException(status_code=502, detail="Lexi returned an unexpected response format. Please try again.")
+        raise HTTPException(status_code=502, detail="Lexi returned an unexpected response format — please try again.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PropertyTrace error: {str(e)}")
 
