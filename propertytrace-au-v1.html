@@ -356,6 +356,7 @@ async function ensurePdfWorker() {
 // ── Railway endpoints ────────────────────────────────────────
 const PROPERTYTRACE_API = 'https://lexcrypta-evaluate-production.up.railway.app/propertytrace/analyse';
 const EXTRACT_API       = 'https://lexcrypta-evaluate-production.up.railway.app/propertytrace/extract-text';
+const VISION_API        = 'https://lexcrypta-evaluate-production.up.railway.app/propertytrace/extract-text-vision';
 const MARKET = 'au';
 
 // ── Theme ───────────────────────────────────────────────────
@@ -779,9 +780,40 @@ function looksLikeTransactionData(text) {
   return (hasAmount ? 1 : 0) + (hasDate ? 1 : 0) + (hasKeyword ? 1 : 0) >= 2;
 }
 
+// ── Render PDF pages to JPEG images via PDF.js canvas ────────
+// Used when pdfplumber finds no text (scanned/image PDFs, court exhibit copies).
+// PDF.js canvas rendering works even with the fake-worker on file:// protocol.
+// Returns array of base64-encoded JPEG strings (one per page, capped at 5).
+async function renderPdfPagesToJpegs(f) {
+  const b64 = await new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload  = e => res(e.target.result.split(',')[1]);
+    reader.onerror = () => rej(new Error('FileReader error'));
+    reader.readAsDataURL(f);
+  });
+  await ensurePdfWorker();
+  const bin   = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const pdf      = await pdfjsLib.getDocument({ data: bytes }).promise;
+  const numPages = Math.min(pdf.numPages, 5);   // 5-page cap matches backend limit
+  const jpegs    = [];
+  for (let p = 1; p <= numPages; p++) {
+    const page     = await pdf.getPage(p);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas   = document.createElement('canvas');
+    canvas.width   = viewport.width;
+    canvas.height  = viewport.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    jpegs.push(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+  }
+  return jpegs;
+}
+
 // ── Server-side PDF extraction via pdfplumber ────────────────
-// PDF bytes sent to Railway for text extraction only — not stored, not sent to AI.
+// PDF bytes sent to Railway for extraction only — not stored, not sent to AI.
 // PII stripping still happens client-side on the returned text before Lexi call.
+// If pdfplumber finds no text (scanned PDF), falls back to Claude Vision OCR.
 async function readPdfViaPdfplumber(f) {
   const fd = new FormData();
   fd.append('file', f, f.name);
@@ -790,6 +822,30 @@ async function readPdfViaPdfplumber(f) {
     body:   fd,
     signal: AbortSignal.timeout(30000)
   });
+
+  if (r.status === 422) {
+    // No text layer — this is a scanned/image PDF (common with court exhibit copies).
+    // Render pages to canvas and send images to Claude Vision for OCR extraction.
+    let pages;
+    try {
+      pages = await renderPdfPagesToJpegs(f);
+    } catch (renderErr) {
+      throw new Error(`Scanned PDF detected and could not render for OCR: ${renderErr.message}. Export this statement directly from Westpac Online Banking as a PDF or CSV.`);
+    }
+    const vr = await fetch(VISION_API, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ pages, market: MARKET }),
+      signal:  AbortSignal.timeout(55000)
+    });
+    if (!vr.ok) {
+      const e = await vr.json().catch(() => ({}));
+      throw new Error(e.detail || `Vision OCR failed (${vr.status})`);
+    }
+    const { text } = await vr.json();
+    return text;
+  }
+
   if (!r.ok) {
     const e = await r.json().catch(() => ({}));
     throw new Error(e.detail || `PDF extraction failed (${r.status})`);

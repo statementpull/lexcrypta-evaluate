@@ -1571,3 +1571,79 @@ async def propertytrace_extract_text(file: UploadFile = File(...)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF extraction error: {str(e)}")
+
+
+class PropertyTracePagesRequest(BaseModel):
+    pages: list  # base64-encoded JPEG renders of PDF pages (from PDF.js canvas)
+    market: str = "au"
+
+
+async def _extract_text_from_images(pages: list) -> str:
+    """
+    Use Claude Vision to OCR bank statement page images.
+    Called when pdfplumber finds no text (scanned/image PDFs, court exhibits).
+    Caps at 5 pages to stay within Railway's 30-second proxy timeout.
+    """
+    import anthropic as _anthropic
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Vision extraction engine not configured — ANTHROPIC_API_KEY missing."
+        )
+    client = _anthropic.AsyncAnthropic(api_key=api_key, timeout=28.0)
+    content = []
+    for page_b64 in pages[:5]:   # 5-page cap keeps latency well under Railway's 30s proxy limit
+        content.append({
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": "image/jpeg",
+                "data": page_b64
+            }
+        })
+    content.append({
+        "type": "text",
+        "text": (
+            "These are pages from a bank statement. "
+            "Extract every transaction record. For each transaction output one line: date, description, amount. "
+            "Do NOT include the account holder name, BSB number, account number, "
+            "addresses, or phone numbers. Plain text only — no headings, no tables, no commentary."
+        )
+    })
+    message = await client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=2000,
+        messages=[{"role": "user", "content": content}]
+    )
+    return message.content[0].text.strip()
+
+
+@app.post("/propertytrace/extract-text-vision")
+async def propertytrace_extract_text_vision(req: PropertyTracePagesRequest):
+    """
+    OCR bank statement page images using Claude Vision.
+    Called automatically when pdfplumber returns 422 (scanned PDF — no text layer).
+    Accepts base64 JPEG renders of PDF pages from PDF.js canvas.
+    Returns extracted transaction text in the same format as /extract-text.
+    Nothing is stored — images processed in memory and immediately discarded.
+    """
+    if not req.pages:
+        raise HTTPException(status_code=400, detail="No page images provided.")
+    try:
+        text = await _extract_text_from_images(req.pages)
+        if not text:
+            raise HTTPException(
+                status_code=422,
+                detail="No transaction text could be extracted from these images. The PDF may be too low-resolution or may not be a bank statement."
+            )
+        return JSONResponse({"text": text, "pages": len(req.pages), "method": "vision"})
+    except HTTPException:
+        raise
+    except Exception as e:
+        if "timeout" in str(e).lower() or "APITimeout" in type(e).__name__:
+            raise HTTPException(
+                status_code=504,
+                detail="Vision OCR timed out — try uploading fewer pages at once (maximum 5 pages per file)."
+            )
+        raise HTTPException(status_code=500, detail=f"Vision extraction error: {str(e)}")
