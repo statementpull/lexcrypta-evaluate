@@ -2169,70 +2169,151 @@ async function runPropertyTrace() {
 
 function renderPropertyTrace(pt) {
   const body = document.getElementById('ptBody');
-  const signals = pt.signals || [];
-  const jurisdictions = pt.jurisdictions || [];
-  const noSignals = pt.no_signals_found === true || signals.length === 0;
+  const signals    = pt.signals || [];
+  const juris      = pt.jurisdictions || [];
+  const noSignals  = pt.no_signals_found === true || signals.length === 0;
 
-  const typeLabel = t => ({mortgage:'MORTGAGE',strata:'STRATA LEVY',utility:'UTILITY',
-    insurance:'INSURANCE',council_rates:'COUNCIL RATES',land_tax:'LAND TAX',
-    storage:'STORAGE',travel:'TRAVEL',rental:'RENTAL INCOME',maintenance:'MAINTENANCE'
-  }[t]||(t||'').toUpperCase().replace(/_/g,' '));
+  // ── Type display helpers ──────────────────────────────────────────────────
+  const TYPE_LABEL = {
+    mortgage:'MORTGAGE', strata:'STRATA LEVY', utility:'UTILITY',
+    insurance:'INSURANCE', council_rates:'COUNCIL RATES', land_tax:'LAND TAX',
+    storage:'STORAGE', rental:'RENTAL INCOME', maintenance:'MAINTENANCE', offset:'OFFSET ACCOUNT'
+  };
+  const typeLabel = t => TYPE_LABEL[t] || (t||'').toUpperCase().replace(/_/g,' ');
 
-  const typeColor = t => ({mortgage:'var(--gold)',strata:'var(--amber)',utility:'#4a9fd4',
-    insurance:'var(--green)',council_rates:'var(--gold)',land_tax:'var(--red)',
-    rental:'var(--green)',maintenance:'#9a7fd4'
-  }[t]||'var(--muted)');
+  // colour matches Verify's status badge scheme
+  const TYPE_BG = {
+    mortgage:'rgba(200,150,62,0.12)', strata:'rgba(212,134,10,0.12)',
+    council_rates:'rgba(200,150,62,0.12)', insurance:'rgba(46,125,82,0.12)',
+    utility:'rgba(74,159,212,0.12)', land_tax:'rgba(192,57,43,0.12)',
+    rental:'rgba(46,125,82,0.12)', maintenance:'rgba(154,127,212,0.12)',
+    offset:'rgba(200,150,62,0.12)'
+  };
+  const TYPE_COL = {
+    mortgage:'var(--gold)', strata:'var(--amber)', council_rates:'var(--gold)',
+    insurance:'var(--green)', utility:'#4a9fd4', land_tax:'var(--red)',
+    rental:'var(--green)', maintenance:'#9a7fd4', offset:'var(--gold)'
+  };
+  const typeBg  = t => TYPE_BG[t]  || 'rgba(138,155,180,0.10)';
+  const typeCol = t => TYPE_COL[t] || 'var(--muted)';
 
+  const confBadge = c => {
+    const lc = (c||'').toLowerCase();
+    if (lc==='high')   return `<span style="font-size:8px;letter-spacing:.12em;padding:2px 7px;background:rgba(200,150,62,0.18);color:var(--gold)">HIGH</span>`;
+    if (lc==='medium') return `<span style="font-size:8px;letter-spacing:.12em;padding:2px 7px;background:rgba(212,134,10,0.15);color:var(--amber)">MEDIUM</span>`;
+    return               `<span style="font-size:8px;letter-spacing:.12em;padding:2px 7px;background:rgba(138,155,180,0.12);color:var(--muted)">LOW</span>`;
+  };
+
+  // ── No signals ────────────────────────────────────────────────────────────
   if (noSignals) {
-    body.innerHTML = `<div style="background:var(--navy2);border:1px solid var(--border);padding:20px;text-align:center">
-      <div style="font-size:9px;letter-spacing:.2em;color:var(--muted);margin-bottom:6px">PROPERTY INTELLIGENCE RESULT</div>
-      <div style="font-size:13px;color:var(--cream)">No property ownership signals detected</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:8px;font-style:italic;max-width:480px;margin-inline:auto;line-height:1.6">${escH(pt.cluster_finding||'No property-linked signals identified in the provided transaction data.')}</div>
-    </div>`;
+    body.innerHTML = `
+      <div style="background:var(--navy2);border:1px solid var(--border);padding:20px;text-align:center">
+        <div style="font-size:9px;letter-spacing:.2em;color:var(--muted);margin-bottom:6px">PROPERTY INTELLIGENCE RESULT</div>
+        <div style="font-size:13px;color:var(--cream)">No property ownership signals detected</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;font-style:italic;max-width:480px;margin-inline:auto;line-height:1.6">${escH(pt.cluster_finding||'No property-linked signals identified in the provided transaction data.')}</div>
+      </div>`;
     return;
   }
 
-  const sigRows = signals.map(s=>`
-    <div style="display:flex;align-items:baseline;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:11px">
-      <span style="font-family:var(--mono);font-size:9px;color:${typeColor(s.type)};min-width:100px;flex-shrink:0;letter-spacing:.06em">${typeLabel(s.type)}</span>
-      <span style="color:var(--cream);flex:1">${escH(s.description)}</span>
-      <span style="font-family:var(--mono);font-size:10px;color:var(--gold);white-space:nowrap;margin-left:8px">${escH(s.amount||'')}</span>
-      <span style="font-size:9px;color:var(--muted);white-space:nowrap;margin-left:8px">${escH(s.jurisdiction_hint||'')}</span>
-    </div>`).join('');
-
-  const jurCards = jurisdictions.map(j=>`
-    <div class="scan-intel-card">
-      <div class="scan-intel-cat">PROPERTY JURISDICTION · ${escH(j.confidence)} CONFIDENCE · ${j.signal_count} SIGNAL${j.signal_count!==1?'S':''}</div>
-      <div class="scan-intel-title">${escH(j.city)}, ${escH(j.state)}</div>
-      <div class="scan-intel-narrative">${escH(j.basis)}</div>
-      <div class="scan-intel-path-lbl">Search Zones</div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;font-family:var(--mono);line-height:1.7">${(j.search_zones||[]).join(' · ')}</div>
-      <div class="scan-intel-path-lbl">Recommended Action</div>
-      <div style="font-size:11px;color:var(--muted);line-height:1.65">${escH(j.next_step)}</div>
-    </div>`).join('');
-
-  body.innerHTML = `
-    <div style="background:var(--navy2);border:1px solid var(--border);border-left:2px solid var(--gold);padding:14px 18px;margin-bottom:2px">
-      <div style="font-size:9px;letter-spacing:.2em;color:var(--gold);margin-bottom:6px">LEXI PROPERTY INTELLIGENCE FINDING</div>
-      <div style="font-size:12px;color:var(--cream);line-height:1.7;font-style:italic">${escH(pt.cluster_finding||'')}</div>
-    </div>
-    <div class="results-zones" style="margin-top:2px">
-      <div class="results-zone">
-        <div class="rz-head">
-          <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--gold);fill:none;stroke-width:1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          <div class="rz-head-title gold">C — Property Signals</div>
-          <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted)">${signals.length} detected</span>
+  // ── Summary strip ─────────────────────────────────────────────────────────
+  const propCount = juris.length;
+  const summaryStrip = `
+    <div style="background:var(--navy2);border:1px solid var(--border);border-left:3px solid var(--gold);padding:12px 18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:1px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:var(--gold);fill:none;stroke-width:1.5;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <div>
+          <div style="font-family:var(--mono);font-size:18px;color:var(--gold);font-weight:700;line-height:1">${signals.length}</div>
+          <div style="font-size:8px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-top:1px">Property Signals</div>
         </div>
-        ${sigRows}
       </div>
-      <div class="results-zone">
-        <div class="rz-head">
-          <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--gold);fill:none;stroke-width:1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          <div class="rz-head-title gold">D — Jurisdiction & Action</div>
-        </div>
-        <div style="padding:14px">${jurCards}</div>
+      ${propCount>0?`<div style="width:1px;height:32px;background:var(--border)"></div>
+      <div>
+        <div style="font-family:var(--mono);font-size:18px;color:var(--cream);font-weight:700;line-height:1">${propCount}</div>
+        <div style="font-size:8px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-top:1px">Possible Propert${propCount===1?'y':'ies'}</div>
+      </div>`:''}
+      <div style="flex:1;min-width:200px;border-left:1px solid var(--border);padding-left:16px;margin-left:2px">
+        <div style="font-size:8px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;margin-bottom:4px">Lexi Assessment</div>
+        <div style="font-size:11px;color:var(--text);line-height:1.6;font-style:italic">${escH(pt.cluster_finding||'')}</div>
       </div>
     </div>`;
+
+  // ── Evidence table (Section C) ────────────────────────────────────────────
+  const evidenceRows = signals.map((s,i)=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 12px;font-family:var(--mono);font-size:9px;color:var(--muted);white-space:nowrap">${String(i+1).padStart(2,'0')}</td>
+      <td style="padding:8px 12px">
+        <span style="font-size:8px;letter-spacing:.10em;padding:2px 8px;background:${typeBg(s.type)};color:${typeCol(s.type)}">${typeLabel(s.type)}</span>
+      </td>
+      <td style="padding:8px 14px;font-size:11px;color:var(--cream);line-height:1.5">${escH(s.description)}</td>
+      <td style="padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--gold);white-space:nowrap;text-align:right">${escH(s.amount||'—')}</td>
+      <td style="padding:8px 12px;white-space:nowrap">${confBadge(s.confidence)}</td>
+      <td style="padding:8px 12px;font-size:9px;color:var(--muted);font-family:var(--mono);white-space:nowrap">${escH(s.jurisdiction_hint||'—')}</td>
+    </tr>`).join('');
+
+  const sectionC = `
+    <div style="border:1px solid var(--border);background:var(--navy2);margin-bottom:1px">
+      <div class="rz-head">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--gold);fill:none;stroke-width:1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <div class="rz-head-title gold">C — Property Evidence</div>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted)">${signals.length} signal${signals.length!==1?'s':''} from bank statement analysis</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:6px 12px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:left">#</th>
+            <th style="padding:6px 12px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:left">TYPE</th>
+            <th style="padding:6px 14px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:left">EVIDENCE</th>
+            <th style="padding:6px 12px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:right">AMOUNT</th>
+            <th style="padding:6px 12px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:left">CONFIDENCE</th>
+            <th style="padding:6px 12px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:left">JURISDICTION</th>
+          </tr>
+        </thead>
+        <tbody>${evidenceRows}</tbody>
+      </table>
+    </div>`;
+
+  // ── Property location records (Section D) ─────────────────────────────────
+  const propCards = juris.map((j,idx)=>{
+    const zones = (j.search_zones||[]);
+    const zoneHtml = zones.map(z=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:var(--gold);fill:none;stroke-width:2;flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+        <span style="font-size:10px;color:var(--text)">${escH(z)}</span>
+      </div>`).join('');
+    return `
+      <div style="background:var(--navy2);border:1px solid var(--border);border-top:2px solid var(--gold)">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--gold)">PROPERTY ${idx+1}</div>
+          <div style="font-size:13px;color:var(--cream);font-weight:500;flex:1">${escH(j.city)}, ${escH(j.state)}</div>
+          ${confBadge(j.confidence)}
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted)">${j.signal_count} SIGNAL${j.signal_count!==1?'S':''}</div>
+        </div>
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+          <div style="font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Evidence Basis</div>
+          <div style="font-size:11px;color:var(--text);line-height:1.65">${escH(j.basis)}</div>
+        </div>
+        ${zones.length?`<div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+          <div style="font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Search Register</div>
+          ${zoneHtml}
+        </div>`:''}
+        <div style="padding:12px 16px;background:var(--golddim)">
+          <div style="font-size:8px;letter-spacing:.16em;color:var(--gold);text-transform:uppercase;margin-bottom:5px">Recommended Action</div>
+          <div style="font-size:11px;color:var(--cream);line-height:1.65">${escH(j.next_step)}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const sectionD = juris.length ? `
+    <div style="border:1px solid var(--border);background:var(--navy2);margin-bottom:1px">
+      <div class="rz-head">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--gold);fill:none;stroke-width:1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <div class="rz-head-title gold">D — Property Location Records</div>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted)">${juris.length} location${juris.length!==1?'s':''} identified</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--border)">${propCards}</div>
+    </div>` : '';
+
+  body.innerHTML = summaryStrip + sectionC + sectionD;
 }
 
 /* ══ RUN DEMO ══ */
