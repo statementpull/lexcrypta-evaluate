@@ -911,7 +911,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
         <div id="ptBody">
           <div style="background:var(--navy2);border:1px solid var(--border);padding:18px 20px;display:flex;align-items:center;gap:14px">
             <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--gold);fill:none;stroke-width:1.5;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span style="font-size:11px;color:var(--muted);line-height:1.6">Scan uploaded bank statements for undisclosed property ownership signals — council rates, strata levies, mortgage repayments, insurance, offset accounts, and state-specific utilities. Results appear here.</span>
+            <span style="font-size:11px;color:var(--muted);line-height:1.6">Scan Australian bank statements for undisclosed property ownership — council rates, strata levies, mortgage repayments, insurance, and offset accounts. Results appear here. <em style="color:var(--gold);font-style:normal">AU statements only.</em></span>
           </div>
         </div>
       </div>
@@ -2147,7 +2147,6 @@ async function runPropertyTrace() {
   try {
     const r = await fetch(`${API_BASE}/matters/${activeMatter.id}/property-trace`, {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'X-License-Key': currentLicense||'' },
     });
     if (!r.ok) {
       const err = await r.json().catch(()=>({}));

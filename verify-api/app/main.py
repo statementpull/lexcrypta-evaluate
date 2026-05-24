@@ -393,11 +393,28 @@ async def run_property_trace(
 
     combined = "\n".join(text_parts)[:8000]
 
+    # ── Auto-detect market from bank text ─────────────────────────────────────
+    import re as _re
+    _AU_BANKS = r"WESTPAC|COMMONWEALTH BANK|CBA|NAB|ANZ|ST\.?\s*GEORGE|BANKSA|BANK OF MELBOURNE|MACQUARIE|BENDIGO|SUNCORP|BANKWEST|ING AUSTRALIA|ME BANK|GREATER BANK|HERITAGE BANK|BANK OF QUEENSLAND|BOQ"
+    _US_BANKS = r"WELLS FARGO|BANK OF AMERICA|CHASE|CITIBANK|US BANK|TRUIST|PNC BANK|TD BANK|CAPITAL ONE|REGIONS BANK|FIFTH THIRD|HUNTINGTON|KEYBANK|CITIZENS BANK"
+    _has_au   = bool(_re.search(_AU_BANKS, combined, _re.IGNORECASE))
+    _has_us   = bool(_re.search(_US_BANKS, combined, _re.IGNORECASE))
+
+    if _has_us and not _has_au:
+        raise HTTPException(
+            status_code=422,
+            detail="PropertyTrace AU detected US bank statements (Wells Fargo / Chase / Bank of America etc.). "
+                   "PropertyTrace AU is designed for Australian bank statements and council rates data. "
+                   "No AU property analysis performed.",
+        )
+
+    market = "au"  # default to AU; US market available via standalone tool
+
     import httpx as _httpx
     _PT_URL = "https://lexcrypta-evaluate-production.up.railway.app/propertytrace/analyse"
     try:
         async with _httpx.AsyncClient(timeout=30.0) as client:
-            r = await client.post(_PT_URL, json={"text": combined, "market": "au"})
+            r = await client.post(_PT_URL, json={"text": combined, "market": market})
         if not r.is_success:
             detail = r.json().get("detail", r.text) if r.content else r.reason_phrase
             raise HTTPException(status_code=502, detail=f"PropertyTrace engine: {detail}")
