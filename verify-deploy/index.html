@@ -446,17 +446,32 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
 .scan-sig-table th{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border)}
 .scan-sig-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:11px}
 .scan-sig-table tr:hover td{background:rgba(255,255,255,.02)}
-@keyframes lf-pulse{0%,100%{border-color:var(--border)}50%{border-color:rgba(200,150,62,.45)}}
-.live-feed-container{background:var(--navy2);border:1px solid var(--border);padding:24px;width:100%}
-.live-feed-container.scanning{animation:lf-pulse 1.8s ease-in-out infinite}
-.live-feed-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
-.live-feed-title{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--gold)}
-.live-feed-count{font-family:var(--mono);font-size:10px;color:var(--muted)}
-.live-feed-log{font-family:var(--mono);font-size:10px;color:var(--text);height:140px;overflow-y:auto;line-height:2;border-top:1px solid var(--border);padding-top:10px;margin-bottom:12px}
-.live-feed-log .lf-signal{color:var(--gold)}
-.live-feed-log .lf-dim{color:var(--muted)}
-.live-feed-bar{background:var(--navy3);height:2px;border-radius:1px}
-.live-feed-bar-fill{background:var(--gold);height:2px;border-radius:1px;transition:width .3s}
+@keyframes lf-ring-out{0%{transform:scale(1);opacity:.65}100%{transform:scale(2.6);opacity:0}}
+@keyframes lf-bar-shine{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes lf-entry-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes lf-dot{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.lf-overlay-wrap{background:var(--navy2);border:1px solid var(--border);padding:44px 36px 32px;width:100%;text-align:center;position:relative;overflow:hidden}
+.lf-overlay-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(200,150,62,.55),transparent)}
+.lf-rings{position:relative;width:88px;height:88px;margin:0 auto 26px;display:flex;align-items:center;justify-content:center}
+.lf-ring{position:absolute;width:88px;height:88px;border-radius:50%;border:1px solid rgba(200,150,62,.55);animation:lf-ring-out 2.6s ease-out infinite}
+.lf-ring:nth-child(2){animation-delay:.85s}
+.lf-ring:nth-child(3){animation-delay:1.7s}
+.lf-core{width:40px;height:40px;border-radius:50%;background:var(--golddim);border:1px solid rgba(200,150,62,.35);display:flex;align-items:center;justify-content:center;position:relative;z-index:2}
+.lf-core-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px rgba(200,150,62,.75),0 0 20px rgba(200,150,62,.3)}
+.lf-stage{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--gold);margin-bottom:8px;min-height:15px}
+.lf-dots{margin-bottom:20px;height:10px}
+.lf-dots span{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--gold);margin:0 3px;opacity:.2;animation:lf-dot 1.5s ease-in-out infinite}
+.lf-dots span:nth-child(2){animation-delay:.2s}
+.lf-dots span:nth-child(3){animation-delay:.4s}
+.lf-stats{display:flex;justify-content:center;gap:32px;margin-bottom:22px}
+.lf-stat{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--muted)}
+.lf-stat-val{display:block;font-size:18px;color:var(--text);letter-spacing:.02em;margin-bottom:3px;font-weight:300}
+.lf-bar-wrap{background:var(--navy3);height:3px;border-radius:2px;margin-bottom:24px;overflow:hidden}
+.lf-bar-fill{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--gold) 0%,var(--gold2) 50%,var(--gold) 100%);background-size:200% 100%;transition:width .5s ease;animation:lf-bar-shine 1.8s linear infinite}
+.lf-log{font-family:var(--mono);font-size:10px;text-align:left;height:110px;overflow-y:auto;border-top:1px solid var(--border);padding-top:12px}
+.lf-log .lf-entry{animation:lf-entry-in .25s ease forwards;opacity:0;padding:1px 0;line-height:1.9}
+.lf-log .lf-entry.lf-signal{color:var(--gold)}
+.lf-log .lf-entry.lf-dim{color:var(--muted)}
 .sig-detected{color:#c0392b;font-weight:500}.sig-possible{color:#d4860a}.sig-none{color:var(--muted)}
 .scan-intel-card{border:1px solid var(--border);padding:18px;margin-bottom:10px;background:var(--navy2)}
 .scan-intel-cat{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
@@ -857,17 +872,28 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
       </div>
     </div>
 
-    <div id="scanOverlay" style="display:none;max-width:680px;margin:0 auto">
-      <div class="live-feed-container">
-        <div class="live-feed-header">
-          <span class="live-feed-title" id="liveFeedTitle">INITIALISING...</span>
-          <span class="live-feed-count">
-            <span id="liveFeedFileIdx">0</span>/<span id="liveFeedFileTotal">0</span> files ·
-            <span id="liveFeedTxnCount">0</span> transactions
-          </span>
+    <div id="scanOverlay" style="display:none;max-width:620px;margin:0 auto">
+      <div class="lf-overlay-wrap">
+        <div class="lf-rings">
+          <div class="lf-ring"></div>
+          <div class="lf-ring"></div>
+          <div class="lf-ring"></div>
+          <div class="lf-core"><div class="lf-core-dot"></div></div>
         </div>
-        <div id="liveFeedLog" class="live-feed-log"></div>
-        <div class="live-feed-bar"><div id="liveFeedBarFill" class="live-feed-bar-fill" style="width:0%"></div></div>
+        <div class="lf-stage" id="liveFeedTitle">INITIALISING</div>
+        <div class="lf-dots"><span></span><span></span><span></span></div>
+        <div class="lf-stats">
+          <div class="lf-stat">
+            <span class="lf-stat-val"><span id="liveFeedFileIdx">0</span>/<span id="liveFeedFileTotal">0</span></span>
+            FILES
+          </div>
+          <div class="lf-stat">
+            <span class="lf-stat-val" id="liveFeedTxnCount">0</span>
+            TRANSACTIONS
+          </div>
+        </div>
+        <div class="lf-bar-wrap"><div id="liveFeedBarFill" class="lf-bar-fill" style="width:0%"></div></div>
+        <div id="liveFeedLog" class="lf-log"></div>
       </div>
     </div>
 
@@ -1178,7 +1204,7 @@ function startLiveFeed(matterId) {
       if (log && p.stage && p.stage !== _lastStage) {
         _lastStage = p.stage;
         const line = document.createElement('div');
-        line.className = p.stage.includes('SIGNAL') ? 'lf-signal' : 'lf-dim';
+        line.className = p.stage.includes('SIGNAL') ? 'lf-entry lf-signal' : 'lf-entry lf-dim';
         line.textContent = '› ' + p.stage;
         log.appendChild(line);
         log.scrollTop = log.scrollHeight;
@@ -1241,14 +1267,13 @@ async function runQuickScan(){
   document.getElementById('scanUploadSection').style.display = 'none';
   const _ov = document.getElementById('scanOverlay');
   _ov.style.display = 'block';
-  const _lfc = _ov.querySelector('.live-feed-container');
-  if (_lfc) _lfc.classList.add('scanning');
+  const _lfc = _ov.querySelector('.lf-overlay-wrap');
   const _lfl = document.getElementById('liveFeedLog');
   const _lft = document.getElementById('liveFeedTitle');
   const _lfb = document.getElementById('liveFeedBarFill');
   const _addLog = (msg, cls='lf-dim') => {
     if (!_lfl) return;
-    const d = document.createElement('div'); d.className = cls;
+    const d = document.createElement('div'); d.className = 'lf-entry ' + cls;
     d.textContent = '› ' + msg; _lfl.appendChild(d);
     _lfl.scrollTop = _lfl.scrollHeight;
   };
@@ -1278,7 +1303,6 @@ async function runQuickScan(){
     if (_lfb) _lfb.style.width = '22%';
     _addLog(`${scanFiles.length} document${scanFiles.length > 1 ? 's' : ''} received — initialising forensic engine`);
     _addLog('Running 20 intelligence signals...', 'lf-signal');
-    if (_lfc) _lfc.classList.remove('scanning'); // real progress takes over
     startLiveFeed(scanMatterId);
 
     const runRes = await fetch(`${API_BASE}/matters/${scanMatterId}/run`, { method:'POST' });
