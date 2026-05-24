@@ -187,6 +187,10 @@ def _matter_to_dict(m: Matter) -> dict:
         "last_run": m.last_run or "—",
         "doc_count": m.doc_count,
         "analysed": m.analysed,
+        "report_tier": m.report_tier or "trustee",
+        "debtor_name": m.debtor_name or "",
+        "case_number": m.case_number or "",
+        "jurisdiction": m.jurisdiction or "US",
         "las": {
             "score": m.las_score,
             "verdict": m.las_verdict,
@@ -204,6 +208,10 @@ def create_matter(
     matter_date: str = Form(""),
     assigned_to: str = Form(""),
     notes: str = Form(""),
+    report_tier: str = Form("trustee"),
+    debtor_name: str = Form(""),
+    case_number: str = Form(""),
+    jurisdiction: str = Form("US"),
     db: Session = Depends(get_db),
     _: bool = Depends(require_license),
 ):
@@ -222,6 +230,10 @@ def create_matter(
         matter_date=matter_date,
         assigned_to=assigned_to,
         notes=notes,
+        report_tier=report_tier,
+        debtor_name=debtor_name,
+        case_number=case_number,
+        jurisdiction=jurisdiction,
     )
     db.add(m)
     db.commit()
@@ -304,6 +316,19 @@ async def upload_documents(
 
 # ── Run Analysis ──────────────────────────────────────────────────────────────
 
+def _trustee_reason(las: dict) -> str:
+    """Generate top-3 plain English bullets for trustee PURSUE/SKIP verdict."""
+    signals = las.get("breakdown", [])
+    top = sorted(signals, key=lambda s: s.get("points", 0), reverse=True)[:3]
+    bullets = []
+    for s in top:
+        label  = s.get("label", "")
+        detail = s.get("detail", "")
+        if label and detail:
+            bullets.append(f"{label}: {detail}")
+    return " · ".join(bullets) if bullets else "No significant indicators detected."
+
+
 @app.post("/matters/{matter_id}/run")
 async def run_analysis(
     matter_id: int,
@@ -378,6 +403,15 @@ async def run_analysis(
     m.att_flag = result["att_flag"]
     m.analysed = True
     m.last_run = datetime.now(timezone.utc).strftime("%d %b %Y · %H:%M")
+
+    if m.report_tier == "trustee":
+        if (m.las_score or 0) >= 50:
+            m.las_verdict     = "PURSUE"
+            m.las_verdict_cls = "high"
+        else:
+            m.las_verdict     = "SKIP"
+            m.las_verdict_cls = "low"
+        m.las_reason = _trustee_reason(las)
 
     if existing:
         existing.result_json = json.dumps(result)
@@ -512,6 +546,16 @@ async def demo_analyse(
     m.analysed        = True
     m.last_run        = datetime.now(timezone.utc).strftime("%d %b %Y · %H:%M")
     m.doc_count       = len(files)
+
+    if m.report_tier == "trustee":
+        if (m.las_score or 0) >= 50:
+            m.las_verdict     = "PURSUE"
+            m.las_verdict_cls = "high"
+        else:
+            m.las_verdict     = "SKIP"
+            m.las_verdict_cls = "low"
+        m.las_reason = _trustee_reason(las)
+
     db.add(AnalysisResult(matter_id=m.id, result_json=json.dumps(result)))
     db.commit()
 
@@ -613,6 +657,32 @@ def sync_dfat(
 
 
 # ── Reports ───────────────────────────────────────────────────────────────────
+
+_ATTY_LABELS = {
+    "trustee":  ("Trustee in Bankruptcy",
+                 "This report has been prepared for use by a trustee in bankruptcy. "
+                 "Insider transfers, recoverable transactions, unexplained credits, and estate "
+                 "asset movements have been prioritised. All material transfers should be assessed "
+                 "for preference or undervalue transactions recoverable for the benefit of creditors."),
+    "divorce":  ("Family Law / Divorce",
+                 "This report has been prepared for use in family law proceedings. "
+                 "Sections relevant to asset dissipation, lifestyle expenditure, third-party transfers, "
+                 "and undisclosed assets have been prioritised."),
+    "civil":    ("Civil Litigation / Asset Recovery",
+                 "This report has been prepared for use in civil litigation. "
+                 "Transfers that may be designed to defeat creditors have been prioritised. "
+                 "Luxury spending relative to claimed financial position is of particular note."),
+    "criminal": ("Criminal / Fraud Investigation",
+                 "This report has been prepared for use in a criminal or fraud investigation. "
+                 "All detected indicators are reported at maximum detail with no findings suppressed. "
+                 "Structuring patterns, sub-threshold transactions, digital asset indicators, "
+                 "and transaction anomalies are of primary investigative interest."),
+    "probate":  ("Estate / Probate",
+                 "This report has been prepared for use in estate or probate proceedings. "
+                 "Income sources, asset transfers, expenditure patterns, and closing balance history "
+                 "have been prioritised to assist in identifying the full extent of the estate."),
+}
+
 
 @app.get("/reports/{matter_id}", response_class=HTMLResponse)
 def get_report(
@@ -776,6 +846,20 @@ def get_report(
         </table>
         <p style="font-size:10px;color:#6a7a8e;margin-top:4px">Source: {n_txns:,} transactions · {period}</p>"""
 
+    # Purpose banner — tier-specific context for the receiving professional
+    tier = m.report_tier or "trustee"
+    _purpose_html = ""
+    if tier in _ATTY_LABELS:
+        lbl, desc = _ATTY_LABELS[tier]
+        _purpose_html = (
+            f'<div style="border:2px solid #000;border-left:6px solid #c8963e;padding:12px 18px;'
+            f'margin:16px 0 24px;background:#f9f6ef">'
+            f'<div style="font-size:8px;color:#555;text-transform:uppercase;letter-spacing:1px;'
+            f'margin-bottom:4px">REPORT PURPOSE</div>'
+            f'<div style="font-size:11px;font-weight:700;margin-bottom:4px">{lbl}</div>'
+            f'<div style="font-size:11px;color:#333">{desc}</div></div>'
+        )
+
     html = f"""<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8">
@@ -846,6 +930,8 @@ def get_report(
     <div class="meta-cell"><div class="meta-lbl">Transactions Analysed</div><div class="meta-val">{n_txns:,}</div></div>
     <div class="meta-cell"><div class="meta-lbl">Statement Period</div><div class="meta-val">{f"{dr['from_label']} – {dr['to_label']}" if dr and dr.get("from_label") else "—"}</div></div>
   </div>
+
+  {_purpose_html}
 
   <!-- LAS Score -->
   <h2>Lexi Attention Score</h2>
