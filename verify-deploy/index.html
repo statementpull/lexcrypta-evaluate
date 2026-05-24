@@ -662,7 +662,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
     <div class="topbar-actions">
       <button class="btn" onclick="showView('dashboard')">← Dashboard</button>
       <button class="btn" id="btnAddQueue" onclick="addToQueue()">+ Add to Queue</button>
-      <button class="btn btn-gold" onclick="showNotify('Report generation connects in the next build.','Coming Soon')">Generate Report</button>
+      <button class="btn btn-gold" onclick="openMatterReport()">Generate Report</button>
     </div>
   </div>
   <div class="content">
@@ -1103,6 +1103,10 @@ function normalizeApiMatter(m) {
     lastRun: m.last_run || m.lastRun || '—',
     docs: m.doc_count != null ? m.doc_count : (m.docs || 0),
     analysed: m.analysed || false,
+    report_tier: m.report_tier || 'trustee',
+    debtor_name: m.debtor_name || '',
+    case_number: m.case_number || '',
+    jurisdiction: m.jurisdiction || 'US',
     las: m.las ? {
       score: m.las.score,
       verdict: m.las.verdict,
@@ -1249,7 +1253,7 @@ async function runQuickScan(){
     const result = await runRes.json();
 
     // Purge the temp matter — Quick Scan results are local-only, not persisted in queue
-    fetch(`${API_BASE}/matters/${scanMatterId}/purge`, { method:'DELETE' }).catch(() => {});
+    // Matter is kept so the report endpoint stays accessible after scan completes
 
     renderScanResults(result);
     document.getElementById('scanResults').style.display='block';

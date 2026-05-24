@@ -335,16 +335,9 @@ async def upload_documents(
 # ── Run Analysis ──────────────────────────────────────────────────────────────
 
 def _trustee_reason(las: dict) -> str:
-    """Generate top-3 plain English bullets for trustee PURSUE/SKIP verdict."""
-    signals = las.get("breakdown", [])
-    top = sorted(signals, key=lambda s: s.get("points", 0), reverse=True)[:3]
-    bullets = []
-    for s in top:
-        label  = s.get("label", "")
-        detail = s.get("detail", "")
-        if label and detail:
-            bullets.append(f"{label}: {detail}")
-    return " · ".join(bullets) if bullets else "No significant indicators detected."
+    """Return the engine-generated reason string for trustee PURSUE/SKIP bullets.
+    las["reason"] is already ' · '-delimited — the frontend splits it into bullet points."""
+    return las.get("reason") or "Review flagged transactions for full detail."
 
 
 @app.post("/matters/{matter_id}/run")

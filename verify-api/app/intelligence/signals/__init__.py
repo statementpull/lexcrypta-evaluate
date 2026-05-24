@@ -733,6 +733,8 @@ def build_verify_result(
                 "merchant": (s.get("merchant") or s.get("description", ""))[:60],
                 "amount": s.get("amount", 0),
                 "signal_type": s.get("signal_type", s.get("type", "")),
+                "page_number": s.get("page_number", 0),
+                "source_file": s.get("source_file", ""),
             }
             for s in sorted(
                 [s for s in raw_signals if abs(s.get("amount", 0)) > 0],
