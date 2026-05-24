@@ -1467,15 +1467,20 @@ async def _run_propertytrace(text: str, market: str) -> dict:
         )
     try:
         import anthropic as _anthropic
-        client = _anthropic.Anthropic(api_key=api_key)
+        # Use AsyncAnthropic so the await below is non-blocking — sync client in async def
+        # blocks FastAPI's entire event loop and causes Railway's 30s proxy to 502.
+        # Hard timeout at 25s keeps us inside Railway's limit regardless of input size.
+        client = _anthropic.AsyncAnthropic(api_key=api_key, timeout=25.0)
         system_prompt = _get_propertytrace_system(market)
-        message = client.messages.create(
+        # Cap input at 14000 chars — enough for 8 months of AU bank transactions,
+        # keeps Anthropic response time well under Railway's 30s proxy limit.
+        message = await client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=1800,
             system=system_prompt,
             messages=[{
                 "role": "user",
-                "content": f"Analyse this anonymised bank statement for property ownership signals. Return only JSON.\n\nTRANSACTION DATA:\n{text[:20000]}"
+                "content": f"Analyse this anonymised bank statement for property ownership signals. Return only JSON.\n\nTRANSACTION DATA:\n{text[:14000]}"
             }]
         )
         raw   = message.content[0].text.strip()
@@ -1491,6 +1496,11 @@ async def _run_propertytrace(text: str, market: str) -> dict:
             raise
     except HTTPException:
         raise
+    except _anthropic.APITimeoutError:
+        raise HTTPException(
+            status_code=504,
+            detail="Analysis timed out — statement data is too large. Try uploading fewer months at once (3-4 statements recommended for multi-file)."
+        )
     except _anthropic.APIStatusError as e:
         raise HTTPException(status_code=502, detail=f"Analysis engine error: {e.message}")
     except _json.JSONDecodeError:

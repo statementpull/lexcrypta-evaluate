@@ -805,7 +805,9 @@ function stripPII(text) {
     if (!strip) kept.push(line);
   }
 
-  const trimmed      = kept.slice(0, 800);
+  // Cap at 500 lines — enough for 8 months of AU bank transactions,
+  // keeps backend response time inside Railway's 30s proxy limit.
+  const trimmed      = kept.slice(0, 500);
   const previewLines = trimmed.slice(0, 20);
   return { clean: trimmed.join('\n'), removed, lineCount: trimmed.length, previewLines };
 }
