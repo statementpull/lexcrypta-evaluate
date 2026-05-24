@@ -196,6 +196,17 @@ def startup():
 
 # ── Health / Version ──────────────────────────────────────────────────────────
 
+@app.get("/", include_in_schema=False)
+def serve_frontend():
+    idx = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    if os.path.exists(idx):
+        with open(idx, "rb") as f:
+            content = f.read()
+        from fastapi.responses import Response as _Resp
+        return _Resp(content=content, media_type="text/html")
+    return {"product": "LexCrypta Verify API"}
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}

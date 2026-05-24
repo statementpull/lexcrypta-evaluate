@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LexCrypta — Verify Terminal</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0d2040;--navy2:#112649;--navy3:#1a3560;--navy4:#214070;
+  --border:rgba(255,255,255,0.11);--border2:rgba(255,255,255,0.20);
+  --gold:#c8963e;--gold2:#e0aa52;--golddim:rgba(200,150,62,0.09);
+  --cream:#f2ede4;--muted:#8a9bb4;--text:#bcc8dc;
+  --red:#c0392b;--reddim:rgba(192,57,43,0.09);
+  --amber:#d4860a;--amberdim:rgba(212,134,10,0.09);
+  --green:#2e7d52;--greendim:rgba(46,125,82,0.09);
+  --teal:#1a7a6e;--tealdim:rgba(26,122,110,0.09);
+  --blue:#2563a8;
+  --sidebar:248px;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'IBM Plex Sans',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+html[data-theme="light"]{
+  --navy:#eef2f7;--navy2:#e4eaf3;--navy3:#d8e2ef;--navy4:#cdd9ea;
+  --border:rgba(0,40,80,0.09);--border2:rgba(0,40,80,0.16);
+  --cream:#1a2d45;--text:#2e4a68;--muted:#587490;
+  --golddim:rgba(160,110,30,0.10);
+  --reddim:rgba(192,57,43,0.08);--amberdim:rgba(180,100,5,0.08);--greendim:rgba(30,100,60,0.08);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:13px;line-height:1.6;font-weight:300;min-height:100vh;display:flex;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--navy2)}::-webkit-scrollbar-thumb{background:var(--border2)}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar);min-height:100vh;background:var(--navy2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
+.sidebar-logo{padding:28px 24px 20px;border-bottom:1px solid var(--border)}
+.logo-name{font-family:var(--serif);font-size:17px;font-weight:500;letter-spacing:.14em;color:var(--cream);text-transform:uppercase}
+.logo-sub{font-size:8px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin-top:3px}
+.sidebar-user{padding:12px 24px;border-bottom:1px solid var(--border)}
+.sidebar-user-name{color:var(--text);font-weight:400;display:block;font-size:11px;margin-bottom:1px}
+.sidebar-user-role{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sidebar-nav{padding:14px 0;flex:1;overflow-y:auto}
+.nav-section-label{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);padding:10px 24px 5px;opacity:.55}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 24px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border:none;border-left:2px solid transparent;transition:all .18s;cursor:pointer;background:none;width:100%;text-align:left;font-family:var(--sans);font-weight:400}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.025)}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--golddim)}
+.nav-item svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;flex-shrink:0}
+.nav-badge{margin-left:auto;min-width:17px;height:17px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:500;border-radius:9px;padding:0 5px;font-family:var(--mono)}
+.nb-red{background:var(--red)}.nb-amber{background:var(--amber)}.nb-teal{background:var(--teal)}.nb-gold{background:var(--gold);color:var(--navy)}
+.sidebar-footer{padding:14px 24px;border-top:1px solid var(--border);font-size:9px;color:var(--muted)}
+.lib-dot{width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;flex-shrink:0}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--border);background:var(--navy2);position:sticky;top:0;z-index:40}
+.topbar-title{font-family:var(--serif);font-size:22px;font-weight:300;color:var(--cream)}
+.topbar-title em{font-style:italic;color:var(--gold)}
+.topbar-actions{display:flex;gap:10px;align-items:center}
+
+/* ── BUTTONS ── */
+.btn{font-family:var(--sans);font-size:9px;letter-spacing:.2em;text-transform:uppercase;padding:10px 20px;border:1px solid var(--border2);background:none;color:var(--text);transition:all .18s;cursor:pointer;font-weight:400}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+.btn-gold{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:500}
+.btn-gold:hover{background:var(--gold2);color:var(--navy)}
+.btn-teal{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:500}
+.btn-teal:hover{background:#1d8f82;color:#fff}
+.btn-sm{padding:7px 13px;font-size:8px}
+.btn-danger{border-color:rgba(192,57,43,.3);color:var(--red)}
+.btn-danger:hover{background:var(--reddim)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* ── CONTENT ── */
+.content{padding:32px 40px;flex:1}
+.view{display:none}.view.active{display:block}
+
+/* ════════════════════════════════
+   LOGIN
+════════════════════════════════ */
+#view-login{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:40px;background:var(--navy);position:fixed;inset:0;z-index:200}
+.login-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(200,150,62,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(200,150,62,.6) 1px,transparent 1px);background-size:72px 72px;opacity:.018;pointer-events:none}
+.login-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 60% 50% at 50% 50%,rgba(200,150,62,.06) 0%,transparent 70%)}
+.login-card{position:relative;z-index:2;width:100%;max-width:400px;border:1px solid var(--border2);background:var(--navy2)}
+.login-head{padding:36px 40px 24px;border-bottom:1px solid var(--border)}
+.login-kicker{font-size:8px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.login-kicker::before{content:'';width:20px;height:1px;background:var(--gold)}
+.login-h{font-family:var(--serif);font-size:30px;font-weight:300;color:var(--cream);line-height:1.1}
+.login-h em{font-style:italic;color:var(--gold)}
+.login-body{padding:24px 40px 32px}
+.field-group{margin-bottom:2px}
+.field-lbl{background:var(--navy3);border:1px solid var(--border);border-bottom:none;padding:9px 14px 0;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.field-inp{background:var(--navy3);border:1px solid var(--border);border-top:none;color:var(--cream);padding:7px 14px 11px;font-size:13px;outline:none;width:100%;font-family:var(--sans);font-weight:300;transition:border-color .2s}
+.field-inp:focus{border-color:rgba(200,150,62,.4)}
+.field-inp::placeholder{color:var(--muted)}
+.login-submit{width:100%;padding:15px;margin-top:14px;background:var(--gold);color:var(--navy);font-size:9px;letter-spacing:.25em;text-transform:uppercase;font-weight:500;border:none;cursor:pointer;font-family:var(--sans);transition:background .2s}
+.login-submit:hover{background:var(--gold2)}
+.login-hint{font-size:10px;color:var(--muted);text-align:center;padding:12px 40px 22px;border-top:1px solid var(--border);line-height:1.6}
+
+/* ════════════════════════════════
+   DASHBOARD — CLEAN
+════════════════════════════════ */
+.dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:28px}
+.stat-cell{background:var(--navy2);padding:20px 22px;position:relative;overflow:hidden}
+.stat-cell::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--border)}
+.sc-gold::before{background:var(--gold)}.sc-red::before{background:var(--red)}.sc-amber::before{background:var(--amber)}.sc-teal::before{background:var(--teal)}
+.stat-lbl{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.stat-val{font-family:var(--serif);font-size:32px;font-weight:300;color:var(--cream);line-height:1}
+.stat-sub{font-size:9px;color:var(--muted);margin-top:4px}
+
+.section-eyebrow{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.section-eyebrow::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── CLEAN MATTER ROWS ── */
+.matters-list{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border)}
+.matter-row{background:var(--navy2);display:flex;align-items:center;gap:14px;padding:16px 20px;transition:background .15s;cursor:pointer}
+.matter-row:hover{background:var(--navy3)}
+.matter-att{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.att-red{background:var(--red);box-shadow:0 0 7px rgba(192,57,43,.5)}
+.att-amber{background:var(--amber);box-shadow:0 0 5px rgba(212,134,10,.4)}
+.att-blue{background:#4a7fc0}
+.att-green{background:var(--green)}
+.matter-main{flex:1;min-width:0}
+.matter-subject{font-family:var(--serif);font-size:16px;font-weight:400;color:var(--cream);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.matter-ref{font-size:9px;color:var(--muted);font-family:var(--mono)}
+.matter-meta{display:flex;gap:12px;margin-top:5px;flex-wrap:wrap;align-items:center}
+.m-type{font-size:8px;letter-spacing:.14em;text-transform:uppercase;padding:2px 7px;border:1px solid var(--border)}
+.m-type.bankruptcy{color:var(--amber);border-color:rgba(212,134,10,.28)}
+.m-type.family_law{color:#7ab0d4;border-color:rgba(122,176,212,.28)}
+.m-type.civil{color:#a78bfa;border-color:rgba(167,139,250,.28)}
+.m-date{font-size:9px;color:var(--muted);font-family:var(--mono)}
+.m-flag{font-size:10px;color:var(--muted)}
+.matter-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.exp-badge{font-size:8px;letter-spacing:.12em;text-transform:uppercase;padding:3px 9px;border:1px solid;font-family:var(--mono)}
+.exp-HIGH{color:var(--red);border-color:rgba(192,57,43,.3);background:var(--reddim)}
+.exp-MEDIUM{color:var(--amber);border-color:rgba(212,134,10,.3);background:var(--amberdim)}
+.exp-LOW{color:var(--green);border-color:rgba(46,125,82,.3);background:var(--greendim)}
+.exp-PENDING{color:var(--muted);border-color:var(--border)}
+.m-last{font-size:9px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+.q-btn{font-size:8px;letter-spacing:.14em;text-transform:uppercase;padding:6px 12px;border:1px solid var(--border2);background:none;color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .18s;white-space:nowrap}
+.q-btn:hover{border-color:var(--teal);color:var(--teal)}
+.q-btn.queued{border-color:rgba(26,122,110,.4);color:var(--teal);background:var(--tealdim)}
+.m-chevron{width:13px;height:13px;stroke:var(--muted);fill:none;stroke-width:1.5;flex-shrink:0}
+
+/* ════════════════════════════════
+   LEXI QUEUE VIEW
+════════════════════════════════ */
+.queue-header-band{
+  background:var(--navy2);border:1px solid var(--border);border-top:2px solid var(--teal);
+  padding:20px 24px;margin-bottom:20px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;
+}
+.qh-left{}
+.qh-eyebrow{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--teal);display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.qh-eyebrow svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2}
+.qh-title{font-family:var(--serif);font-size:22px;font-weight:300;color:var(--cream)}
+.qh-sub{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6}
+.qh-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* Progress bar */
+.queue-progress-bar{display:none;background:var(--navy2);border:1px solid var(--border);padding:14px 20px;margin-bottom:16px}
+.qpb-track{height:2px;background:var(--border);position:relative;overflow:hidden;margin-bottom:8px}
+.qpb-fill{position:absolute;top:0;left:0;height:100%;background:var(--teal);transition:width .7s ease}
+.qpb-row{display:flex;justify-content:space-between;align-items:center}
+.qpb-label{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.qpb-stage{color:var(--teal)}
+.qpb-pct{font-family:var(--mono);font-size:10px;color:var(--muted)}
+
+/* Queue empty state */
+.queue-empty-state{border:1px solid var(--border);background:var(--navy2);padding:48px 32px;text-align:center}
+.qes-num{font-family:var(--serif);font-size:48px;color:var(--border2);font-weight:300;line-height:1;margin-bottom:10px}
+.qes-title{font-family:var(--serif);font-size:20px;color:var(--text);font-weight:300;margin-bottom:8px}
+.qes-sub{font-size:12px;color:var(--muted);line-height:1.7;max-width:380px;margin:0 auto 20px}
+
+/* Queue items */
+.queue-items{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:16px}
+.queue-item{background:var(--navy2);position:relative;transition:background .15s}
+.queue-item:hover{background:var(--navy3)}
+.queue-item.qi-running{background:var(--tealdim);border-left:2px solid var(--teal)}
+.queue-item.qi-done{opacity:.55}
+.qi-top{display:flex;align-items:center;gap:12px;padding:16px 20px}
+.qi-rank{font-family:var(--serif);font-size:28px;font-weight:300;color:var(--border2);line-height:1;width:28px;text-align:center;flex-shrink:0}
+.qi-rank.active-rank{color:var(--teal)}
+.qi-reorder{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.qi-rb{background:none;border:1px solid var(--border);color:var(--muted);width:20px;height:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:8px;transition:all .15s;padding:0;line-height:1}
+.qi-rb:hover{border-color:var(--gold);color:var(--gold)}
+.qi-rb:disabled{opacity:.2;cursor:not-allowed}
+.qi-main{flex:1;min-width:0}
+.qi-subject{font-family:var(--serif);font-size:16px;font-weight:400;color:var(--cream);margin-bottom:2px}
+.qi-ref{font-size:9px;color:var(--muted);font-family:var(--mono)}
+.qi-meta{display:flex;gap:12px;margin-top:5px;flex-wrap:wrap;align-items:center}
+.qi-type{font-size:8px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;border:1px solid var(--border)}
+.qi-type.bankruptcy{color:var(--amber);border-color:rgba(212,134,10,.28)}
+.qi-type.family_law{color:#7ab0d4;border-color:rgba(122,176,212,.28)}
+.qi-type.civil{color:#a78bfa;border-color:rgba(167,139,250,.28)}
+.qi-docs{font-size:9px;color:var(--muted);font-family:var(--mono)}
+.qi-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.qi-status{font-size:8px;letter-spacing:.12em;text-transform:uppercase;padding:3px 9px;border:1px solid;font-family:var(--mono)}
+.qis-waiting{color:var(--muted);border-color:var(--border)}
+.qis-running{color:var(--teal);border-color:rgba(26,122,110,.4);background:var(--tealdim);animation:blink 1.3s ease-in-out infinite}
+.qis-done{color:var(--green);border-color:rgba(46,125,82,.3);background:var(--greendim)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.qi-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:2px 5px;transition:color .15s}
+.qi-remove:hover{color:var(--red)}
+
+/* ── LEXI ATTENTION SCORE — in queue ── */
+.qi-las{padding:0 20px 16px 60px}
+.qi-las.hidden{display:none}
+.las-card{background:var(--navy3);border:1px solid var(--border2);position:relative;overflow:hidden}
+.las-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.las-card.lc-high::before{background:var(--red)}
+.las-card.lc-mid::before{background:var(--amber)}
+.las-card.lc-low::before{background:var(--green)}
+.las-inner{padding:14px 18px;display:flex;align-items:flex-start;gap:16px}
+.las-score-col{flex-shrink:0;text-align:center;width:68px}
+.las-score-num{font-family:var(--serif);font-size:38px;font-weight:300;color:var(--cream);line-height:1}
+.las-score-lbl{font-size:7px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.las-bar-track{width:100%;height:2px;background:var(--border);margin-top:6px}
+.las-bar-fill{height:100%;transition:width 1.2s cubic-bezier(.2,.8,.3,1)}
+.lbf-high{background:var(--red)}.lbf-mid{background:var(--amber)}.lbf-low{background:var(--green)}
+.las-main{flex:1;min-width:0}
+.las-verdict{font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;margin-bottom:5px}
+.lv-high{color:var(--red)}.lv-mid{color:var(--amber)}.lv-low{color:var(--green)}
+.las-reason{font-size:11px;color:var(--muted);line-height:1.65;font-style:italic;margin-bottom:8px}
+.las-breakdown-btn{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);background:none;border:none;cursor:pointer;padding:0;font-family:var(--sans);transition:opacity .15s}
+.las-breakdown-btn:hover{opacity:.7}
+.las-breakdown{display:none;padding:12px 18px 14px;border-top:1px solid var(--border);background:var(--navy)}
+.las-breakdown.open{display:block}
+.las-comp{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.las-comp:last-child{margin-bottom:0}
+.las-comp-lbl{font-size:9px;letter-spacing:.06em;color:var(--muted);width:150px;flex-shrink:0}
+.las-comp-track{flex:1;height:2px;background:var(--border);position:relative}
+.las-comp-fill{position:absolute;top:0;left:0;height:100%;background:var(--gold);transition:width 1s ease .15s}
+.las-comp-val{font-family:var(--mono);font-size:10px;color:var(--text);width:36px;text-align:right;flex-shrink:0}
+.las-comp-max{color:var(--muted);font-size:9px}
+
+/* No LAS state */
+.qi-no-las{background:var(--navy3);border:1px solid var(--border);padding:12px 16px;font-size:11px;color:var(--muted);font-style:italic;display:flex;align-items:center;gap:10px}
+.qi-no-las::before{content:'';width:3px;height:20px;background:var(--border2);border-radius:2px;flex-shrink:0}
+
+/* Queue footer note */
+.queue-note{font-size:10px;color:var(--muted);line-height:1.7;padding:12px 0}
+
+/* ════════════════════════════════
+   MATTER VIEW
+════════════════════════════════ */
+.matter-header{background:var(--navy2);border:1px solid var(--border);border-top:2px solid var(--gold);padding:22px 28px;margin-bottom:20px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.mh-eyebrow{font-size:8px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:7px;display:flex;align-items:center;gap:10px}
+.mh-eyebrow::before{content:'';width:14px;height:1px;background:var(--gold)}
+.mh-subject{font-family:var(--serif);font-size:26px;font-weight:300;color:var(--cream);line-height:1.1;margin-bottom:3px}
+.mh-meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+.mhf-lbl{color:var(--muted);font-size:8px;letter-spacing:.12em;text-transform:uppercase;margin-right:5px}
+.mhf-val{color:var(--text);font-family:var(--mono);font-size:10px}
+.mh-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.mh-las{text-align:right}
+.mh-las-num{font-family:var(--serif);font-size:36px;font-weight:300;line-height:1;color:var(--cream)}
+.mh-las-lbl{font-size:7px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-top:2px}
+.mh-las-verdict{font-size:9px;letter-spacing:.15em;text-transform:uppercase;margin-top:3px}
+.ps-verdict{font-size:42px;font-weight:700;letter-spacing:.08em;font-family:var(--mono);line-height:1}
+.ps-verdict.pursue{color:#2e9e6b}
+.ps-verdict.skip{color:#c0392b}
+.ps-score{font-size:11px;letter-spacing:.15em;color:var(--muted);margin:4px 0 12px;font-family:var(--mono)}
+.ps-bullets{font-size:12px;line-height:1.8;color:var(--text);max-width:600px}
+.ps-bullets span{display:block;padding-left:12px;position:relative}
+.ps-bullets span::before{content:"›";position:absolute;left:0;color:var(--gold)}
+.db-checks-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.db-check-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--navy2);border:1px solid var(--border);border-radius:3px}
+.db-check-name{font-size:10px;font-weight:500;flex:1}
+.db-check-finding{font-size:10px;color:var(--muted);flex:2}
+.db-pill{font-size:8px;letter-spacing:.1em;padding:2px 7px;border-radius:2px;font-weight:600}
+.db-pill.hit{background:rgba(192,57,43,.15);color:#c0392b}
+.db-pill.clear{background:rgba(46,158,107,.15);color:#2e9e6b}
+.db-pill.pending{background:rgba(200,150,62,.15);color:var(--gold)}
+
+/* Upload zones */
+.upload-zones{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:18px}
+.upload-zone{background:var(--navy2);padding:20px}
+.uz-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.uz-type{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px}
+.uz-type svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.5}
+.uz-count{font-family:var(--mono);font-size:9px;color:var(--muted);border:1px solid var(--border);padding:2px 7px}
+.uz-count.has{color:var(--gold);border-color:rgba(200,150,62,.3)}
+.dz{border:1px dashed var(--border2);padding:16px;text-align:center;cursor:pointer;transition:all .2s;position:relative;min-height:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.dz:hover,.dz.over{border-color:var(--gold);background:var(--golddim)}
+.dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-icon{font-size:17px;opacity:.35}
+.dz-text{font-size:10px;color:var(--muted);line-height:1.4}
+.dz-text span{color:var(--gold)}
+.file-pills{display:flex;flex-direction:column;gap:3px;margin-top:7px}
+.file-pill{display:flex;align-items:center;justify-content:space-between;background:var(--navy);border:1px solid var(--border);padding:5px 9px;font-size:10px}
+.fp-name{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.fp-badge{font-family:var(--mono);font-size:8px;padding:1px 5px;border:1px solid;flex-shrink:0;margin-left:7px}
+.fpb-ready{color:var(--green);border-color:rgba(46,125,82,.3)}
+.fpb-parsing{color:#4a9fd4;border-color:rgba(74,159,212,.3)}
+
+.run-bar{background:var(--navy2);border:1px solid var(--border);padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.run-analyst-inp{background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--cream);font-family:var(--sans);font-size:12px;padding:3px 0;outline:none;transition:border-color .2s;width:180px}
+.run-analyst-inp:focus{border-bottom-color:var(--gold)}
+.run-status{font-family:var(--mono);font-size:10px;color:var(--muted);flex:1;min-width:140px}
+
+/* Results */
+.results-eyebrow{font-size:8px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.results-eyebrow::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.results-zones{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:18px}
+.results-zone{background:var(--navy2)}
+.rz-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.rz-head-title{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.rz-head-title.gold{color:var(--gold)}
+
+.signal-cats{display:flex;flex-direction:column}
+.sig-cat{padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);transition:background .12s}
+.sig-cat:last-child{border-bottom:none}
+.sig-cat:hover{background:var(--navy3)}
+.sig-ind{width:3px;height:30px;flex-shrink:0;border-radius:2px}
+.ind-detected{background:var(--gold)}.ind-possible{background:var(--amber)}.ind-none{background:var(--border2)}
+.sig-main{flex:1;min-width:0}
+.sig-name{font-family:var(--serif);font-size:14px;color:var(--cream);font-weight:400;margin-bottom:1px}
+.sig-cat-label{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sig-right{text-align:right;flex-shrink:0}
+.sig-badge{font-family:var(--mono);font-size:8px;padding:2px 7px;border:1px solid;display:inline-block;margin-bottom:2px}
+.scb-detected{color:var(--gold);border-color:rgba(200,150,62,.3);background:var(--golddim)}
+.scb-possible{color:var(--amber);border-color:rgba(212,134,10,.3);background:var(--amberdim)}
+.scb-none{color:var(--muted);border-color:var(--border)}
+.sig-count{font-size:9px;color:var(--muted);font-family:var(--mono)}
+.sig-amt{font-size:10px;color:var(--gold);font-family:var(--mono)}
+
+.intel-cards{display:flex;flex-direction:column;gap:8px;padding:14px}
+.intel-card{border:1px solid var(--border);background:var(--navy3);padding:14px;position:relative;overflow:hidden}
+.intel-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px}
+.intel-card.asset::before{background:var(--gold)}
+.intel-card.conversion::before{background:var(--amber)}
+.intel-card.flow::before{background:#4a9fd4}
+.intel-card.obfuscation::before{background:var(--red)}
+.ic-cat{font-size:8px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:4px;padding-left:8px}
+.ic-cat.asset{color:var(--gold)}.ic-cat.conversion{color:var(--amber)}.ic-cat.flow{color:#4a9fd4}.ic-cat.obfuscation{color:var(--red)}
+.ic-title{font-family:var(--serif);font-size:15px;color:var(--cream);font-weight:400;margin-bottom:5px;padding-left:8px}
+.ic-narrative{font-size:11px;color:var(--muted);line-height:1.65;padding-left:8px;margin-bottom:8px;font-style:italic}
+.ic-tags{display:flex;gap:6px;flex-wrap:wrap;padding-left:8px;margin-bottom:8px}
+.ic-tag{font-size:8px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border:1px solid var(--border);color:var(--muted);font-family:var(--mono)}
+.ic-tag.high{color:var(--green);border-color:rgba(46,125,82,.3)}
+.ic-tag.medium{color:var(--amber);border-color:rgba(212,134,10,.3)}
+.ic-tag.low{color:var(--red);border-color:rgba(192,57,43,.3)}
+.ic-path{padding:9px 11px;background:var(--navy);border:1px solid var(--border);font-size:10px;color:var(--text);line-height:1.65}
+.ic-path-lbl{font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:3px;display:block}
+
+.tax-recon{border:1px solid var(--border);border-top:2px solid var(--amber);background:var(--navy2);margin-bottom:18px}
+.tax-head{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.tax-title{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber);display:flex;align-items:center;gap:7px}
+.tax-title svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2}
+.tax-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);margin:14px 14px 10px}
+.tax-cell{background:var(--navy3);padding:12px 14px;text-align:center}
+.tax-cell-lbl{font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.tax-cell-val{font-family:var(--serif);font-size:22px;font-weight:300;line-height:1}
+.tv-declared{color:var(--text)}.tv-detected{color:var(--gold)}.tv-gap{color:var(--red)}
+.tax-narrative{font-size:11px;color:var(--muted);line-height:1.75;font-style:italic;border-left:2px solid var(--amber);padding:9px 14px;background:var(--amberdim);margin:0 14px 14px}
+
+.timeline-band{border:1px solid var(--border);background:var(--navy2);margin-bottom:18px}
+.tb-head{padding:11px 18px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+.tb-periods{display:flex}
+.tb-period{flex:1;padding:11px 14px;border-right:1px solid var(--border);text-align:center}
+.tb-period:last-child{border-right:none}
+.tb-period-lbl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.tb-period-val{font-family:var(--serif);font-size:18px;color:var(--cream);font-weight:300}
+.tb-period-sub{font-size:9px;color:var(--muted);margin-top:2px}
+.tb-period.tb-active{background:var(--golddim)}
+.tb-period.tb-active .tb-period-lbl,.tb-period.tb-active .tb-period-val{color:var(--gold)}
+
+.lexi-audit{border:1px solid var(--border);border-left:2px solid var(--gold);background:var(--navy2);padding:12px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px;font-size:11px;color:var(--muted);line-height:1.6}
+.la-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
+.la-text strong{color:var(--gold)}
+
+/* ════════════════════════════════
+   ADMIN
+════════════════════════════════ */
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.admin-card{background:var(--navy2);border:1px solid var(--border);padding:22px}
+.admin-card h3{font-family:var(--serif);font-size:17px;color:var(--cream);font-weight:300;margin-bottom:14px;padding-bottom:11px;border-bottom:1px solid var(--border)}
+.user-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px}
+.user-row:last-child{border-bottom:none}
+.user-name{color:var(--cream);font-weight:400}
+.user-email{color:var(--muted);font-size:10px;font-family:var(--mono)}
+.user-role{font-size:8px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;border:1px solid}
+.role-admin{color:var(--gold);border-color:rgba(200,150,62,.3)}
+.role-lawyer{color:var(--muted);border-color:var(--border2)}
+.lib-count-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);margin-top:12px}
+.lc-cell{background:var(--navy3);padding:10px 12px;text-align:center}
+.lc-num{font-family:var(--serif);font-size:24px;color:var(--gold);font-weight:300;line-height:1}
+.lc-lbl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+
+/* ════════════════════════════════
+   MODALS & NOTIFY
+════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(8,15,28,.9);z-index:150;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{background:var(--navy2);border:1px solid var(--border2);width:100%;max-width:560px;position:relative;animation:modalIn .22s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.modal-head{padding:28px 32px 20px;border-bottom:1px solid var(--border)}
+.modal-eyebrow{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.modal-title{font-family:var(--serif);font-size:24px;font-weight:300;color:var(--cream)}
+.modal-title em{font-style:italic;color:var(--gold)}
+.modal-body{padding:24px 32px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row.full{grid-template-columns:1fr}
+.field{display:flex;flex-direction:column;gap:6px}
+.field-label{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.field-input{background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:10px 13px;font-size:12px;outline:none;font-family:var(--sans);font-weight:300;transition:border-color .2s}
+.field-input:focus{border-color:rgba(200,150,62,.4)}
+.field-input::placeholder{color:var(--muted)}
+select.field-input{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236a7a8e'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:14px}
+.type-opt{border:1px solid var(--border);background:var(--navy);padding:12px 10px;text-align:center;cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
+.type-opt::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:transparent;transition:background .18s}
+.type-opt:hover{border-color:var(--border2)}
+.type-opt.selected{border-color:rgba(200,150,62,.35);background:var(--golddim)}
+.type-opt.selected::before{background:var(--gold)}
+.type-opt.selected .type-name{color:var(--gold)}
+.type-icon{font-size:16px;margin-bottom:5px;display:block}
+.type-name{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;transition:color .18s}
+.type-desc{font-size:9px;color:var(--muted);margin-top:2px;line-height:1.3;display:block}
+.modal-foot{padding:16px 32px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+.notify{position:fixed;bottom:28px;right:28px;background:var(--navy2);border:1px solid var(--border2);border-left:3px solid var(--gold);padding:14px 18px;z-index:300;transform:translateX(140%);transition:transform .32s cubic-bezier(.23,1,.32,1);max-width:300px}
+.notify.show{transform:translateX(0)}
+.notify-title{font-size:11px;color:var(--cream);margin-bottom:2px;font-weight:400}
+.notify-msg{font-size:10px;color:var(--muted);line-height:1.5}
+
+/* ── QUICK SCAN ── */
+.scan-drop{border:1.5px dashed var(--border2);padding:52px 32px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--navy2)}
+.scan-drop:hover,.scan-drop.drag-over{border-color:var(--gold);background:var(--golddim)}
+.scan-drop-icon{margin:0 auto 14px;width:40px;height:40px;color:var(--muted)}
+.scan-drop-title{font-family:var(--serif);font-size:20px;font-weight:300;color:var(--cream);margin-bottom:6px}
+.scan-drop-sub{font-size:10px;color:var(--muted);letter-spacing:.05em}
+.scan-file-row{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--navy2);border:1px solid var(--border);margin-bottom:3px;font-size:11px}
+.scan-file-name{color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scan-file-size{color:var(--muted);font-family:var(--mono);font-size:9px;margin:0 12px;flex-shrink:0}
+.scan-file-rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;flex-shrink:0}
+.scan-file-rm:hover{color:var(--red)}
+.scan-result-meta{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:start;margin-bottom:32px;padding:28px;background:var(--navy2);border:1px solid var(--border)}
+.scan-las-num{font-family:var(--serif);font-size:72px;line-height:1;font-weight:300}
+.scan-las-num.las-high{color:#c0392b}.scan-las-num.las-mid{color:#d4860a}.scan-las-num.las-low{color:#2e7d52}
+.scan-section-title{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin:28px 0 12px;display:flex;align-items:center;gap:10px}
+.scan-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.scan-sig-table{width:100%;border-collapse:collapse;margin-bottom:4px}
+.scan-sig-table th{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border)}
+.scan-sig-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:11px}
+.scan-sig-table tr:hover td{background:rgba(255,255,255,.02)}
+@keyframes lf-ring-out{0%{transform:scale(1);opacity:.65}100%{transform:scale(2.6);opacity:0}}
+@keyframes lf-bar-shine{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes lf-entry-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes lf-dot{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.lf-overlay-wrap{background:var(--navy2);border:1px solid var(--border);padding:44px 36px 32px;width:100%;text-align:center;position:relative;overflow:hidden}
+.lf-overlay-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(200,150,62,.55),transparent)}
+.lf-rings{position:relative;width:88px;height:88px;margin:0 auto 26px;display:flex;align-items:center;justify-content:center}
+.lf-ring{position:absolute;width:88px;height:88px;border-radius:50%;border:1px solid rgba(200,150,62,.55);animation:lf-ring-out 2.6s ease-out infinite}
+.lf-ring:nth-child(2){animation-delay:.85s}
+.lf-ring:nth-child(3){animation-delay:1.7s}
+.lf-core{width:40px;height:40px;border-radius:50%;background:var(--golddim);border:1px solid rgba(200,150,62,.35);display:flex;align-items:center;justify-content:center;position:relative;z-index:2}
+.lf-core-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px rgba(200,150,62,.75),0 0 20px rgba(200,150,62,.3)}
+.lf-stage{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--gold);margin-bottom:8px;min-height:15px}
+.lf-dots{margin-bottom:20px;height:10px}
+.lf-dots span{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--gold);margin:0 3px;opacity:.2;animation:lf-dot 1.5s ease-in-out infinite}
+.lf-dots span:nth-child(2){animation-delay:.2s}
+.lf-dots span:nth-child(3){animation-delay:.4s}
+.lf-stats{display:flex;justify-content:center;gap:32px;margin-bottom:22px}
+.lf-stat{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--muted)}
+.lf-stat-val{display:block;font-size:18px;color:var(--text);letter-spacing:.02em;margin-bottom:3px;font-weight:300}
+.lf-bar-wrap{background:var(--navy3);height:3px;border-radius:2px;margin-bottom:24px;overflow:hidden}
+.lf-bar-fill{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--gold) 0%,var(--gold2) 50%,var(--gold) 100%);background-size:200% 100%;transition:width .5s ease;animation:lf-bar-shine 1.8s linear infinite}
+.lf-log{font-family:var(--mono);font-size:10px;text-align:left;height:110px;overflow-y:auto;border-top:1px solid var(--border);padding-top:12px}
+.lf-log .lf-entry{animation:lf-entry-in .25s ease forwards;opacity:0;padding:1px 0;line-height:1.9}
+.lf-log .lf-entry.lf-signal{color:var(--gold)}
+.lf-log .lf-entry.lf-dim{color:var(--muted)}
+.sig-detected{color:#c0392b;font-weight:500}.sig-possible{color:#d4860a}.sig-none{color:var(--muted)}
+.scan-intel-card{border:1px solid var(--border);padding:18px;margin-bottom:10px;background:var(--navy2)}
+.scan-intel-cat{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.scan-intel-title{font-family:var(--serif);font-size:18px;font-weight:300;color:var(--cream);margin-bottom:8px}
+.scan-intel-narrative{font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px}
+.scan-intel-path-lbl{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.scan-intel-path{font-size:11px;color:var(--text);line-height:1.65}
+</style>
+</head>
+<body>
+
+<!-- ════ LICENSE ════ -->
+<div id="view-license" style="display:none;align-items:center;justify-content:center;min-height:100vh;padding:40px;background:var(--navy);position:fixed;inset:0;z-index:300">
+  <div style="width:100%;max-width:420px">
+    <div style="font-size:8px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:14px;margin-bottom:20px">Deployment Certificate</div>
+    <div style="border:1px solid var(--border2);background:var(--navy2)">
+      <div style="padding:36px 40px 26px;border-bottom:1px solid var(--border)">
+        <div style="font-family:var(--serif);font-size:32px;font-weight:300;color:var(--cream);line-height:1.1;margin-bottom:8px">Activate<br><em style="color:var(--gold)">Verify.</em></div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.7">Enter the license key provided with your installation.</div>
+      </div>
+      <div style="padding:26px 40px 32px">
+        <div style="background:var(--navy3);border:1px solid var(--border);border-bottom:none;padding:9px 14px 0;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)">License Key</div>
+        <input id="licKeyInput" style="background:var(--navy3);border:1px solid var(--border);border-top:none;color:var(--cream);padding:8px 14px 12px;font-size:13px;outline:none;width:100%;font-family:var(--sans);font-weight:300;box-sizing:border-box" type="text" placeholder="LEXV-XXXX-XXXX-XXXXXXXX" autocomplete="off" spellcheck="false" oninput="this.value=this.value.toUpperCase()">
+        <div id="licErr" style="font-size:10px;color:var(--red,#c0392b);margin-top:10px;min-height:16px;font-family:var(--mono)"></div>
+        <button style="width:100%;padding:16px;margin-top:16px;background:var(--gold);color:var(--navy);font-size:9px;letter-spacing:.28em;text-transform:uppercase;font-weight:500;border:none;cursor:pointer;font-family:var(--sans)" onclick="activateLicense()">Activate License</button>
+      </div>
+      <div style="font-size:9px;color:var(--muted);text-align:center;padding:14px 40px 22px;border-top:1px solid var(--border);line-height:1.8">LexCrypta LLC · Authorised installations only · One key per instance</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ LOGIN ════ -->
+<div id="view-login">
+  <div class="login-bg"></div><div class="login-glow"></div>
+  <div class="login-card">
+    <div class="login-head">
+      <div class="login-kicker">Verify Terminal</div>
+      <div class="login-h">Sign in to<br><em>Lexi.</em></div>
+    </div>
+    <div class="login-body">
+      <div class="field-group" style="margin-bottom:2px">
+        <div class="field-lbl">Email</div>
+        <input class="field-inp" type="email" id="loginEmail" placeholder="you@firm.com" value="mike@harrisfirm.com">
+      </div>
+      <div class="field-group">
+        <div class="field-lbl">Password</div>
+        <input class="field-inp" type="password" id="loginPwd" placeholder="••••••••" value="demo">
+      </div>
+      <button class="login-submit" onclick="doLogin()">Sign In</button>
+    </div>
+    <div class="login-hint">Access is managed by your firm administrator.<br>Contact your admin if you need an account.</div>
+  </div>
+</div>
+
+<!-- ════ APP SHELL ════ -->
+<div id="appShell" style="display:none;width:100%">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-name">LexCrypta</div>
+    <div class="logo-sub">Verify Terminal</div>
+  </div>
+  <div class="sidebar-user">
+    <span class="sidebar-user-name">Michael Anderson</span>
+    <span class="sidebar-user-role">Senior Associate</span>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Workspace</div>
+    <button class="nav-item active" id="navDashboard" onclick="showView('dashboard')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+      <span class="nav-badge nb-amber" id="nbAction">3</span>
+    </button>
+    <button class="nav-item" id="navQueue" onclick="showView('queue')">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Lexi Queue
+      <span class="nav-badge nb-teal" id="nbQueue">2</span>
+    </button>
+    <button class="nav-item" id="navMatters" onclick="showView('matters')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      All Matters
+    </button>
+    <div class="nav-section-label" style="margin-top:8px">Active</div>
+    <button class="nav-item" id="navMatter" onclick="showView('matter')" style="display:none">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="navMatterName" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
+    </button>
+    <div class="nav-section-label" style="margin-top:8px">Tools</div>
+    <button class="nav-item" id="navScan" onclick="showView('scan')">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Quick Scan
+    </button>
+    <div class="nav-section-label" style="margin-top:8px">Firm</div>
+    <button class="nav-item" id="navAdmin" onclick="showView('admin')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+      Firm Admin
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+      <div class="lib-dot"></div>
+      <span style="font-family:var(--mono);font-size:9px">Library v2026.03</span>
+    </div>
+    <div style="font-size:9px;margin-bottom:10px">50 libraries · 04 Mar 2026</div>
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <button id="themeToggle" class="btn btn-sm" style="flex:1;font-size:8px" onclick="toggleTheme()">☀ Day Mode</button>
+    </div>
+    <button class="btn btn-sm" style="width:100%;font-size:8px" onclick="doLogout()">Sign Out</button>
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- ════ DASHBOARD ════ -->
+<div id="view-dashboard" class="view active">
+  <div class="topbar">
+    <div class="topbar-title">Good morning, <em>Michael.</em></div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="showView('queue')">Lexi Queue <span id="tbQueueCount" style="font-family:var(--mono);font-size:9px;color:var(--teal);margin-left:4px">2</span></button>
+      <button class="btn btn-gold" onclick="openNewMatter()">+ New Matter</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="dash-stats">
+      <div class="stat-cell sc-gold"><div class="stat-lbl">Active Matters</div><div class="stat-val">7</div><div class="stat-sub">Across all types</div></div>
+      <div class="stat-cell sc-red"><div class="stat-lbl">High Exposure</div><div class="stat-val">3</div><div class="stat-sub">Requires attention</div></div>
+      <div class="stat-cell sc-amber"><div class="stat-lbl">Needs Action</div><div class="stat-val">3</div><div class="stat-sub">Flags raised</div></div>
+      <div class="stat-cell sc-teal"><div class="stat-lbl">In Queue</div><div class="stat-val" id="statQueue">2</div><div class="stat-sub">Ready to run</div></div>
+    </div>
+    <div class="section-eyebrow">Active Matters</div>
+    <div class="matters-list" id="mattersList"></div>
+    <div style="margin-top:16px;display:flex;gap:10px">
+      <button class="btn btn-gold" onclick="openNewMatter()">+ New Matter</button>
+      <button class="btn" onclick="showView('queue')">Go to Lexi Queue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ LEXI QUEUE ════ -->
+<div id="view-queue" class="view">
+  <div class="topbar">
+    <div class="topbar-title">Lexi <em>Queue</em></div>
+    <div class="topbar-actions">
+      <button class="btn btn-sm btn-danger" id="btnClearQueue" onclick="clearQueue()">Clear Queue</button>
+      <button class="btn btn-teal" id="btnRunQueue" onclick="runQueue()">▶ Run Queue</button>
+      <button class="btn btn-sm btn-danger" id="btnStopQueue" onclick="stopQueue()" style="display:none">■ Stop</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="queue-header-band">
+      <div class="qh-left">
+        <div class="qh-eyebrow">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Lexi Attention Score
+        </div>
+        <div class="qh-title">Analysis Queue</div>
+        <div class="qh-sub">Matters ranked by Lexi Attention Score — return on your attention, not just risk.<br>Reorder manually if you have external constraints. Run to process sequentially.</div>
+      </div>
+      <div class="qh-right">
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted)" id="queueStatusLine">2 matters queued</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px">Lexi processes one at a time</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="queue-progress-bar" id="queueProgressBar">
+      <div class="qpb-track"><div class="qpb-fill" id="qpbFill" style="width:0%"></div></div>
+      <div class="qpb-row">
+        <div class="qpb-label">Processing: <span class="qpb-stage" id="qpbStage">—</span></div>
+        <div class="qpb-pct" id="qpbPct">0%</div>
+      </div>
+    </div>
+
+    <div id="queueContent"></div>
+
+    <div class="queue-note">
+      Scores are calculated across four components: Signal Severity (0–40) · Timing &amp; Urgency (0–25) · Financial Gap (0–20) · Recovery Potential (0–15). Scores update each time Lexi runs. Expand any score to see the breakdown.
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-gold" onclick="openNewMatter()">+ Add New Matter</button>
+      <button class="btn" onclick="showView('dashboard')">← Back to Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ ALL MATTERS ════ -->
+<div id="view-matters" class="view">
+  <div class="topbar">
+    <div class="topbar-title">All <em>Matters</em></div>
+    <div class="topbar-actions"><button class="btn btn-gold" onclick="openNewMatter()">+ New Matter</button></div>
+  </div>
+  <div class="content">
+    <div class="section-eyebrow">All Matters</div>
+    <div class="matters-list" id="mattersListFull"></div>
+  </div>
+</div>
+
+<!-- ════ MATTER VIEW ════ -->
+<div id="view-matter" class="view">
+  <div class="topbar">
+    <div class="topbar-title" id="matterTopTitle">Matter</div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="showView('dashboard')">← Dashboard</button>
+      <button class="btn" id="btnAddQueue" onclick="addToQueue()">+ Add to Queue</button>
+      <button class="btn btn-gold" onclick="openMatterReport('forensic')" title="Full forensic detail — all signals, all transactions">Forensic Report</button>
+      <button class="btn" style="background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('brief')" title="Key findings only — professional summary">Lawyer Brief</button>
+      <button class="btn" style="background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('snapshot')" title="One-page verdict + action pathways">Snapshot</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="matter-header">
+      <div>
+        <div class="mh-eyebrow" id="mhType">Matter</div>
+        <div class="mh-subject" id="mhSubject">—</div>
+        <div class="mh-meta">
+          <div><span class="mhf-lbl">Ref</span><span class="mhf-val" id="mhRef">—</span></div>
+          <div id="mhDebtorWrap" style="display:none"><span class="mhf-lbl">Debtor</span><span class="mhf-val" id="mhDebtorName">—</span></div>
+          <div id="mhCaseWrap" style="display:none"><span class="mhf-lbl">Case #</span><span class="mhf-val" id="mhCaseNumber">—</span></div>
+          <div><span class="mhf-lbl">Filing Date</span><span class="mhf-val" id="mhDate">—</span></div>
+          <div><span class="mhf-lbl">Last Run</span><span class="mhf-val" id="mhLastRun">Not yet analysed</span></div>
+          <div id="mhTxnWrap" style="display:none"><span class="mhf-lbl">Transactions</span><span class="mhf-val" id="mhTxnCount">—</span></div>
+          <div><span class="mhf-lbl">Library</span><span class="mhf-val">v2026.03</span></div>
+        </div>
+      </div>
+      <div class="mh-right">
+        <div id="mhLAS" style="display:none" class="mh-las">
+          <div class="mh-las-num" id="mhLASNum">—</div>
+          <div class="mh-las-lbl">Lexi Attention Score</div>
+          <div class="mh-las-verdict" id="mhLASVerdict"></div>
+        </div>
+        <div class="exp-badge" id="mhExposure" style="display:none">—</div>
+        <div id="btnViewReport" style="display:none;margin-top:8px;display:flex;flex-direction:column;gap:4px">
+          <button class="btn btn-gold" style="font-size:8px;padding:5px 12px" onclick="openMatterReport('forensic')">Forensic Report</button>
+          <button class="btn" style="font-size:8px;padding:5px 12px;background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('brief')">Lawyer Brief</button>
+          <button class="btn" style="font-size:8px;padding:5px 12px;background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('snapshot')">Snapshot</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pursueSkipBlock" style="display:none;margin:24px 0 0">
+      <div id="pursueSkipVerdict" class="ps-verdict"></div>
+      <div id="pursueSkipScore" class="ps-score"></div>
+      <div id="pursueSkipBullets" class="ps-bullets"></div>
+    </div>
+    <div id="dbChecksPanel" style="display:none;margin:16px 0 24px">
+      <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Database Checks</div>
+      <div class="db-checks-grid" id="dbChecksGrid"></div>
+    </div>
+
+    <div id="matterUploadSection">
+    <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:12px;margin-bottom:12px"><span>Document Upload</span><span style="flex:1;height:1px;background:var(--border);display:block"></span></div>
+
+    <div class="upload-zones">
+      <div class="upload-zone">
+        <div class="uz-head">
+          <div class="uz-type"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Bank Statements</div>
+          <div class="uz-count has" id="bsCount">3 files</div>
+        </div>
+        <div class="dz" id="dzBank"><input type="file" multiple accept=".pdf" onchange="onFiles(this,'bank')"><div class="dz-icon">🏦</div><div class="dz-text">Drop PDFs or <span>browse</span></div></div>
+        <div class="file-pills" id="pillsBank">
+          <div class="file-pill"><span class="fp-name">Anderson_Chase_2024.pdf</span><span class="fp-badge fpb-ready">Ready</span></div>
+          <div class="file-pill"><span class="fp-name">Anderson_Chase_2023.pdf</span><span class="fp-badge fpb-ready">Ready</span></div>
+          <div class="file-pill"><span class="fp-name">Anderson_Chase_2022.pdf</span><span class="fp-badge fpb-ready">Ready</span></div>
+        </div>
+      </div>
+      <div class="upload-zone">
+        <div class="uz-head">
+          <div class="uz-type"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Credit Cards</div>
+          <div class="uz-count has" id="ccCount">2 files</div>
+        </div>
+        <div class="dz" id="dzCC"><input type="file" multiple accept=".pdf" onchange="onFiles(this,'cc')"><div class="dz-icon">💳</div><div class="dz-text">Drop PDFs or <span>browse</span></div></div>
+        <div class="file-pills" id="pillsCC">
+          <div class="file-pill"><span class="fp-name">Anderson_Amex_2024.pdf</span><span class="fp-badge fpb-ready">Ready</span></div>
+          <div class="file-pill"><span class="fp-name">Anderson_Amex_2023.pdf</span><span class="fp-badge fpb-ready">Ready</span></div>
+        </div>
+      </div>
+      <div class="upload-zone">
+        <div class="uz-head">
+          <div class="uz-type"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Tax Returns</div>
+          <div class="uz-count has" id="trCount">2 files</div>
+        </div>
+        <div class="dz" id="dzTax"><input type="file" multiple accept=".pdf" onchange="onFiles(this,'tax')"><div class="dz-icon">📋</div><div class="dz-text">Drop PDFs or <span>browse</span></div></div>
+        <div class="file-pills" id="pillsTax">
+          <div class="file-pill"><span class="fp-name">Anderson_1040_2024.pdf</span><span class="fp-badge fpb-ready">Ready</span></div>
+          <div class="file-pill"><span class="fp-name">Anderson_1040_2023.pdf</span><span class="fp-badge fpb-ready">Ready</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="run-bar">
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)">Analyst</div>
+        <input class="run-analyst-inp" type="text" value="Michael Anderson" placeholder="Your name">
+      </div>
+      <div class="run-status" id="runStatus">— 7 documents ready · click Analyse to run Lexi</div>
+      <button class="btn btn-gold" onclick="runDemo()">Analyse with Lexi</button>
+    </div>
+    </div><!-- /matterUploadSection -->
+
+    <div id="resultsSection" style="display:none">
+      <div class="lexi-audit">
+        <div class="la-dot"></div>
+        <div class="la-text"><strong>Lexi</strong> completed analysis on <strong>7 documents</strong> covering <strong>Jan 2022 — Dec 2024</strong> using <strong>Library v2026.03</strong> (50 detection libraries). Run at <strong id="auditTime">—</strong> by <strong>Michael Anderson</strong>. All findings traceable to source documents.</div>
+      </div>
+      <div class="results-eyebrow">Filing Date Windows — 14 March 2024</div>
+      <div class="timeline-band" style="margin-bottom:18px">
+        <div class="tb-head"><span>Transaction activity relative to filing date</span><span style="font-family:var(--mono);font-size:9px">Filing: 14 Mar 2024</span></div>
+        <div class="tb-periods">
+          <div class="tb-period tb-active"><div class="tb-period-lbl">90 Days Prior</div><div class="tb-period-val">14</div><div class="tb-period-sub">flagged</div></div>
+          <div class="tb-period"><div class="tb-period-lbl">12 Months Prior</div><div class="tb-period-val">47</div><div class="tb-period-sub">flagged</div></div>
+          <div class="tb-period"><div class="tb-period-lbl">24 Months Prior</div><div class="tb-period-val">89</div><div class="tb-period-sub">flagged</div></div>
+          <div class="tb-period"><div class="tb-period-lbl">Full Period</div><div class="tb-period-val">312</div><div class="tb-period-sub">total</div></div>
+        </div>
+      </div>
+      <!-- PDF integrity alert — shown if document_integrity signal fires -->
+      <div id="integrityBanner" style="display:none;background:#1a0a0a;border:1px solid #c0392b;padding:14px 18px;margin-bottom:20px;border-left:4px solid #c0392b">
+        <div style="font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:#c0392b;margin-bottom:4px">Document Integrity Warning</div>
+        <div style="font-size:12px;color:var(--cream)" id="integrityBannerText">One or more uploaded statements show signs of post-issuance modification. Obtain certified copies directly from the issuing bank before relying on this analysis.</div>
+      </div>
+      <div class="results-eyebrow">Cash Flow Summary</div>
+      <div class="tax-recon">
+        <div class="tax-head">
+          <div class="tax-title"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Statement Cash Flow Analysis</div>
+          <span style="font-size:9px;color:var(--muted);font-family:var(--mono)" id="cashSummaryMeta">Parsed from uploaded statements</span>
+        </div>
+        <div class="tax-grid">
+          <div class="tax-cell"><div class="tax-cell-lbl">Total Inflows</div><div class="tax-cell-val tv-declared" id="csInflows">—</div><div style="font-size:9px;color:var(--muted);margin-top:3px">Credits detected</div></div>
+          <div class="tax-cell"><div class="tax-cell-lbl">Total Outflows</div><div class="tax-cell-val tv-detected" id="csOutflows">—</div><div style="font-size:9px;color:var(--muted);margin-top:3px">Debits detected</div></div>
+          <div class="tax-cell"><div class="tax-cell-lbl">Net Cash Flow</div><div class="tax-cell-val tv-gap" id="csNet">—</div><div style="font-size:9px;color:var(--muted);margin-top:3px" id="csNetSub">Statement period</div></div>
+        </div>
+        <div class="tax-narrative" id="cashNarrative">Run analysis to generate cash flow summary from uploaded bank statements.</div>
+      </div>
+      <div class="results-eyebrow" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Signal Detection & Intelligence</span>
+        <span id="sigSummaryPills" style="display:flex;gap:6px"></span>
+      </div>
+      <div class="results-zones">
+        <div class="results-zone">
+          <div class="rz-head"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--gold);fill:none;stroke-width:1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><div class="rz-head-title gold">A — Signals</div><span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted)">50 libraries</span></div>
+          <div><div class="signal-cats" id="signalCats"></div></div>
+        </div>
+        <div class="results-zone">
+          <div class="rz-head"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--gold);fill:none;stroke-width:1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><div class="rz-head-title gold">B — Intelligence & Path Forward</div></div>
+          <div class="intel-cards" id="intelCards"></div>
+        </div>
+      </div>
+    </div>
+      <!-- Flagged transactions evidence table -->
+      <div id="flaggedTxnSection" style="display:none;margin-top:24px">
+        <div class="results-eyebrow" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Top Flagged Transactions</span>
+          <button class="btn" style="font-size:9px;padding:4px 12px" onclick="copyBrief()">Copy for Brief</button>
+        </div>
+        <div style="border:1px solid var(--border);overflow:hidden">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr style="background:var(--navy2)">
+              <th style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px">Date</th>
+              <th style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px">Merchant / Description</th>
+              <th style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:right;padding:8px 12px">Amount</th>
+              <th style="font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px">Signal</th>
+            </tr></thead>
+            <tbody id="flaggedTxnBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Verify+ Teaser -->
+      <div id="verifyPlusTeaser" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ════ QUICK SCAN ════ -->
+<div id="view-scan" class="view">
+  <div class="topbar">
+    <div class="topbar-title">Verify<sup style="font-size:9px;vertical-align:super">+</sup> <em>·</em> Trustee Forensic Intelligence</div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="resetScan()">Clear</button>
+      <button class="btn btn-gold" id="scanRunBtn" onclick="runQuickScan()" disabled>Run Analysis</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <div id="scanUploadSection">
+      <div style="max-width:680px;margin:0 auto">
+        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:20px">Upload one or more bank statement files (PDF or CSV) and run the full 16-signal forensic engine.</div>
+        <div class="scan-drop" id="scanDropZone" onclick="document.getElementById('scanFileInput').click()"
+          ondragover="event.preventDefault();this.classList.add('drag-over')"
+          ondragleave="this.classList.remove('drag-over')"
+          ondrop="handleScanDrop(event)">
+          <div class="scan-drop-icon">
+            <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" fill="none" stroke-width="1.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="scan-drop-title">Drop bank statements here</div>
+          <div class="scan-drop-sub">PDF or CSV · Click to browse · Multiple files supported</div>
+        </div>
+        <input type="file" id="scanFileInput" multiple accept=".pdf,.csv" style="display:none" onchange="handleScanFiles(event)">
+        <div id="scanFileList" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <div id="scanOverlay" style="display:none;max-width:620px;margin:0 auto">
+      <div class="lf-overlay-wrap">
+        <div class="lf-rings">
+          <div class="lf-ring"></div>
+          <div class="lf-ring"></div>
+          <div class="lf-ring"></div>
+          <div class="lf-core"><div class="lf-core-dot"></div></div>
+        </div>
+        <div class="lf-stage" id="liveFeedTitle">INITIALISING</div>
+        <div class="lf-dots"><span></span><span></span><span></span></div>
+        <div class="lf-stats">
+          <div class="lf-stat">
+            <span class="lf-stat-val"><span id="liveFeedFileIdx">0</span>/<span id="liveFeedFileTotal">0</span></span>
+            FILES
+          </div>
+          <div class="lf-stat">
+            <span class="lf-stat-val" id="liveFeedTxnCount">0</span>
+            TRANSACTIONS
+          </div>
+        </div>
+        <div class="lf-bar-wrap"><div id="liveFeedBarFill" class="lf-bar-fill" style="width:0%"></div></div>
+        <div id="liveFeedLog" class="lf-log"></div>
+      </div>
+    </div>
+
+    <div id="scanResults" style="display:none;max-width:880px;margin:0 auto">
+      <div class="scan-result-meta">
+        <div>
+          <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Lexi Attention Score</div>
+          <div class="scan-las-num" id="scanLasNum">—</div>
+          <div style="font-family:var(--serif);font-size:16px;font-weight:300;color:var(--cream);margin-top:4px" id="scanLasVerdict">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px" id="scanLasReason"></div>
+        </div>
+        <div>
+          <div style="font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Exposure</div>
+          <div id="scanExposureBadge" style="display:inline-block;padding:4px 12px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;margin-bottom:14px"></div>
+          <div id="scanAttFlag" style="font-size:10px;color:var(--muted);margin-bottom:16px"></div>
+          <button class="btn btn-gold" onclick="downloadScanReport('forensic')">Forensic Report</button>
+          <button class="btn" style="background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="downloadScanReport('brief')">Lawyer Brief</button>
+          <button class="btn" style="background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="downloadScanReport('snapshot')">Snapshot</button>
+        </div>
+      </div>
+
+      <!-- PDF integrity alert for Quick Scan -->
+      <div id="scanIntegrityBanner" style="display:none;background:#1a0a0a;border:1px solid #c0392b;padding:14px 18px;margin-bottom:16px;border-left:4px solid #c0392b">
+        <div style="font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:#c0392b;margin-bottom:4px">Document Integrity Warning</div>
+        <div style="font-size:11px;color:var(--cream)" id="scanIntegrityText">One or more statements show signs of post-issuance modification. Obtain certified copies before relying on this analysis.</div>
+      </div>
+
+      <!-- Cash flow summary for Quick Scan -->
+      <div id="scanCashFlow" style="display:none;margin-bottom:20px">
+        <div class="scan-section-title" style="margin-bottom:10px">Cash Flow Summary</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+          <div style="background:var(--navy2);padding:16px 18px"><div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Total Inflows</div><div style="font-size:18px;color:var(--cream);font-family:var(--mono)" id="scanCsInflows">—</div></div>
+          <div style="background:var(--navy2);padding:16px 18px"><div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Total Outflows</div><div style="font-size:18px;color:var(--cream);font-family:var(--mono)" id="scanCsOutflows">—</div></div>
+          <div style="background:var(--navy2);padding:16px 18px"><div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Net Cash Flow</div><div style="font-size:18px;color:var(--cream);font-family:var(--mono)" id="scanCsNet">—</div></div>
+        </div>
+        <div style="font-size:9px;color:var(--muted);padding:8px 0" id="scanCsMeta"></div>
+      </div>
+
+      <div class="scan-section-title">Signal Results <span id="scanSigSummary" style="font-size:9px;color:var(--muted);font-weight:normal;margin-left:8px"></span></div>
+      <table class="scan-sig-table">
+        <thead><tr><th>Signal</th><th>Category</th><th>Status</th><th>Count</th><th>Amount</th></tr></thead>
+        <tbody id="scanSigBody"></tbody>
+      </table>
+
+      <div class="scan-section-title" id="scanIntelHeader" style="display:none">Intelligence Detail</div>
+      <div id="scanIntelCards"></div>
+
+      <!-- Flagged transactions for Quick Scan -->
+      <div id="scanFlaggedSection" style="display:none;margin-top:20px">
+        <div class="scan-section-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Top Flagged Transactions</span>
+          <button class="btn" style="font-size:9px;padding:4px 12px" onclick="copyScanBrief()">Copy for Brief</button>
+        </div>
+        <table class="scan-sig-table">
+          <thead><tr><th>Date</th><th>Merchant / Description</th><th style="text-align:right">Amount</th><th>Signal</th></tr></thead>
+          <tbody id="scanFlaggedBody"></tbody>
+        </table>
+      </div>
+
+      <div id="scanVerifyPlus" style="display:none;margin-top:24px;border:1px solid rgba(200,150,62,.3);padding:24px;background:var(--golddim);text-align:center">
+        <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Verify+</div>
+        <div style="font-family:var(--serif);font-size:20px;font-weight:300;color:var(--cream);margin-bottom:6px">Enhanced Recovery Intelligence Available</div>
+        <div style="font-size:11px;color:var(--muted)">High-exposure matter detected. Verify+ provides subpoena pathways, offshore entity mapping, and recovery probability scoring.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════ ADMIN ════ -->
+<div id="view-admin" class="view">
+  <div class="topbar">
+    <div class="topbar-title">Firm <em>Administration</em></div>
+    <div class="topbar-actions"><button class="btn btn-gold" onclick="showNotify('User creation connects in the backend build.','Coming Soon')">+ Add Lawyer</button></div>
+  </div>
+  <div class="content">
+    <div class="admin-grid">
+      <div class="admin-card">
+        <h3>Firm Users</h3>
+        <div class="user-row"><div><div class="user-name">Michael Anderson</div><div class="user-email">mike@harrisfirm.com</div></div><div class="user-role role-admin">Admin</div></div>
+        <div class="user-row"><div><div class="user-name">Sarah Chen</div><div class="user-email">s.chen@harrisfirm.com</div></div><div class="user-role role-lawyer">Lawyer</div></div>
+        <div class="user-row"><div><div class="user-name">James Okafor</div><div class="user-email">j.okafor@harrisfirm.com</div></div><div class="user-role role-lawyer">Lawyer</div></div>
+        <div class="user-row"><div><div class="user-name">Rachel Torres</div><div class="user-email">r.torres@harrisfirm.com</div></div><div class="user-role role-lawyer">Lawyer</div></div>
+      </div>
+      <div class="admin-card">
+        <h3>Intelligence Library</h3>
+        <div style="font-size:11px;line-height:2.4">
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted);font-size:8px;letter-spacing:.1em;text-transform:uppercase">Version</span><span style="font-family:var(--mono);color:var(--gold)">v2026.03</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted);font-size:8px;letter-spacing:.1em;text-transform:uppercase">Last Updated</span><span style="font-family:var(--mono)">04 Mar 2026</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--muted);font-size:8px;letter-spacing:.1em;text-transform:uppercase">Status</span><span style="color:var(--green)">● Active — all 50 libraries loaded</span></div>
+        </div>
+        <div class="lib-count-grid">
+          <div class="lc-cell"><div class="lc-num">50</div><div class="lc-lbl">Libraries</div></div>
+          <div class="lc-cell"><div class="lc-num">16</div><div class="lc-lbl">Signal Types</div></div>
+          <div class="lc-cell"><div class="lc-num">4</div><div class="lc-lbl">Categories</div></div>
+          <div class="lc-cell"><div class="lc-num">312</div><div class="lc-lbl">Exchanges</div></div>
+        </div>
+        <button class="btn btn-sm" style="width:100%;margin-top:12px" onclick="showNotify('Import SQL dump to update all 50 libraries instantly.','Library Update')">Import Library Update</button>
+      </div>
+      <div class="admin-card" style="grid-column:1/-1">
+        <h3>Audit Trail</h3>
+        <div style="font-size:11px;color:var(--muted)">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:20px"><span style="font-family:var(--mono);color:var(--muted);font-size:10px;flex-shrink:0">2026-03-20 09:14</span><span style="color:var(--text);flex:1">Anderson v Henderson — Lexi analysis run — LAS: 84 — Library v2026.03</span><span style="flex-shrink:0">Mike Anderson</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:20px"><span style="font-family:var(--mono);color:var(--muted);font-size:10px;flex-shrink:0">2026-03-19 14:32</span><span style="color:var(--text);flex:1">Marchetti Family Trust — Report generated</span><span style="flex-shrink:0">Sarah Chen</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:20px"><span style="font-family:var(--mono);color:var(--muted);font-size:10px;flex-shrink:0">2026-03-18 11:05</span><span style="color:var(--text);flex:1">Library updated to v2026.03 — 50 libraries refreshed</span><span style="flex-shrink:0">Mike Anderson</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;gap:20px"><span style="font-family:var(--mono);color:var(--muted);font-size:10px;flex-shrink:0">2026-03-15 16:48</span><span style="color:var(--text);flex:1">Petrov v Petrov — 3 documents added</span><span style="flex-shrink:0">Sarah Chen</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- NEW MATTER MODAL -->
+<div class="modal-overlay" id="newMatterModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-eyebrow">New Matter</div>
+      <div class="modal-title">Open a new <em>investigation.</em></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-row full" style="margin-bottom:14px">
+        <div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Matter Type</div>
+        <div class="type-grid">
+          <div class="type-opt selected" onclick="selectType('bankruptcy',this)"><span class="type-icon">⚖️</span><span class="type-name">Bankruptcy</span><span class="type-desc">Insolvency · Preference periods</span></div>
+          <div class="type-opt" onclick="selectType('family_law',this)"><span class="type-icon">🏛️</span><span class="type-name">Family Law</span><span class="type-desc">Divorce · Separation date</span></div>
+          <div class="type-opt" onclick="selectType('civil',this)"><span class="type-icon">📁</span><span class="type-name">Civil / Commercial</span><span class="type-desc">Fraud · Disputes · Other</span></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><div class="field-label">Subject Name</div><input class="field-input" type="text" id="nmSubject" placeholder="e.g. Robert J. Henderson"></div>
+        <div class="field"><div class="field-label">Matter Reference</div><input class="field-input" type="text" id="nmRef" placeholder="e.g. HF-2024-0847"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><div class="field-label" id="nmDateLabel">Filing Date</div><input class="field-input" type="date" id="nmDate"></div>
+        <div class="field"><div class="field-label">Assigned To</div><select class="field-input" id="nmAssigned"><option>Michael Anderson</option><option>Sarah Chen</option><option>James Okafor</option><option>Rachel Torres</option></select></div>
+      </div>
+      <div class="form-row full" style="margin-bottom:10px">
+        <div class="field"><div class="field-label">Notes (optional)</div><input class="field-input" type="text" id="nmNotes" placeholder="Brief description of the matter…"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><div class="field-label">Debtor Name</div><input class="field-input" type="text" id="fDebtorName" placeholder="e.g. John Vincent Lombardo"></div>
+        <div class="field"><div class="field-label">Case Number</div><input class="field-input" type="text" id="fCaseNumber" placeholder="e.g. 2024-BK-04467"></div>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <div class="field"><div class="field-label">Jurisdiction</div><select class="field-input" id="fJurisdiction"><option value="US">US Chapter 7</option><option value="AU">AU Bankruptcy</option></select></div>
+        <div class="field"><div class="field-label">Report Tier</div><select class="field-input" id="fReportTier"><option value="trustee">Trustee in Bankruptcy</option><option value="divorce">Family Law / Divorce</option><option value="civil">Civil Litigation</option><option value="criminal">Criminal / Fraud Investigation</option><option value="probate">Estate / Probate</option></select></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeNewMatter()">Cancel</button>
+      <button class="btn btn-gold" onclick="createMatter()">Open Matter</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFY -->
+<div class="notify" id="notify">
+  <div class="notify-title" id="notifyTitle">Lexi</div>
+  <div class="notify-msg" id="notifyMsg"></div>
+</div>
+
+<script>
+/* ══ API CONFIG ══ */
+const CLOUD_API_URL = "https://lexcrypta-verify-production.up.railway.app";
+const API_BASE = CLOUD_API_URL || `http://${window.location.hostname}:8085`;
+
+/* ══ DATA ══ */
+const MATTERS=[
+  {id:1,subject:'Robert J. Henderson',ref:'HF-2024-0847',type:'bankruptcy',typeLabel:'Bankruptcy',matterDate:'14 Mar 2024',lastRun:'20 Mar 2026 · 09:14',exposure:'HIGH',att:'red',attFlag:'🔴 High Exposure',docs:7,analysed:true,
+    las:{score:84,verdict:'DO FIRST',verdictCls:'high',reason:'Crypto inflows in 90-day preference window · $165k income gap · High recovery probability via US subpoena.',
+      components:[{label:'Signal Severity',val:38,max:40},{label:'Timing / Urgency',val:22,max:25},{label:'Financial Gap',val:16,max:20},{label:'Recovery Potential',val:8,max:15}]}},
+  {id:2,subject:'Marchetti Family Trust',ref:'HF-2025-0112',type:'family_law',typeLabel:'Family Law',matterDate:'02 Jun 2025',lastRun:'19 Mar 2026 · 14:32',exposure:'MEDIUM',att:'amber',attFlag:'🟡 Documents Missing',docs:4,analysed:true,
+    las:{score:61,verdict:'REVIEW NEXT',verdictCls:'mid',reason:'Mortgage and rental signals · Income gap moderate · Missing 2023 statements may change score.',
+      components:[{label:'Signal Severity',val:24,max:40},{label:'Timing / Urgency',val:16,max:25},{label:'Financial Gap',val:12,max:20},{label:'Recovery Potential',val:9,max:15}]}},
+  {id:3,subject:'Petrov v Petrov',ref:'HF-2025-0203',type:'family_law',typeLabel:'Family Law',matterDate:'15 Sep 2025',lastRun:'—',exposure:'PENDING',att:'blue',attFlag:'🔵 Not Analysed',docs:2,analysed:false,las:null},
+  {id:4,subject:'Quantum Logistics Pty',ref:'HF-2024-0691',type:'bankruptcy',typeLabel:'Bankruptcy',matterDate:'08 Nov 2023',lastRun:'10 Mar 2026 · 11:20',exposure:'HIGH',att:'red',attFlag:'🔴 High Exposure',docs:12,analysed:true,
+    las:{score:77,verdict:'DO FIRST',verdictCls:'high',reason:'Structuring pattern in preference period · Cross-border transfers · Multiple exchange accounts.',
+      components:[{label:'Signal Severity',val:35,max:40},{label:'Timing / Urgency',val:20,max:25},{label:'Financial Gap',val:14,max:20},{label:'Recovery Potential',val:8,max:15}]}},
+  {id:5,subject:'Thornton v Thornton',ref:'HF-2025-0334',type:'family_law',typeLabel:'Family Law',matterDate:'20 Jan 2025',lastRun:'15 Mar 2026 · 16:05',exposure:'LOW',att:'green',attFlag:'',docs:6,analysed:true,
+    las:{score:22,verdict:'LOW URGENCY',verdictCls:'low',reason:'Limited signals · No crypto activity · Income gap within normal range.',
+      components:[{label:'Signal Severity',val:8,max:40},{label:'Timing / Urgency',val:7,max:25},{label:'Financial Gap',val:5,max:20},{label:'Recovery Potential',val:2,max:15}]}},
+  {id:6,subject:'Bright Star Capital',ref:'HF-2024-0520',type:'civil',typeLabel:'Civil / Commercial',matterDate:'22 Aug 2024',lastRun:'12 Mar 2026 · 10:30',exposure:'HIGH',att:'red',attFlag:'🔴 High Exposure',docs:9,analysed:true,
+    las:{score:71,verdict:'DO FIRST',verdictCls:'high',reason:'DeFi and crypto exchange activity · Cross-border value transfers · High financial gap.',
+      components:[{label:'Signal Severity',val:32,max:40},{label:'Timing / Urgency',val:18,max:25},{label:'Financial Gap',val:13,max:20},{label:'Recovery Potential',val:8,max:15}]}},
+  {id:7,subject:'Nguyen Estate',ref:'HF-2026-0041',type:'bankruptcy',typeLabel:'Bankruptcy',matterDate:'01 Feb 2026',lastRun:'—',exposure:'PENDING',att:'amber',attFlag:'🟡 Documents Missing',docs:1,analysed:false,las:null},
+];
+
+const SIGNALS=[
+  {name:'Crypto Exchange Activity',cat:'ASSET · CONVERSION',status:'detected',count:18,amount:'$87,400'},
+  {name:'Crypto Payment Gateways',cat:'CONVERSION',status:'detected',count:3,amount:'$22,100'},
+  {name:'Mortgage Servicer Activity',cat:'ASSET',status:'detected',count:12,amount:'$38,400'},
+  {name:'Gambling Platforms',cat:'CONVERSION · OBFUSCATION',status:'detected',count:7,amount:'$4,850'},
+  {name:'Luxury Asset Merchants',cat:'ASSET',status:'detected',count:5,amount:'$31,200'},
+  {name:'Travel Vendors',cat:'FLOW · LIFESTYLE',status:'detected',count:9,amount:'$14,200'},
+  {name:'Property Tax Authorities',cat:'ASSET',status:'detected',count:2,amount:'$3,400'},
+  {name:'Storage Facilities',cat:'ASSET',status:'possible',count:0,amount:null},
+  {name:'Second Household Indicators',cat:'ASSET',status:'possible',count:0,amount:null},
+  {name:'Structuring / Cash Behaviour',cat:'OBFUSCATION',status:'possible',count:0,amount:null},
+  {name:'Recurring Unnamed Transfers',cat:'FLOW · OBFUSCATION',status:'possible',count:0,amount:null},
+  {name:'DeFi Platforms',cat:'ASSET · CONVERSION',status:'none',count:0,amount:null},
+  {name:'Rental Platforms',cat:'ASSET · FLOW',status:'none',count:0,amount:null},
+  {name:'Gold & Precious Metals',cat:'ASSET',status:'none',count:0,amount:null},
+  {name:'Gift Card / Prepaid',cat:'OBFUSCATION',status:'none',count:0,amount:null},
+  {name:'Cross-Border Value Transfer',cat:'FLOW',status:'none',count:0,amount:null},
+];
+
+const INTEL=[
+  {catCls:'asset',cat:'ASSET · CONVERSION',title:'Crypto Exchange Activity',narrative:'18 transactions totalling $87,400 to Coinbase (12, $52,100) and Kraken (6, $35,300). 14 transactions totalling $61,200 occurred within the 90-day preference window.',rec:'High Recovery',recCls:'high',tier:'Tier 1 — Global Leaders',path:'Coinbase: Standard US subpoena (18 U.S.C. § 2703). Well-documented compliance — expect KYC records, transaction history, wallet addresses. Est. 30–60 days. Kraken: US-regulated, same route. File preservation letter immediately.'},
+  {catCls:'asset',cat:'ASSET',title:'Undisclosed Mortgage — Possible Second Property',narrative:'12 regular Westpac Mortgage payments, $38,400 total. No corresponding property in the bankruptcy petition.',rec:'High Recovery',recCls:'high',tier:'Domestic Asset',path:'Immediate land title search. Cross-reference state revenue office for stamp duty. Subpoena Westpac for loan details, security address, account holder.'},
+  {catCls:'obfuscation',cat:'CONVERSION · OBFUSCATION',title:'Gambling Platform Activity',narrative:'7 transactions ($4,850) across Sportsbet and Ladbrokes. Net position may differ — withdrawal history may reveal secondary accounts.',rec:'Medium Recovery',recCls:'medium',tier:'Licensed AU Operators',path:'Formal request to Sportsbet and Ladbrokes for full account history, KYC records, current balance, and withdrawal destination accounts.'},
+  {catCls:'obfuscation',cat:'OBFUSCATION',title:'Structuring — Possible',narrative:'Cash withdrawals clustering below reporting thresholds. Consistent with deliberate structuring to avoid transaction record.',rec:'Low Recovery',recCls:'low',tier:'Behavioural Signal',path:'Document for trustee report. Subpoena ATM records to establish withdrawal locations — may identify secondary addresses or associates.'},
+];
+
+/* ══ STATE ══ */
+let queueItems=[{id:1,status:'waiting'},{id:4,status:'waiting'}];
+let queueRunning=false,queueInterval=null,activeMatter=MATTERS[0],selectedType='bankruptcy';
+
+/* ══ LOGIN ══ */
+async function doLogin() {
+  document.getElementById('view-login').style.display = 'none';
+  document.getElementById('appShell').style.display = 'flex';
+  await loadMattersFromAPI();
+  renderDashboard();
+  renderQueue();
+}
+
+function normalizeApiMatter(m) {
+  return {
+    id: m.id,
+    subject: m.subject,
+    ref: m.ref,
+    type: m.type,
+    typeLabel: m.type_label || m.typeLabel || '',
+    matterDate: m.matter_date || m.matterDate || '—',
+    assignedTo: m.assigned_to || m.assignedTo || '—',
+    notes: m.notes || '',
+    exposure: m.exposure || 'PENDING',
+    att: m.att || 'green',
+    attFlag: m.att_flag || m.attFlag || '',
+    lastRun: m.last_run || m.lastRun || '—',
+    docs: m.doc_count != null ? m.doc_count : (m.docs || 0),
+    analysed: m.analysed || false,
+    report_tier: m.report_tier || 'trustee',
+    debtor_name: m.debtor_name || '',
+    case_number: m.case_number || '',
+    jurisdiction: m.jurisdiction || 'US',
+    las: m.las ? {
+      score: m.las.score,
+      verdict: m.las.verdict,
+      verdictCls: m.las.verdict_cls || m.las.verdictCls || 'low',
+      reason: m.las.reason || '',
+      components: m.las.components || []
+    } : null
+  };
+}
+
+async function loadMattersFromAPI() {
+  try {
+    const r = await fetch(`${API_BASE}/matters`);
+    if (!r.ok) return;
+    const apiMatters = await r.json();
+    MATTERS.length = 0;
+    MATTERS.push(...apiMatters.map(normalizeApiMatter).filter(m=>!(m.ref&&m.ref.startsWith('QS-'))));
+  } catch (e) { /* backend unavailable — MATTERS stays as local demo data */ }
+}
+
+function doLogout(){
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('view-login').style.display='flex';
+}
+
+let _liveFeedInterval = null;
+let _lastStage = '';
+
+function startLiveFeed(matterId) {
+  stopLiveFeed(); // clear any previously running feed before starting a new one
+  const log   = document.getElementById('liveFeedLog');
+  const title = document.getElementById('liveFeedTitle');
+  const fIdx  = document.getElementById('liveFeedFileIdx');
+  const fTot  = document.getElementById('liveFeedFileTotal');
+  const tCnt  = document.getElementById('liveFeedTxnCount');
+  const bar   = document.getElementById('liveFeedBarFill');
+  if (log) log.innerHTML = '';
+
+  const myInterval = setInterval(async () => {
+    if (_liveFeedInterval !== myInterval) return; // stale interval — a newer feed started
+    try {
+      const r = await fetch(`${API_BASE}/matters/${matterId}/progress`);
+      if (!r.ok) return;
+      const p = await r.json();
+
+      if (_liveFeedInterval !== myInterval) return; // dropped while fetch was in-flight
+      if (title) title.textContent = p.stage || 'PROCESSING...';
+      if (fIdx)  fIdx.textContent  = p.file_index || 0;
+      if (fTot)  fTot.textContent  = p.file_total || 0;
+      if (tCnt)  tCnt.textContent  = p.txn_count  || 0;
+
+      if (bar) {
+        const pct = p.file_total > 0
+          ? Math.round((p.file_index / p.file_total) * 100)
+          : (p.done ? 100 : 10);
+        bar.style.width = pct + '%';
+      }
+
+      if (log && p.stage && p.stage !== _lastStage) {
+        _lastStage = p.stage;
+        const line = document.createElement('div');
+        line.className = p.stage.includes('SIGNAL') ? 'lf-entry lf-signal' : 'lf-entry lf-dim';
+        line.textContent = '› ' + p.stage;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      if (p.done) {
+        clearInterval(myInterval);
+        _liveFeedInterval = null;
+      }
+    } catch(e) { /* swallow — analysis may still be starting */ }
+  }, 500);
+  _liveFeedInterval = myInterval;
+}
+
+function stopLiveFeed() {
+  if (_liveFeedInterval) { clearInterval(_liveFeedInterval); _liveFeedInterval = null; }
+  const overlay = document.getElementById('scanOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+/* ══ QUICK SCAN ══ */
+let scanFiles = [];
+let scanMatterId = null;
+
+function handleScanDrop(e){
+  e.preventDefault();
+  document.getElementById('scanDropZone').classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => /\.(pdf|csv)$/i.test(f.name));
+  addScanFiles(files);
+}
+function handleScanFiles(e){
+  addScanFiles(Array.from(e.target.files));
+  e.target.value = '';
+}
+function addScanFiles(files){
+  files.forEach(f => { if(!scanFiles.find(x=>x.name===f.name)) scanFiles.push(f); });
+  renderScanFileList();
+}
+function removeScanFile(name){
+  scanFiles = scanFiles.filter(f => f.name !== name);
+  renderScanFileList();
+}
+function renderScanFileList(){
+  const el = document.getElementById('scanFileList');
+  el.innerHTML = scanFiles.map(f => `
+    <div class="scan-file-row">
+      <span class="scan-file-name">${f.name}</span>
+      <span class="scan-file-size">${(f.size/1024/1024).toFixed(2)} MB</span>
+      <button class="scan-file-rm" onclick="removeScanFile('${f.name.replace(/'/g,"\\'")}')">✕</button>
+    </div>`).join('');
+  document.getElementById('scanRunBtn').disabled = scanFiles.length === 0;
+}
+async function runQuickScan(){
+  if(!scanFiles.length) return;
+  const btn = document.getElementById('scanRunBtn');
+  btn.disabled = true;
+
+  // Show live feed immediately — before matter creation
+  _lastStage = '';
+  document.getElementById('scanUploadSection').style.display = 'none';
+  const _ov = document.getElementById('scanOverlay');
+  _ov.style.display = 'block';
+  const _lfc = _ov.querySelector('.lf-overlay-wrap');
+  const _lfl = document.getElementById('liveFeedLog');
+  const _lft = document.getElementById('liveFeedTitle');
+  const _lfb = document.getElementById('liveFeedBarFill');
+  const _addLog = (msg, cls='lf-dim') => {
+    if (!_lfl) return;
+    const d = document.createElement('div'); d.className = 'lf-entry ' + cls;
+    d.textContent = '› ' + msg; _lfl.appendChild(d);
+    _lfl.scrollTop = _lfl.scrollHeight;
+  };
+  if (_lft) _lft.textContent = 'PREPARING FILES...';
+  if (_lfb) _lfb.style.width = '5%';
+  _addLog(`${scanFiles.length} file${scanFiles.length > 1 ? 's' : ''} queued for analysis`);
+
+  try {
+    const ref = 'QS-' + Date.now();
+    const mRes = await fetch(`${API_BASE}/matters`, {
+      method:'POST',
+      body: (() => { const f=new FormData(); f.append('subject','Quick Scan — '+scanFiles[0].name); f.append('ref',ref); f.append('type','civil'); return f; })()
+    });
+    if(!mRes.ok) throw new Error('Could not create matter');
+    const matter = await mRes.json();
+    scanMatterId = matter.id;
+    if (_lft) _lft.textContent = 'UPLOADING DOCUMENTS...';
+    if (_lfb) _lfb.style.width = '15%';
+    _addLog('Secure upload channel established');
+
+    const upForm = new FormData();
+    scanFiles.forEach(f => upForm.append('files', f));
+    upForm.append('zone','bank');
+    const upRes = await fetch(`${API_BASE}/matters/${scanMatterId}/upload`, { method:'POST', body:upForm });
+    if(!upRes.ok) throw new Error('Upload failed');
+    if (_lft) _lft.textContent = 'LOADING ANALYSIS ENGINE...';
+    if (_lfb) _lfb.style.width = '22%';
+    _addLog(`${scanFiles.length} document${scanFiles.length > 1 ? 's' : ''} received — initialising forensic engine`);
+    _addLog('Running 20 intelligence signals...', 'lf-signal');
+    startLiveFeed(scanMatterId);
+
+    const runRes = await fetch(`${API_BASE}/matters/${scanMatterId}/run`, { method:'POST' });
+    if(!runRes.ok) { stopLiveFeed(); throw new Error('Analysis failed'); }
+    const result = await runRes.json();
+
+    // Drive bar to 100% — use a slower transition so the fill is clearly visible
+    if (_lft) _lft.textContent = 'ANALYSIS COMPLETE';
+    if (_lfb) {
+      _lfb.style.transition = 'width 1.1s ease';
+      _lfb.style.width = '100%';
+      // Wait for the bar animation to actually finish before continuing
+      await new Promise(r => {
+        const onDone = () => { _lfb.removeEventListener('transitionend', onDone); r(); };
+        _lfb.addEventListener('transitionend', onDone);
+        setTimeout(r, 1400); // hard fallback in case transitionend never fires
+      });
+    }
+    // Hold at 100% for a beat so the user reads the COMPLETE state
+    await new Promise(r => setTimeout(r, 500));
+
+    // Render results into DOM, then hide overlay — no blank flash
+    renderScanResults(result);
+    document.getElementById('scanResults').style.display='block';
+    stopLiveFeed();
+  } catch(err) {
+    stopLiveFeed();
+    document.getElementById('scanUploadSection').style.display = 'block';
+    showNotify(err.message || 'Analysis failed','Error');
+    btn.disabled = false; btn.textContent = 'Run Analysis';
+  }
+}
+function renderScanResults(result){
+  const las = result.las || {};
+  const score = las.score ?? '—';
+  const cls = las.verdict_cls === 'high' ? 'las-high' : las.verdict_cls === 'mid' ? 'las-mid' : 'las-low';
+  document.getElementById('scanLasNum').textContent = score;
+  document.getElementById('scanLasNum').className = 'scan-las-num ' + cls;
+  document.getElementById('scanLasVerdict').textContent = las.verdict || '—';
+  document.getElementById('scanLasReason').textContent = las.reason || '';
+
+  const expEl = document.getElementById('scanExposureBadge');
+  const exp = result.exposure || 'PENDING';
+  const expColors = {HIGH:'#c0392b',MEDIUM:'#d4860a',LOW:'#2e7d52',PENDING:'#6a7a8e'};
+  expEl.textContent = exp;
+  expEl.style.background = expColors[exp] || '#6a7a8e';
+  expEl.style.color = '#fff';
+  document.getElementById('scanAttFlag').textContent = result.att_flag || '';
+
+  // PDF integrity banner
+  const scanInteg = (result.signals || []).find(s => s.name === 'PDF Document Integrity' && s.status === 'detected');
+  const scanBanner = document.getElementById('scanIntegrityBanner');
+  if (scanBanner) scanBanner.style.display = scanInteg ? 'block' : 'none';
+
+  // Cash flow summary
+  const scs = result.cash_summary;
+  if (scs) {
+    const sfmt = v => '$' + Math.abs(v).toLocaleString();
+    const scanCf = document.getElementById('scanCashFlow');
+    if (scanCf) scanCf.style.display = 'block';
+    const sset = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+    sset('scanCsInflows', sfmt(scs.total_credits));
+    sset('scanCsOutflows', sfmt(scs.total_debits));
+    sset('scanCsNet', (scs.net_cash >= 0 ? '+' : '-') + sfmt(scs.net_cash));
+    const sMeta = document.getElementById('scanCsMeta');
+    if (sMeta) {
+      const n = result.transactions_parsed || 0;
+      const dr = result.date_range;
+      let txt = `${n.toLocaleString()} transactions parsed`;
+      if (dr && dr.from_label && dr.to_label) txt += ` · ${dr.from_label} – ${dr.to_label}`;
+      sMeta.textContent = txt;
+    }
+  }
+
+  // Signal severity summary
+  const detected = (result.signals || []).filter(s => s.status === 'detected').length;
+  const possible = (result.signals || []).filter(s => s.status === 'possible').length;
+  const sumEl = document.getElementById('scanSigSummary');
+  if (sumEl) sumEl.textContent = [detected && `${detected} detected`, possible && `${possible} possible`].filter(Boolean).join(' · ');
+
+  const signals = result.signals || [];
+  document.getElementById('scanSigBody').innerHTML = signals.map(s => {
+    const cls = s.status==='detected' ? 'sig-detected' : s.status==='possible' ? 'sig-possible' : 'sig-none';
+    return `<tr><td style="color:var(--cream)">${s.name}</td><td style="color:var(--muted)">${s.cat}</td><td class="${cls}">${(s.status||'none').toUpperCase()}</td><td style="font-family:var(--mono);color:var(--muted)">${s.count||'—'}</td><td style="font-family:var(--mono);color:var(--muted)">${s.amount||'—'}</td></tr>`;
+  }).join('');
+
+  const intel = result.intel || [];
+  const intelHeader = document.getElementById('scanIntelHeader');
+  const intelCards = document.getElementById('scanIntelCards');
+  if(intel.length){
+    intelHeader.style.display='flex';
+    intelCards.innerHTML = intel.map(i => `
+      <div class="scan-intel-card">
+        <div class="scan-intel-cat">${i.cat||''}</div>
+        <div class="scan-intel-title">${i.title||''}</div>
+        <div class="scan-intel-narrative">${i.narrative||''}</div>
+        <div class="scan-intel-path-lbl">Path Forward</div>
+        <div class="scan-intel-path">${i.path||''}</div>
+      </div>`).join('');
+  }
+
+  // Flagged transactions
+  const sftxns = result.flagged_transactions || [];
+  const sfSection = document.getElementById('scanFlaggedSection');
+  const sfBody = document.getElementById('scanFlaggedBody');
+  if (sfSection && sfBody && sftxns.length) {
+    sfSection.style.display = 'block';
+    sfBody.innerHTML = sftxns.map(t => {
+      const amt = t.amount < 0 ? `-$${Math.abs(t.amount).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+                               : `+$${t.amount.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+      return `<tr><td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${t.date||'—'}</td><td style="color:var(--cream)">${t.merchant}</td><td style="font-family:var(--mono);text-align:right;color:${t.amount<0?'var(--red)':'#2e7d52'}">${amt}</td><td style="font-size:9px;color:var(--muted)">${(t.signal_type||'').replace(/_/g,' ')}</td></tr>`;
+    }).join('');
+  }
+
+  const vp = result.verify_plus_teaser;
+  if(vp && vp.available) document.getElementById('scanVerifyPlus').style.display='block';
+
+  window._lastScanResult = result;
+}
+function _formatBriefText(result, title) {
+  if (!result) return '';
+  const las = result.las || {};
+  const cs = result.cash_summary || {};
+  const fmt = v => '$' + Math.abs(v).toLocaleString();
+  const lines = [
+    `LEXCRYPTA VERIFY — ${title || 'ANALYSIS SUMMARY'}`,
+    `Generated: ${new Date().toLocaleString()}`,
+    '',
+    `LEXI ATTENTION SCORE: ${las.score ?? '—'} — ${las.verdict || '—'}`,
+    `Exposure: ${result.exposure || '—'}`,
+    las.reason ? `Reason: ${las.reason}` : '',
+    '',
+    'CASH FLOW SUMMARY',
+    `  Total Inflows:   ${cs.total_credits != null ? fmt(cs.total_credits) : '—'}`,
+    `  Total Outflows:  ${cs.total_debits != null ? fmt(cs.total_debits) : '—'}`,
+    `  Net Cash Flow:   ${cs.net_cash != null ? (cs.net_cash >= 0 ? '+' : '-') + fmt(cs.net_cash) : '—'}`,
+    '',
+    'SIGNALS DETECTED',
+  ];
+  (result.signals || []).filter(s => s.status !== 'none').forEach(s => {
+    lines.push(`  [${s.status.toUpperCase()}] ${s.name} — ${s.count || 0} txns ${s.amount ? '(' + s.amount + ')' : ''}`);
+  });
+  if ((result.intel || []).length) {
+    lines.push('', 'INTELLIGENCE & PATH FORWARD');
+    result.intel.forEach(i => {
+      lines.push(`  ${i.title}`, `    ${i.narrative}`, `    Path: ${i.path}`, '');
+    });
+  }
+  return lines.filter(l => l !== null && l !== undefined).join('\n');
+}
+function copyBrief() {
+  const txt = _formatBriefText(window._lastResult, activeMatter ? activeMatter.subject : '');
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => showNotify('Intelligence brief copied to clipboard.', 'Lexi'));
+}
+function copyScanBrief() {
+  const txt = _formatBriefText(window._lastScanResult, 'Quick Scan');
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => showNotify('Intelligence brief copied to clipboard.', 'Lexi'));
+}
+function openMatterReport(fmt='forensic'){
+  if(activeMatter && activeMatter.id) window.open(`${API_BASE}/reports/${activeMatter.id}?format=${fmt}`, '_blank');
+}
+function downloadScanReport(fmt='forensic'){
+  if(scanMatterId) window.open(`${API_BASE}/reports/${scanMatterId}?format=${fmt}`, '_blank');
+}
+function resetScan(){
+  scanFiles = []; scanMatterId = null;
+  renderScanFileList();
+  document.getElementById('scanUploadSection').style.display='block';
+  document.getElementById('scanResults').style.display='none';
+  document.getElementById('scanVerifyPlus').style.display='none';
+  document.getElementById('scanIntelHeader').style.display='none';
+  document.getElementById('scanIntegrityBanner').style.display='none';
+  document.getElementById('scanCashFlow').style.display='none';
+  document.getElementById('scanFlaggedSection').style.display='none';
+  document.getElementById('scanRunBtn').textContent = 'Run Analysis';
+  window._lastScanResult = null;
+}
+
+function toggleTheme(){
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const next = isLight ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('lc-theme', next);
+  document.getElementById('themeToggle').textContent = next === 'light' ? '🌙 Night Mode' : '☀ Day Mode';
+}
+
+(function(){
+  const saved = localStorage.getItem('lc-theme') || 'dark';
+  if(saved === 'light'){
+    document.documentElement.setAttribute('data-theme','light');
+    document.addEventListener('DOMContentLoaded', function(){
+      const btn = document.getElementById('themeToggle');
+      if(btn) btn.textContent = '🌙 Night Mode';
+    });
+  }
+}());
+
+/* ══ VIEWS ══ */
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const panel=document.getElementById('view-'+v);
+  if(panel) panel.classList.add('active');
+  const navMap={dashboard:'navDashboard',queue:'navQueue',matters:'navMatters',matter:'navMatter',scan:'navScan',admin:'navAdmin'};
+  const nav=document.getElementById(navMap[v]||'nav'+v);
+  if(nav) nav.classList.add('active');
+  if(v==='queue') renderQueue();
+  if(v==='matters') renderMattersList('mattersListFull',MATTERS);
+}
+
+/* ══ DASHBOARD — CLEAN ══ */
+function renderDashboard(){
+  renderMattersList('mattersList',MATTERS);
+}
+function renderMattersList(id,matters){
+  const el=document.getElementById(id);if(!el) return;
+  el.innerHTML=matters.filter(m=>!(m.ref&&m.ref.startsWith('QS-'))).map(m=>{
+    const inQ=queueItems.some(q=>q.id===m.id);
+    return `<div class="matter-row" onclick="openMatter(${m.id})">
+      <div class="matter-att att-${m.att}"></div>
+      <div class="matter-main">
+        <div class="matter-subject">${m.subject}</div>
+        <div class="matter-ref">${m.ref}</div>
+        <div class="matter-meta">
+          <div class="m-type ${m.type}">${m.typeLabel}</div>
+          <div class="m-date">${m.matterDate}</div>
+          <div class="m-date">${m.docs} docs</div>
+          ${m.attFlag?`<div class="m-flag">${m.attFlag}</div>`:''}
+        </div>
+      </div>
+      <div class="matter-right">
+        <button class="q-btn ${inQ?'queued':''}" onclick="toggleQueue(event,${m.id})">${inQ?'✓ Queued':'+ Queue'}</button>
+        <div class="exp-badge exp-${m.exposure}">${m.exposure}</div>
+        <div class="m-last">${m.lastRun==='—'?'Not run':m.lastRun}</div>
+        <svg class="m-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══ LEXI QUEUE VIEW ══ */
+function renderQueue(){
+  const content=document.getElementById('queueContent');
+  const statusLine=document.getElementById('queueStatusLine');
+  const waiting=queueItems.filter(q=>q.status!=='done').length;
+  if(statusLine) statusLine.textContent=queueItems.length===0?'Queue is empty':waiting+' matter'+(waiting!==1?'s':'')+' queued'+(queueRunning?' · running…':'');
+
+  if(!queueItems.length){
+    content.innerHTML=`<div class="queue-empty-state">
+      <div class="qes-num">∅</div>
+      <div class="qes-title">Queue is empty</div>
+      <div class="qes-sub">Go to the Dashboard and click <strong style="color:var(--cream)">+ Queue</strong> next to any matter to add it here. Lexi will score and rank them for you.</div>
+      <button class="btn btn-gold" onclick="showView('dashboard')">← Go to Dashboard</button>
+    </div>`;
+    return;
+  }
+
+  const sorted=[...queueItems].sort((a,b)=>{
+    if(a.status==='done'&&b.status!=='done') return 1;
+    if(b.status==='done'&&a.status!=='done') return -1;
+    const ma=MATTERS.find(x=>x.id===a.id),mb=MATTERS.find(x=>x.id===b.id);
+    const sa=ma?.las?.score||0,sb=mb?.las?.score||0;
+    return sb-sa;
+  });
+
+  content.innerHTML=`<div class="queue-items">${sorted.map((qi,idx)=>{
+    const m=MATTERS.find(x=>x.id===qi.id);if(!m) return '';
+    const realIdx=queueItems.findIndex(q=>q.id===qi.id);
+    const statusHtml=qi.status==='running'?'<span class="qi-status qis-running">● Running</span>':
+      qi.status==='done'?'<span class="qi-status qis-done">✓ Complete</span>':
+      '<span class="qi-status qis-waiting">Waiting</span>';
+    const cls=qi.status==='running'?'qi-running':qi.status==='done'?'qi-done':'';
+    const rankCls=qi.status==='running'?'active-rank':'';
+    const lasHtml=m.las?buildLASCard(m.las,m.id):`<div class="qi-no-las">Not yet scored — run Lexi to calculate the Lexi Attention Score for this matter.</div>`;
+    const canMove=!queueRunning&&qi.status!=='done';
+    return `<div class="queue-item ${cls}">
+      <div class="qi-top">
+        <div class="qi-rank ${rankCls}">${qi.status==='running'?'▶':qi.status==='done'?'✓':idx+1}</div>
+        <div class="qi-reorder">
+          <button class="qi-rb" onclick="moveQueueItem(${realIdx},-1)" ${!canMove||realIdx===0?'disabled':''}'>▲</button>
+          <button class="qi-rb" onclick="moveQueueItem(${realIdx},1)" ${!canMove||realIdx===queueItems.length-1?'disabled':''}'>▼</button>
+        </div>
+        <div class="qi-main">
+          <div class="qi-subject">${m.subject}</div>
+          <div class="qi-ref">${m.ref}</div>
+          <div class="qi-meta">
+            <div class="qi-type ${m.type}">${m.typeLabel}</div>
+            <div class="qi-docs">${m.docs} documents</div>
+            ${m.las?`<div style="font-family:var(--mono);font-size:9px;color:var(--muted)">LAS ${m.las.score}</div>`:''}
+          </div>
+        </div>
+        <div class="qi-right">
+          ${statusHtml}
+          ${!queueRunning?`<button class="qi-remove" onclick="toggleQueue(event,${m.id})" title="Remove from queue">✕</button>`:''}
+        </div>
+      </div>
+      <div class="qi-las ${qi.status==='done'&&!m.las?'hidden':''}">${lasHtml}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function buildLASCard(las,matterId){
+  const cls=las.verdictCls==='high'?'lc-high':las.verdictCls==='mid'?'lc-mid':'lc-low';
+  const barCls=las.verdictCls==='high'?'lbf-high':las.verdictCls==='mid'?'lbf-mid':'lbf-low';
+  const verdictCls=las.verdictCls==='high'?'lv-high':las.verdictCls==='mid'?'lv-mid':'lv-low';
+  const bdId='lbd'+matterId;
+  const comps=(las.components||[]).map(c=>`
+    <div class="las-comp">
+      <div class="las-comp-lbl">${c.label}</div>
+      <div class="las-comp-track"><div class="las-comp-fill" style="width:${Math.round(c.val/c.max*100)}%"></div></div>
+      <div class="las-comp-val">${c.val}<span class="las-comp-max">/${c.max}</span></div>
+    </div>`).join('') || '<div style="font-size:10px;color:var(--muted);padding:4px 0">Score breakdown not available — run full analysis to see components.</div>';
+  return `<div class="las-card ${cls}">
+    <div class="las-inner">
+      <div class="las-score-col">
+        <div class="las-score-num">${las.score}</div>
+        <div class="las-score-lbl">Lexi Attention Score</div>
+        <div class="las-bar-track"><div class="las-bar-fill ${barCls}" style="width:${las.score}%"></div></div>
+      </div>
+      <div class="las-main">
+        <div class="las-verdict ${verdictCls}">${las.verdict}</div>
+        <div class="las-reason">${las.reason}</div>
+        <button class="las-breakdown-btn" onclick="toggleBreakdown('${bdId}',this)">▸ Score breakdown</button>
+      </div>
+    </div>
+    <div class="las-breakdown" id="${bdId}">${comps}</div>
+  </div>`;
+}
+function toggleBreakdown(id,btn){
+  const el=document.getElementById(id);
+  const open=el.classList.toggle('open');
+  btn.textContent=(open?'▾':'▸')+' Score breakdown';
+}
+
+/* ══ QUEUE ACTIONS ══ */
+function toggleQueue(e,id){
+  e.stopPropagation();
+  const idx=queueItems.findIndex(q=>q.id===id);
+  if(idx>=0){ queueItems.splice(idx,1); showNotify('Removed from queue.','Queue'); }
+  else { queueItems.push({id,status:'waiting'}); showNotify('Added to Lexi Queue.','Queue'); }
+  updateQueueBadges();renderQueue();renderDashboard();
+}
+function addToQueue(){
+  if(!activeMatter) return;
+  const inQ=queueItems.some(q=>q.id===activeMatter.id);
+  if(inQ){ showNotify('Already in queue. Go to Lexi Queue to run.','Queue'); return; }
+  queueItems.push({id:activeMatter.id,status:'waiting'});
+  updateQueueBadges();renderQueue();renderDashboard();
+  showNotify('Added to Lexi Queue.','Queue');
+}
+function clearQueue(){
+  if(queueRunning){ showNotify('Stop the queue before clearing.','Queue'); return; }
+  queueItems=[];updateQueueBadges();renderQueue();renderDashboard();
+}
+function moveQueueItem(idx,dir){
+  const newIdx=idx+dir;
+  if(newIdx<0||newIdx>=queueItems.length) return;
+  [queueItems[idx],queueItems[newIdx]]=[queueItems[newIdx],queueItems[idx]];
+  renderQueue();
+}
+function updateQueueBadges(){
+  const n=queueItems.filter(q=>q.status!=='done').length;
+  ['nbQueue'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=n; });
+  const sq=document.getElementById('statQueue'); if(sq) sq.textContent=n;
+  const tb=document.getElementById('tbQueueCount'); if(tb) tb.textContent=n;
+}
+
+/* ══ QUEUE RUN ══ */
+function runQueue() {
+  const waiting = queueItems.filter(q => q.status === 'waiting');
+  if (!waiting.length) { showNotify('All matters already processed or queue is empty.', 'Queue'); return; }
+  queueRunning = true;
+  document.getElementById('btnRunQueue').style.display = 'none';
+  document.getElementById('btnStopQueue').style.display = 'inline-flex';
+  document.getElementById('btnClearQueue').disabled = true;
+  document.getElementById('queueProgressBar').style.display = 'block';
+  processNext();
+}
+
+async function processNext() {
+  const waiting = queueItems.filter(q => q.status === 'waiting');
+  if (!waiting.length || !queueRunning) { finishQueue(); return; }
+  const qi = waiting[0];
+  qi.status = 'running';
+  renderQueue();
+  const stages = ['Reading documents…', 'Extracting transactions…', 'Scanning 8 libraries…', 'Calculating LAS…', 'Building intelligence…'];
+  let stage = 0;
+  const stageInterval = setInterval(() => {
+    document.getElementById('qpbStage').textContent = stages[Math.min(stage, stages.length - 1)];
+    const pct = Math.round((stage / stages.length) * 85);
+    document.getElementById('qpbFill').style.width = pct + '%';
+    document.getElementById('qpbPct').textContent = pct + '%';
+    stage++;
+  }, 600);
+  try {
+    const r = await fetch(`${API_BASE}/matters/${qi.id}/run`, { method: 'POST' });
+    clearInterval(stageInterval);
+    if (!r.ok) throw new Error(await r.text());
+    const result = await r.json();
+    const m = MATTERS.find(x => x.id === qi.id);
+    if (m) {
+      m.analysed = true;
+      m.las = result.las;
+      m.exposure = result.exposure;
+      m.att = result.att;
+      m.att_flag = result.att_flag;
+      m.lastRun = new Date().toLocaleDateString('en-AU', {day:'2-digit',month:'short',year:'numeric'});
+    }
+    qi.status = 'done';
+    renderQueue(); renderDashboard(); updateQueueBadges();
+    showNotify((m ? m.subject : 'Matter') + ' — LAS: ' + (result.las?.score || '—') + ' · ' + (result.las?.verdict || ''), 'Lexi Queue');
+    document.getElementById('qpbFill').style.width = '100%';
+    document.getElementById('qpbPct').textContent = '100%';
+    setTimeout(processNext, 700);
+  } catch (e) {
+    clearInterval(stageInterval);
+    qi.status = 'waiting';
+    queueRunning = false;
+    finishQueue();
+    showNotify('Analysis failed: ' + e.message, 'Error');
+  }
+}
+function stopQueue(){
+  queueRunning=false;clearInterval(queueInterval);finishQueue();
+  showNotify('Queue stopped. Completed matters saved.','Queue');
+}
+function finishQueue(){
+  queueRunning=false;
+  document.getElementById('btnRunQueue').style.display='inline-flex';
+  document.getElementById('btnStopQueue').style.display='none';
+  document.getElementById('btnClearQueue').disabled=false;
+  document.getElementById('qpbFill').style.width='100%';
+  document.getElementById('qpbPct').textContent='100%';
+  setTimeout(()=>{ document.getElementById('queueProgressBar').style.display='none'; document.getElementById('qpbFill').style.width='0%'; },2000);
+  renderQueue();renderDashboard();updateQueueBadges();
+}
+
+/* ══ OPEN MATTER ══ */
+function openMatter(id){
+  const m=MATTERS.find(x=>x.id===id);if(!m) return;
+  activeMatter=m;
+  // Clear demo pills so previous matter's files never bleed into a new matter
+  ['pillsBank','pillsCC','pillsTax'].forEach(pid => {
+    const el = document.getElementById(pid); if (el) el.innerHTML = '';
+  });
+  ['bsCount','ccCount','trCount'].forEach(cid => {
+    const el = document.getElementById(cid);
+    if (el) { el.textContent = '0 files'; el.classList.remove('has'); }
+  });
+  // Quick Scan matters are results-only — hide the upload section entirely
+  const uploadSection = document.getElementById('matterUploadSection');
+  const isQS = m.ref && m.ref.startsWith('QS-');
+  if (uploadSection) uploadSection.style.display = isQS ? 'none' : 'block';
+  const psBlock = document.getElementById('pursueSkipBlock');
+  if (psBlock) psBlock.style.display = 'none';
+  const dbPanel = document.getElementById('dbChecksPanel');
+  if (dbPanel) dbPanel.style.display = 'none';
+  document.getElementById('mhSubject').textContent=m.subject;
+  document.getElementById('mhRef').textContent=m.ref;
+  document.getElementById('mhDate').textContent=m.matterDate;
+  document.getElementById('mhLastRun').textContent=m.lastRun==='—'?'Not yet analysed':m.lastRun;
+  document.getElementById('mhType').textContent=m.typeLabel+' Matter';
+  document.getElementById('matterTopTitle').innerHTML=m.subject+' — <em>'+m.typeLabel+'</em>';
+  const mhDebtor=document.getElementById('mhDebtorName');
+  const mhCase=document.getElementById('mhCaseNumber');
+  if(mhDebtor){mhDebtor.textContent=m.debtor_name||'';document.getElementById('mhDebtorWrap').style.display=m.debtor_name?'block':'none';}
+  if(mhCase){mhCase.textContent=m.case_number||'';document.getElementById('mhCaseWrap').style.display=m.case_number?'block':'none';}
+  const exp=document.getElementById('mhExposure');
+  if(m.analysed){exp.style.display='block';exp.className='exp-badge exp-'+m.exposure;exp.textContent=m.exposure;}
+  else exp.style.display='none';
+  const reportBtn=document.getElementById('btnViewReport');
+  if(reportBtn) reportBtn.style.display=m.analysed?'inline-flex':'none';
+  const lasEl=document.getElementById('mhLAS');
+  if(m.las){
+    lasEl.style.display='block';
+    document.getElementById('mhLASNum').textContent=m.las.score;
+    const vEl=document.getElementById('mhLASVerdict');
+    vEl.textContent=m.las.verdict;vEl.className='mh-las-verdict lv-'+m.las.verdictCls;
+  } else lasEl.style.display='none';
+  const navM=document.getElementById('navMatter');
+  document.getElementById('navMatterName').textContent=m.subject.split(' ').slice(-1)[0];
+  navM.style.display='flex';
+  document.getElementById('resultsSection').style.display=m.analysed?'block':'none';
+  if(m.analysed&&m.id===1){renderSignals();renderIntel();document.getElementById('auditTime').textContent='09:14, 20 Mar 2026';}
+  // Fetch live results if analysed
+  if (m.analysed) {
+    fetch(`${API_BASE}/matters/${id}/results`)
+      .then(r => r.ok ? r.json() : null)
+      .then(result => {
+        if (result) {
+          renderSignalsFromResult(result);
+          renderIntelFromResult(result);
+          renderVerifyPlus(result);
+          renderPursueSkip(result.las, activeMatter?.report_tier);
+          renderDbChecks(activeMatter?.report_tier === 'trustee');
+          const rs = document.getElementById('resultsSection');
+          if (rs) rs.style.display = 'block';
+        }
+      })
+      .catch(() => {});
+  }
+  showView('matter');
+}
+
+/* ══ SIGNALS + INTEL ══ */
+function renderSignals(){
+  document.getElementById('signalCats').innerHTML=SIGNALS.map(s=>`
+    <div class="sig-cat">
+      <div class="sig-ind ind-${s.status}"></div>
+      <div class="sig-main"><div class="sig-name">${s.name}</div><div class="sig-cat-label">${s.cat}</div></div>
+      <div class="sig-right">
+        <div class="sig-badge scb-${s.status}">${s.status.toUpperCase()}</div>
+        ${s.count>0?`<div class="sig-count">${s.count} txns</div>`:''}
+        ${s.amount?`<div class="sig-amt">${s.amount}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+function renderIntel(){
+  document.getElementById('intelCards').innerHTML=INTEL.map(i=>`
+    <div class="intel-card ${i.catCls}">
+      <div class="ic-cat ${i.catCls}">${i.cat}</div>
+      <div class="ic-title">${i.title}</div>
+      <div class="ic-narrative">${i.narrative}</div>
+      <div class="ic-tags"><span class="ic-tag ${i.recCls}">${i.rec}</span><span class="ic-tag">${i.tier}</span></div>
+      <div class="ic-path"><span class="ic-path-lbl">Path Forward</span>${i.path}</div>
+    </div>`).join('');
+}
+
+function renderSignalsFromResult(result) {
+  const signals = result.signals || [];
+  const el = document.getElementById('signalCats');
+  if (el) {
+    el.innerHTML = signals.map(s => `
+      <div class="sig-cat">
+        <div class="sig-ind ind-${s.status}"></div>
+        <div class="sig-main"><div class="sig-name">${s.name}</div><div class="sig-cat-label">${s.cat}</div></div>
+        <div class="sig-right">
+          <div class="sig-badge scb-${s.status}">${s.status.toUpperCase()}</div>
+          ${s.count > 0 ? `<div class="sig-count">${s.count} txns</div>` : ''}
+          ${s.amount ? `<div class="sig-amt">${s.amount}</div>` : ''}
+        </div>
+      </div>`).join('');
+  }
+  // Populate cash flow summary
+  const cs = result.cash_summary;
+  if (cs) {
+    const fmt = v => '$' + Math.abs(v).toLocaleString();
+    const set = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+    set('csInflows', fmt(cs.total_credits));
+    set('csOutflows', fmt(cs.total_debits));
+    set('csNet', (cs.net_cash >= 0 ? '+' : '-') + fmt(cs.net_cash));
+    const netSub = document.getElementById('csNetSub');
+    if (netSub) netSub.style.color = cs.net_cash < 0 ? 'var(--red)' : 'var(--muted)';
+    const n = result.transactions_parsed || 0;
+    // Transaction count in matter header
+    if (n > 0) {
+      const wrap = document.getElementById('mhTxnWrap');
+      const cnt = document.getElementById('mhTxnCount');
+      if (wrap) wrap.style.display = '';
+      if (cnt) cnt.textContent = n.toLocaleString();
+    }
+    // Cash flow meta: transaction count + date range
+    const meta = document.getElementById('cashSummaryMeta');
+    const dr = result.date_range;
+    if (meta) {
+      let metaTxt = `${n.toLocaleString()} transactions parsed`;
+      if (dr && dr.from_label && dr.to_label) metaTxt += ` · ${dr.from_label} – ${dr.to_label}`;
+      meta.textContent = metaTxt;
+    }
+    const narr = document.getElementById('cashNarrative');
+    if (narr) {
+      const surplus = cs.net_cash;
+      if (surplus < 0)
+        narr.innerHTML = `Outflows of <strong style="color:var(--gold)">${fmt(cs.total_debits)}</strong> exceed inflows of <strong style="color:var(--text)">${fmt(cs.total_credits)}</strong> — net deficit of <strong style="color:var(--red)">${fmt(surplus)}</strong>. Cross-reference with declared income and asset register.`;
+      else
+        narr.innerHTML = `Inflows of <strong style="color:var(--gold)">${fmt(cs.total_credits)}</strong> with outflows of <strong style="color:var(--text)">${fmt(cs.total_debits)}</strong> — net surplus of <strong style="color:var(--gold)">${fmt(surplus)}</strong>. Cross-reference with declared income and asset register.`;
+    }
+  }
+
+  // PDF integrity banner
+  const integritySignal = (result.signals || []).find(s => s.name === 'PDF Document Integrity' && s.status === 'detected');
+  const banner = document.getElementById('integrityBanner');
+  if (banner) banner.style.display = integritySignal ? 'block' : 'none';
+
+  // Signal severity summary pills
+  const pills = document.getElementById('sigSummaryPills');
+  if (pills) {
+    const detected = (result.signals || []).filter(s => s.status === 'detected').length;
+    const possible = (result.signals || []).filter(s => s.status === 'possible').length;
+    const pillStyle = (bg, col) => `style="font-size:8px;letter-spacing:.15em;padding:2px 8px;background:${bg};color:${col};text-transform:uppercase"`;
+    pills.innerHTML = (detected ? `<span ${pillStyle('#c0392b22','#c0392b')}>${detected} Detected</span>` : '') +
+                      (possible ? `<span ${pillStyle('#d4860a22','#d4860a')}>${possible} Possible</span>` : '');
+  }
+
+  // Flagged transactions evidence table
+  const ftxns = result.flagged_transactions || [];
+  const ftSection = document.getElementById('flaggedTxnSection');
+  const ftBody = document.getElementById('flaggedTxnBody');
+  if (ftSection && ftBody && ftxns.length) {
+    ftSection.style.display = 'block';
+    ftBody.innerHTML = ftxns.map(t => {
+      const amt = t.amount < 0 ? `<span style="color:var(--red)">-$${Math.abs(t.amount).toLocaleString('en', {minimumFractionDigits:2,maximumFractionDigits:2})}</span>`
+                               : `<span style="color:#2e7d52">+$${t.amount.toLocaleString('en', {minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+      return `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:7px 12px;font-family:var(--mono);font-size:10px;color:var(--muted)">${t.date||'—'}</td>
+        <td style="padding:7px 12px;font-size:11px;color:var(--cream)">${t.merchant}</td>
+        <td style="padding:7px 12px;font-family:var(--mono);font-size:11px;text-align:right">${amt}</td>
+        <td style="padding:7px 12px;font-size:9px;color:var(--muted);letter-spacing:.08em">${(t.signal_type||'').replace(/_/g,' ')}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Store result on window for copy-brief
+  window._lastResult = result;
+}
+
+function renderIntelFromResult(result) {
+  const intel = result.intel || [];
+  const el = document.getElementById('intelCards');
+  if (!el) return;
+  el.innerHTML = intel.length
+    ? intel.map(i => `
+        <div class="intel-card ${i.cat_cls}">
+          <div class="ic-cat ${i.cat_cls}">${i.cat}</div>
+          <div class="ic-title">${i.title}</div>
+          <div class="ic-narrative">${i.narrative}</div>
+          <div class="ic-tags"><span class="ic-tag ${i.rec_cls}">${i.rec}</span><span class="ic-tag">${i.tier}</span></div>
+          <div class="ic-path"><span class="ic-path-lbl">Path Forward</span>${i.path}</div>
+        </div>`).join('')
+    : '<div style="padding:20px;color:var(--muted);font-style:italic;font-size:11px">No signals detected across all 16 categories.</div>';
+}
+
+const DB_CHECKS_DEMO = [
+  { name: "ASIC / ABN Lookup",         status: "hit",     finding: "3 directorships found — Morning Moon Developments Pty Ltd active" },
+  { name: "PPSR",                       status: "hit",     finding: "2 security interests registered — Westpac Banking Corp (2019)" },
+  { name: "AFSA Bankruptcy Register",  status: "clear",   finding: "No current or prior bankruptcy found" },
+  { name: "Property Title Search",     status: "hit",     finding: "2 properties identified — Lot 54 Windsor, 9 Matherson Way Officer" },
+  { name: "Court Records",             status: "hit",     finding: "CI-24-04467 · CI-24-06120 — active civil proceedings" },
+  { name: "PACER (US Federal Courts)", status: "pending", finding: "Integration pending — available in full deployment" },
+];
+
+function renderPursueSkip(las, reportTier) {
+  const block = document.getElementById('pursueSkipBlock');
+  const vEl   = document.getElementById('pursueSkipVerdict');
+  const sEl   = document.getElementById('pursueSkipScore');
+  const bEl   = document.getElementById('pursueSkipBullets');
+  if (!block) return;
+  if (!las || reportTier !== 'trustee') { block.style.display = 'none'; return; }
+
+  const isPursue = (las.score ?? 0) >= 50;
+  vEl.textContent = isPursue ? 'PURSUE' : 'SKIP';
+  vEl.className   = 'ps-verdict ' + (isPursue ? 'pursue' : 'skip');
+  sEl.textContent = `Indicator Score: ${las.score ?? '—'}/100`;
+
+  const esc     = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const reason  = las.reason || '';
+  const bullets = reason.split(' · ').filter(Boolean);
+  bEl.innerHTML = bullets.map(b => `<span>${esc(b)}</span>`).join('');
+  block.style.display = 'block';
+}
+
+function renderDbChecks(show) {
+  const panel = document.getElementById('dbChecksPanel');
+  const grid  = document.getElementById('dbChecksGrid');
+  if (!panel || !grid) return;
+  if (!show) { panel.style.display = 'none'; return; }
+
+  grid.innerHTML = DB_CHECKS_DEMO.map(c => `
+    <div class="db-check-row">
+      <span class="db-check-name">${c.name}</span>
+      <span class="db-pill ${c.status}">${c.status.toUpperCase()}</span>
+      <span class="db-check-finding">${c.finding}</span>
+    </div>`).join('');
+  panel.style.display = 'block';
+}
+
+function renderVerifyPlus(result) {
+  const vp = result.verify_plus_teaser;
+  const container = document.getElementById('verifyPlusTeaser');
+  if (!container) return;
+  if (!vp || !vp.available) { container.style.display = 'none'; return; }
+  container.style.display = 'block';
+  container.innerHTML = `
+    <div style="border:1px solid rgba(200,150,62,0.25);background:var(--navy2);margin-top:24px;position:relative;overflow:hidden">
+      <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold)">Verify+ · Trustee Intelligence Layer</div>
+        <div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;padding:3px 9px;border:1px solid rgba(200,150,62,.3);color:var(--gold)">Locked</div>
+      </div>
+      <div style="padding:20px;position:relative">
+        <div style="filter:blur(5px);pointer-events:none;user-select:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:16px">
+            <div style="background:var(--navy3);padding:16px 18px">
+              <div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Trustee Verdict</div>
+              <div style="font-size:15px;color:#c0392b;font-family:var(--mono)">${vp.verdict}</div>
+            </div>
+            <div style="background:var(--navy3);padding:16px 18px">
+              <div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Recovery Estimate</div>
+              <div style="font-size:15px;color:var(--cream);font-family:var(--mono)">${vp.recovery_estimate}</div>
+            </div>
+            <div style="background:var(--navy3);padding:16px 18px">
+              <div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Priority Action</div>
+              <div style="font-size:11px;color:var(--text);line-height:1.5">${vp.priority_action}</div>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,15,28,0.7);padding:20px;text-align:center">
+          <div style="font-size:11px;color:var(--text);line-height:1.7;max-width:400px;margin-bottom:16px">
+            Verify+ adds trustee-grade signals: 90-day preference period analysis, recovery probability scoring, and a single <strong style="color:var(--cream)">YES / NO / REFER</strong> verdict with full documented reasoning.
+          </div>
+          <a href="mailto:hello@lexcryptaglobal.com?subject=Verify%2B%20Inquiry" style="background:var(--gold);color:var(--navy);padding:10px 24px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;text-decoration:none">Contact LexCrypta to unlock Verify+ →</a>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ══ RUN DEMO ══ */
+function runDemo(){
+  const stages=['Reading 7 documents…','Extracting transactions…','Scanning 50 libraries…','Income reconciliation…','Calculating Lexi Attention Score…','Building intelligence…'];
+  let i=0;const status=document.getElementById('runStatus');
+  status.textContent='— '+stages[0];
+  const iv=setInterval(()=>{
+    i++;if(i>=stages.length){
+      clearInterval(iv);
+      document.getElementById('resultsSection').style.display='block';
+      document.getElementById('mhExposure').style.display='block';
+      document.getElementById('mhLAS').style.display='block';
+      document.getElementById('mhLASNum').textContent='84';
+      const vEl=document.getElementById('mhLASVerdict');vEl.textContent='DO FIRST';vEl.className='mh-las-verdict lv-high';
+      document.getElementById('auditTime').textContent=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'})+', '+new Date().toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'});
+      renderSignals();renderIntel();
+      status.textContent='— Analysis complete · Lexi Attention Score: 84 · DO FIRST · Library v2026.03';
+      showNotify('LAS: 84 · DO FIRST · HIGH exposure · 9 signals detected.','Lexi');
+      return;
+    }
+    status.textContent='— '+stages[i];
+  },700);
+}
+
+/* ══ FILE UPLOAD ══ */
+function onFiles(input,zone){
+  const files=[...input.files];if(!files.length) return;
+  const pills=document.getElementById(zone==='bank'?'pillsBank':zone==='cc'?'pillsCC':'pillsTax');
+  const countEl=document.getElementById(zone==='bank'?'bsCount':zone==='cc'?'ccCount':'trCount');
+  files.forEach(f=>{const d=document.createElement('div');d.className='file-pill';d.innerHTML=`<span class="fp-name">${f.name}</span><span class="fp-badge fpb-ready">Ready</span>`;pills.appendChild(d);});
+  const cur=parseInt(countEl.textContent)||0;
+  countEl.textContent=(cur+files.length)+' files';countEl.className='uz-count has';
+  showNotify(files.length+' file'+(files.length>1?'s':'')+' added.','Upload');
+}
+
+/* ══ NEW MATTER ══ */
+function openNewMatter(){document.getElementById('nmSubject').value='';document.getElementById('nmRef').value='';document.getElementById('nmDate').value='';document.getElementById('nmNotes').value='';document.getElementById('fDebtorName').value='';document.getElementById('fCaseNumber').value='';document.getElementById('fJurisdiction').value='US';document.getElementById('fReportTier').value='trustee';document.getElementById('newMatterModal').classList.add('show');}
+function closeNewMatter(){document.getElementById('newMatterModal').classList.remove('show');}
+function selectType(type,el){
+  selectedType=type;
+  document.querySelectorAll('.type-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');
+  const labels={bankruptcy:'Filing Date',family_law:'Separation Date',civil:'Matter Date'};
+  document.getElementById('nmDateLabel').textContent=labels[type]||'Matter Date';
+}
+async function createMatter() {
+  const subject = document.getElementById('nmSubject').value.trim();
+  if (!subject) { showNotify('Please enter the subject name.', 'Required'); return; }
+  const fd = new FormData();
+  fd.append('subject', subject);
+  fd.append('ref', document.getElementById('nmRef').value.trim());
+  fd.append('type', selectedType);
+  fd.append('matter_date', document.getElementById('nmDate').value || '');
+  fd.append('assigned_to', document.getElementById('nmAssigned').value || '');
+  fd.append('notes', document.getElementById('nmNotes').value || '');
+  fd.append('report_tier', document.getElementById('fReportTier')?.value || 'trustee');
+  fd.append('debtor_name', document.getElementById('fDebtorName')?.value?.trim() || '');
+  fd.append('case_number', document.getElementById('fCaseNumber')?.value?.trim() || '');
+  fd.append('jurisdiction', document.getElementById('fJurisdiction')?.value || 'US');
+  try {
+    const r = await fetch(`${API_BASE}/matters`, { method: 'POST', body: fd });
+    const m = await r.json();
+    MATTERS.unshift(m);
+    closeNewMatter();
+    renderDashboard();
+    showNotify('Matter opened — ' + subject + '. Upload documents then add to queue.', 'Lexi');
+    openMatter(m.id);
+  } catch (e) {
+    showNotify('Could not create matter — check connection.', 'Error');
+  }
+}
+
+/* ══ NOTIFY ══ */
+let _notifyTimer=null;
+function showNotify(msg,title='Lexi'){
+  document.getElementById('notifyTitle').textContent=title;
+  document.getElementById('notifyMsg').textContent=msg;
+  const n=document.getElementById('notify');n.classList.add('show');
+  if(_notifyTimer) clearTimeout(_notifyTimer);
+  _notifyTimer=setTimeout(()=>n.classList.remove('show'),4500);
+}
+
+/* ══ INIT ══ */
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('view-login').style.display = 'none';
+  document.getElementById('appShell').style.display = 'none';
+  await checkLicense();
+});
+
+async function checkLicense() {
+  try {
+    const r = await fetch(`${API_BASE}/license-status`);
+    const d = await r.json();
+    if (d.activated) {
+      document.getElementById('view-login').style.display = 'flex';
+    } else {
+      document.getElementById('view-license').style.display = 'flex';
+    }
+  } catch (e) {
+    document.getElementById('view-license').style.display = 'flex';
+    document.getElementById('licErr').textContent = 'Cannot reach application server.';
+  }
+}
+
+async function activateLicense() {
+  const key = document.getElementById('licKeyInput').value.trim().toUpperCase();
+  const err = document.getElementById('licErr');
+  err.textContent = '';
+  if (!key) { err.textContent = 'Please enter your license key.'; return; }
+  try {
+    const r = await fetch(`${API_BASE}/activate-license`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({key})
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.detail || 'Activation failed.'; return; }
+    document.getElementById('view-license').style.display = 'none';
+    document.getElementById('view-login').style.display = 'flex';
+  } catch (e) {
+    err.textContent = 'Connection error. Ensure the application is running.';
+  }
+}
+</script>
+</body>
+</html>
