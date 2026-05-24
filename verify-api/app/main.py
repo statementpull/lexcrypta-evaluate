@@ -300,7 +300,14 @@ def list_matters(
     db: Session = Depends(get_db),
     _: bool = Depends(require_license),
 ):
-    matters = db.query(Matter).filter(~Matter.ref.like('QS-%')).order_by(Matter.id.desc()).all()
+    matters = (db.query(Matter)
+               .filter(
+                   ~Matter.ref.like('QS-%'),
+                   ~Matter.ref.like('DEMO-%'),
+                   ~Matter.ref.like('TST-%'),
+                   ~Matter.ref.like('VRF-%'),
+               )
+               .order_by(Matter.id.desc()).all())
     return [_matter_to_dict(m) for m in matters]
 
 
