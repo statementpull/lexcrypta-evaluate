@@ -33,6 +33,9 @@ from .services.counterparty_service import (
 )
 from .services import ofac_service, dfat_service
 
+# In-memory progress store — keyed by matter_id
+_analysis_progress: dict = {}
+
 
 # ── License ───────────────────────────────────────────────────────────────────
 
@@ -324,9 +327,19 @@ async def run_analysis(
             detail="No documents uploaded. Upload bank statements first.",
         )
 
+    _analysis_progress[matter_id] = {
+        "stage": f"LOADING {len(docs)} FILES",
+        "file_index": 0, "file_total": len(docs),
+        "txn_count": 0, "signals": [], "done": False
+    }
+
     transactions = []
     parse_errors = []
-    for doc in docs:
+    for idx, doc in enumerate(docs, start=1):
+        _analysis_progress[matter_id].update({
+            "stage": f"READING FILE {idx} OF {len(docs)}: {doc.filename}",
+            "file_index": idx,
+        })
         try:
             raw = bytes(doc.content)  # memoryview → bytes for pdfplumber
             if doc.filename.lower().endswith(".pdf"):
@@ -334,6 +347,7 @@ async def run_analysis(
             else:
                 txns = parse_bank_csv_text(raw.decode("utf-8", errors="replace"))
             transactions.extend(txns)
+            _analysis_progress[matter_id]["txn_count"] += len(txns)
         except Exception as e:
             logger.exception("Parse failed for %s: %s", doc.filename, e)
             parse_errors.append(doc.filename)
@@ -342,6 +356,7 @@ async def run_analysis(
     doc_signals = [t for t in transactions if t.get("signal_type") == "document_integrity"]
     transactions = [t for t in transactions if t.get("signal_type") != "document_integrity"]
 
+    _analysis_progress[matter_id]["stage"] = "RUNNING SIGNALS..."
     raw_signals = run_signals(transactions) + doc_signals
     raw_signals = enrich_signals(db, raw_signals)
     result = build_verify_result(
@@ -374,6 +389,8 @@ async def run_analysis(
     # Register all merchants into the cross-matter counterparty library
     upsert_counterparties(db, matter_id, transactions)
 
+    _analysis_progress[matter_id]["done"] = True
+
     return result
 
 
@@ -391,6 +408,15 @@ def get_results(
     return json.loads(ar.result_json)
 
 
+@app.get("/matters/{matter_id}/progress")
+def get_analysis_progress(matter_id: int):
+    p = _analysis_progress.get(matter_id)
+    if not p:
+        return {"stage": "idle", "file_index": 0, "file_total": 0,
+                "txn_count": 0, "signals": [], "done": True}
+    return p
+
+
 # ── Demo ─────────────────────────────────────────────────────────────────────
 
 @app.post("/demo/analyse")
@@ -404,7 +430,17 @@ async def demo_analyse(
 
     all_transactions, doc_signals, parse_errors = [], [], []
 
-    for file in files:
+    _analysis_progress[0] = {
+        "stage": f"LOADING {len(files)} FILES",
+        "file_index": 0, "file_total": len(files),
+        "txn_count": 0, "signals": [], "done": False
+    }
+
+    for idx, file in enumerate(files, start=1):
+        _analysis_progress[0].update({
+            "stage": f"READING FILE {idx} OF {len(files)}: {file.filename}",
+            "file_index": idx,
+        })
         if not file.filename.lower().endswith(".pdf"):
             raise HTTPException(status_code=400, detail=f"{file.filename}: only PDF files are accepted.")
         content = await file.read()
@@ -425,6 +461,9 @@ async def demo_analyse(
             txns = parse_bank_pdf(content, file.filename)
             doc_signals += [t for t in txns if t.get("signal_type") == "document_integrity"]
             all_transactions += [t for t in txns if t.get("signal_type") != "document_integrity"]
+            _analysis_progress[0]["txn_count"] += len(
+                [t for t in txns if t.get("signal_type") != "document_integrity"]
+            )
         except Exception as e:
             logger.exception("Demo parse failed for %s: %s", file.filename, e)
             parse_errors.append(file.filename)
@@ -454,6 +493,7 @@ async def demo_analyse(
     db.commit()
     db.refresh(m)
 
+    _analysis_progress[0]["stage"] = "RUNNING SIGNALS..."
     raw_signals = run_signals(all_transactions) + doc_signals
     raw_signals = enrich_signals(db, raw_signals)
     result = build_verify_result(matter_id=m.id, raw_signals=raw_signals, transactions=all_transactions)
@@ -477,6 +517,8 @@ async def demo_analyse(
 
     # Register all merchants into the cross-matter counterparty library
     upsert_counterparties(db, m.id, all_transactions)
+
+    _analysis_progress[0]["done"] = True
 
     result["report_url"] = f"/reports/{m.id}"
     return result
