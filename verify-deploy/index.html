@@ -1132,6 +1132,7 @@ let _liveFeedInterval = null;
 let _lastStage = '';
 
 function startLiveFeed(matterId) {
+  stopLiveFeed(); // clear any previously running feed before starting a new one
   const log   = document.getElementById('liveFeedLog');
   const title = document.getElementById('liveFeedTitle');
   const fIdx  = document.getElementById('liveFeedFileIdx');
@@ -1140,12 +1141,14 @@ function startLiveFeed(matterId) {
   const bar   = document.getElementById('liveFeedBarFill');
   if (log) log.innerHTML = '';
 
-  _liveFeedInterval = setInterval(async () => {
+  const myInterval = setInterval(async () => {
+    if (_liveFeedInterval !== myInterval) return; // stale interval — a newer feed started
     try {
       const r = await fetch(`${API_BASE}/matters/${matterId}/progress`);
       if (!r.ok) return;
       const p = await r.json();
 
+      if (_liveFeedInterval !== myInterval) return; // dropped while fetch was in-flight
       if (title) title.textContent = p.stage || 'PROCESSING...';
       if (fIdx)  fIdx.textContent  = p.file_index || 0;
       if (fTot)  fTot.textContent  = p.file_total || 0;
@@ -1168,11 +1171,12 @@ function startLiveFeed(matterId) {
       }
 
       if (p.done) {
-        clearInterval(_liveFeedInterval);
+        clearInterval(myInterval);
         _liveFeedInterval = null;
       }
     } catch(e) { /* swallow — analysis may still be starting */ }
   }, 500);
+  _liveFeedInterval = myInterval;
 }
 
 function stopLiveFeed() {
@@ -1251,6 +1255,7 @@ async function runQuickScan(){
     document.getElementById('scanResults').style.display='block';
   } catch(err) {
     stopLiveFeed();
+    document.getElementById('scanUploadSection').style.display = 'block';
     showNotify(err.message || 'Analysis failed','Error');
     btn.disabled = false; btn.textContent = 'Run Analysis';
   }
