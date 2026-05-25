@@ -739,7 +739,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
     <button class="nav-item" id="navQueue" onclick="showView('queue')">
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Lexi Queue
-      <span class="nav-badge nb-teal" id="nbQueue">2</span>
+      <span class="nav-badge" style="background:var(--navy3);border:1px solid var(--border2);color:var(--muted);font-size:7px;letter-spacing:.08em">Demo</span>
     </button>
     <button class="nav-item" id="navMatters" onclick="showView('matters')">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -848,12 +848,22 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
   <div class="topbar">
     <div class="topbar-title">Lexi <em>Queue</em></div>
     <div class="topbar-actions">
+      <div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:5px 10px;border:1px solid var(--border);background:var(--navy3);font-family:var(--mono)">⬡ Demo Mode</div>
       <button class="btn btn-sm btn-danger" id="btnClearQueue" onclick="clearQueue()">Clear Queue</button>
       <button class="btn btn-teal" id="btnRunQueue" onclick="runQueue()">▶ Run Queue</button>
       <button class="btn btn-sm btn-danger" id="btnStopQueue" onclick="stopQueue()" style="display:none">■ Stop</button>
     </div>
   </div>
   <div class="content">
+
+    <!-- Demo mode notice -->
+    <div style="border:1px solid var(--border2);background:var(--navy3);padding:14px 20px;margin-bottom:24px;display:flex;align-items:flex-start;gap:14px">
+      <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:1.5;flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
+      <div>
+        <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-family:var(--mono)">Demo Mode — Illustrative Only</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.7">The queue is shown here to demonstrate the batch-processing workflow. In a live deployment, queued matters are processed sequentially against real uploaded documents and LAS scores update in real time. Results from the Run button below are for illustration purposes only.</div>
+      </div>
+    </div>
 
     <div class="queue-header-band">
       <div class="qh-left">
