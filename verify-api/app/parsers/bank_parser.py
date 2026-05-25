@@ -313,6 +313,8 @@ def _extract_pdf_metadata(pdf_bytes: bytes) -> dict | None:
 # and "electronic withdrawals". Amounts trail the first description line.
 
 _CHASE_AMOUNT_RE = re.compile(r"\$?([\d,]+\.\d{2})\s*$")
+# Combined-section lines end with: [-]amount  balance  (two numbers, amount may be negative)
+_CHASE_COMBINED_AMT_RE = re.compile(r"(-?\d[\d,]*\.\d{2})\s+([\d,]*\.\d{2})\s*$")
 _CHASE_DATE_RE   = re.compile(r"^(\d{1,2}/\d{1,2})\s+(.*)")
 _CHASE_SECTION_START_RE = re.compile(r"^\*start\*(.+)", re.IGNORECASE)
 _CHASE_SECTION_END_RE   = re.compile(r"^\*end\*", re.IGNORECASE)
@@ -322,6 +324,8 @@ _CHASE_CREDIT_SECTIONS = {"deposits and additions", "deposits", "other credits"}
 # Chase section name fragments that contain debits
 _CHASE_DEBIT_SECTIONS  = {"atm", "debit withdrawal", "debit card", "electronic withdrawal",
                            "electronic payment", "checks paid", "fees", "service fee"}
+# Chase combined section — single signed-amount column (newer statement format)
+_CHASE_COMBINED_SECTIONS = {"transaction detail", "account activity", "account transactions"}
 
 _CHASE_SKIP_RE = re.compile(
     r"^Total|^Account Number|^JPMorgan Chase|^Member FDIC"
@@ -385,11 +389,12 @@ def _parse_chase_pdf(pdf_bytes: bytes) -> list[dict]:
             for line in page_text.splitlines():
                 tagged_lines.append((line, page_num))
 
-    current_section = ""
-    is_credit_section = False
-    is_debit_section  = False
-    skip_section      = False
-    current           = None
+    current_section    = ""
+    is_credit_section  = False
+    is_debit_section   = False
+    is_combined_section = False
+    skip_section       = False
+    current            = None
 
     def _flush(t):
         if not t:
@@ -428,6 +433,9 @@ def _parse_chase_pdf(pdf_bytes: bytes) -> list[dict]:
             is_debit_section = not skip_section and any(
                 ds in current_section for ds in _CHASE_DEBIT_SECTIONS
             )
+            is_combined_section = not skip_section and any(
+                cs in current_section for cs in _CHASE_COMBINED_SECTIONS
+            )
             continue
 
         # Section end
@@ -435,10 +443,11 @@ def _parse_chase_pdf(pdf_bytes: bytes) -> list[dict]:
             _flush(current)
             current = None
             current_section = ""
-            is_credit_section = is_debit_section = skip_section = False
+            is_credit_section = is_debit_section = is_combined_section = skip_section = False
             continue
 
-        if skip_section or (not is_credit_section and not is_debit_section):
+        active = is_credit_section or is_debit_section or is_combined_section
+        if skip_section or not active:
             continue
 
         if _CHASE_SKIP_RE.match(stripped):
@@ -446,7 +455,6 @@ def _parse_chase_pdf(pdf_bytes: bytes) -> list[dict]:
 
         # ACH continuation line — append to current description, skip amount parsing
         if current and _CHASE_ACH_CONT_RE.match(stripped):
-            # Only keep Orig CO Name content; ignore the rest
             mc = _CHASE_ORIG_CO_RE.search(stripped)
             if mc:
                 current["description"] = mc.group(1).strip()
@@ -459,17 +467,33 @@ def _parse_chase_pdf(pdf_bytes: bytes) -> list[dict]:
             date = m.group(1)
             rest = m.group(2).strip()
 
-            # Extract trailing amount
-            am = _CHASE_AMOUNT_RE.search(rest)
-            if not am:
-                current = None
-                continue
-            raw_amount = _parse_float(am.group(1))
-            desc_part  = rest[: am.start()].strip()
+            if is_combined_section:
+                # Combined format: "DESCRIPTION [-]amount balance" — use signed amount directly
+                am = _CHASE_COMBINED_AMT_RE.search(rest)
+                if not am:
+                    # Fallback: single unsigned amount (some continuation lines)
+                    am2 = _CHASE_AMOUNT_RE.search(rest)
+                    if not am2:
+                        current = None
+                        continue
+                    raw_amount = _parse_float(am2.group(1))
+                    desc_part  = rest[:am2.start()].strip()
+                    signed_amount = raw_amount  # Unknown sign, treat as credit
+                else:
+                    signed_amount = _parse_float(am.group(1))   # Already signed
+                    desc_part     = rest[:am.start()].strip()
+            else:
+                # Sectioned format: unsigned amounts, sign determined by section type
+                am = _CHASE_AMOUNT_RE.search(rest)
+                if not am:
+                    current = None
+                    continue
+                raw_amount    = _parse_float(am.group(1))
+                desc_part     = rest[:am.start()].strip()
+                signed_amount = raw_amount if is_credit_section else -raw_amount
 
-            # Sign: credits positive, debits negative
-            signed_amount = raw_amount if is_credit_section else -raw_amount
             current = {"date": date, "description": desc_part, "amount": signed_amount, "page_number": line_page_num}
+
         elif current:
             # Continuation of prior description — only append non-amount text
             am = _CHASE_AMOUNT_RE.search(stripped)
