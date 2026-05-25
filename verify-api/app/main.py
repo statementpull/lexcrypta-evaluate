@@ -455,6 +455,15 @@ async def run_analysis(
     doc_signals = [t for t in transactions if t.get("signal_type") == "document_integrity"]
     transactions = [t for t in transactions if t.get("signal_type") != "document_integrity"]
 
+    parse_warning: str | None = None
+    if not transactions:
+        parse_warning = (
+            "No transactions could be parsed from the uploaded documents. "
+            + (f"Parse errors: {'; '.join(parse_errors)}" if parse_errors else
+               "Check that the files are text-based bank statement PDFs or CSVs.")
+        )
+        logger.warning("Analysis proceeding with 0 transactions — %s", parse_warning)
+
     _analysis_progress[matter_id]["stage"] = "RUNNING SIGNALS..."
     raw_signals = run_signals(transactions) + doc_signals
     raw_signals = enrich_signals(db, raw_signals)
@@ -466,6 +475,10 @@ async def run_analysis(
     if parse_errors:
         result["parse_errors"] = parse_errors
     result["transactions_parsed"] = len(transactions)
+
+    # Surface parse warnings in the result so the frontend can display them
+    if parse_warning:
+        result["parse_warning"] = parse_warning
 
     las = result["las"]
     m.las_score = las["score"]

@@ -70,6 +70,42 @@ _WF_BALANCE_ROW_RE = re.compile(
     r"^\s*[\d,]+\.\d{2}\s+\d{1,2}/\d{1,2}\s+[\d,]+\.\d{2}"
 )
 
+# Section headers that flag ALL following transactions as debits (money out)
+# Used by Chase, BofA, Wells Fargo and similar US statement formats.
+# The standalone ^WITHDRAWALS?$ pattern matches Wells Fargo's bare section header.
+_DEBIT_SECTION_RE = re.compile(
+    r"(ATM\s*[&\+]\s*DEBIT\s*CARD\s*WITHDRAWALS?|ELECTRONIC\s*WITHDRAWALS?|"
+    r"OTHER\s*WITHDRAWALS?|SERVICE\s*FEES?|FEES?\s*CHARGED|CHECKS?\s*PAID|"
+    r"ONLINE\s*PAYMENTS?|BILL\s*PAYMENTS?|\*start\*atm|\*start\*electronic|\*start\*service|"
+    r"^WITHDRAWALS?$)",
+    re.IGNORECASE,
+)
+
+# Section headers that flag ALL following transactions as credits (money in)
+# The standalone ^DEPOSITS?$ pattern matches Wells Fargo's bare section header.
+_CREDIT_SECTION_RE = re.compile(
+    r"(DEPOSITS?\s+AND\s+ADDITIONS?|DEPOSITS?\s+AND\s+CREDITS?|"
+    r"DIRECT\s+DEPOSITS?|OTHER\s+DEPOSITS?|CREDITS?|\*start\*deposits?|"
+    r"^DEPOSITS?$)",
+    re.IGNORECASE,
+)
+
+# Section headers that mean STOP parsing — balance summary tables, disclosures etc.
+# Chase: "DAILY ENDING BALANCE" has 3 date+amount columns per row — must not parse as txns
+_SKIP_SECTION_RE = re.compile(
+    r"(DAILY\s+ENDING\s+BALANCE|DAILY\s+BALANCE|BALANCE\s+SUMMARY|"
+    r"IN\s+CASE\s+OF\s+ERRORS|IMPORTANT\s+DISCLOSURES?|"
+    r"\*start\*daily|\*start\*dre|\*start\*disclosure)",
+    re.IGNORECASE,
+)
+
+# Resume parsing when a real transaction section restarts after a skip block
+_RESUME_SECTION_RE = re.compile(
+    r"(\*start\*deposits?|\*start\*atm|\*start\*electronic|"
+    r"DEPOSITS?\s+AND\s+ADDITIONS?|ATM\s*[&\+]\s*DEBIT|ELECTRONIC\s*WITHDRAWALS?)",
+    re.IGNORECASE,
+)
+
 
 def _is_wf_bank(text: str) -> bool:
     return "Wells Fargo" in text or "wellsfargo" in text.lower()
