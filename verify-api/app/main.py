@@ -225,7 +225,23 @@ def purge_matter(
     m = db.query(Matter).filter(Matter.id == matter_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Matter not found.")
-    # Explicitly delete child rows first to avoid ORM-cascade issues with large binary content
+    # Wipe any FK tables not tracked in SQLAlchemy models (created by analysis layer)
+    # counterparty_matter_links is one such table — check existence before deleting
+    _extra_fk_tables = ["counterparty_matter_links"]
+    for tbl in _extra_fk_tables:
+        tbl_exists = db.execute(
+            text(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+                "WHERE table_schema='verify' AND table_name=:t)"
+            ),
+            {"t": tbl},
+        ).scalar()
+        if tbl_exists:
+            db.execute(
+                text(f"DELETE FROM verify.{tbl} WHERE matter_id = :mid"),
+                {"mid": matter_id},
+            )
+    # Explicitly delete ORM-tracked child rows before deleting the parent
     db.query(Document).filter(Document.matter_id == matter_id).delete(synchronize_session=False)
     db.query(AnalysisResult).filter(AnalysisResult.matter_id == matter_id).delete(synchronize_session=False)
     db.delete(m)
