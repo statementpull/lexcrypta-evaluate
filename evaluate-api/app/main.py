@@ -11,6 +11,7 @@ from datetime import date as _date, datetime, timedelta, timezone
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -75,6 +76,13 @@ def require_license(db: Session = Depends(get_db)):
     return True
 
 app = FastAPI(title="LexCrypta Evaluate", version="1.0.0")
+
+# ── Serve evaluate frontend + fonts from Railway (avoids Netlify subdomain warnings)
+_EVAL_STATIC = Path(__file__).parent / "static"
+_EVAL_HTML   = _EVAL_STATIC / "evaluate.html"
+if (_EVAL_STATIC / "fonts").is_dir():
+    app.mount("/fonts", StaticFiles(directory=str(_EVAL_STATIC / "fonts")), name="fonts")
+
 _cors_origins = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else []
 _cors_localhost = [
     "http://localhost:8085", "http://127.0.0.1:8085",
@@ -1676,6 +1684,17 @@ async def propertytrace_extract_text_vision(req: PropertyTracePagesRequest):
                 detail="Vision OCR timed out — try uploading fewer pages at once (maximum 5 pages per file)."
             )
         raise HTTPException(status_code=500, detail=f"Vision extraction error: {str(e)}")
+
+
+# ── Evaluate terminal frontend ────────────────────────────────────────────────
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_evaluate_frontend():
+    """Serve the Evaluate terminal at the root URL."""
+    try:
+        return HTMLResponse(content=_EVAL_HTML.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="Evaluate frontend not found.")
 
 
 # ── PropertyTrace AU — hosted frontend ───────────────────────────────────────
