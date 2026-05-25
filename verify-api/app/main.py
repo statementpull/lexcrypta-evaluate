@@ -225,6 +225,9 @@ def purge_matter(
     m = db.query(Matter).filter(Matter.id == matter_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Matter not found.")
+    # Explicitly delete child rows first to avoid ORM-cascade issues with large binary content
+    db.query(Document).filter(Document.matter_id == matter_id).delete(synchronize_session=False)
+    db.query(AnalysisResult).filter(AnalysisResult.matter_id == matter_id).delete(synchronize_session=False)
     db.delete(m)
     db.commit()
     return {"purged": True}
