@@ -42,11 +42,11 @@ body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:
 .sidebar-user-name{color:var(--text);font-weight:400;display:block;font-size:11px;margin-bottom:1px}
 .sidebar-user-role{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .sidebar-nav{padding:14px 0;flex:1;overflow-y:auto}
-.nav-section-label{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);padding:10px 24px 5px;opacity:.55}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 24px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border:none;border-left:2px solid transparent;transition:all .18s;cursor:pointer;background:none;width:100%;text-align:left;font-family:var(--sans);font-weight:400}
-.nav-item:hover{color:var(--text);background:rgba(255,255,255,.025)}
-.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--golddim)}
-.nav-item svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;flex-shrink:0}
+.nav-section-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);padding:12px 24px 5px;opacity:.6}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 24px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border:none;border-left:3px solid transparent;transition:all .15s;cursor:pointer;background:none;width:100%;text-align:left;font-family:var(--sans);font-weight:400}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.032);border-left-color:rgba(255,255,255,.08)}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--golddim);font-weight:500}
+.nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.5;flex-shrink:0}
 .nav-badge{margin-left:auto;min-width:17px;height:17px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:500;border-radius:9px;padding:0 5px;font-family:var(--mono)}
 .nb-red{background:var(--red)}.nb-amber{background:var(--amber)}.nb-teal{background:var(--teal)}.nb-gold{background:var(--gold);color:var(--navy)}
 .sidebar-footer{padding:14px 24px;border-top:1px solid var(--border);font-size:9px;color:var(--muted)}
@@ -753,7 +753,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
     <div class="nav-section-label" style="margin-top:8px">Tools</div>
     <!-- Evaluate — unlocked, external -->
     <button class="nav-item tool-nav-item" id="navToolEvaluate"
-       onclick="window.open('https://evaluate.lexcryptaglobal.com','_blank')"
+       onclick="window.open('https://lexcrypta-evaluate-production.up.railway.app','_blank')"
        data-tip="M&A due diligence and deal forensics. Analyses financials to uncover hidden liabilities, cash anomalies, and ownership structures.">
       <svg class="tool-lock open" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0"/></svg>
       Evaluate
@@ -1565,7 +1565,7 @@ function initJurisdiction() {
 
 /* ══ TOOL LAUNCHER ══ */
 const TOOL_URLS = {
-  evaluate: 'https://evaluate.lexcryptaglobal.com',
+  evaluate: 'https://lexcrypta-evaluate-production.up.railway.app',
   propertytrace: 'https://lexcrypta-evaluate-production.up.railway.app/propertytrace-au',
 };
 
