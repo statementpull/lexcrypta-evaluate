@@ -52,6 +52,39 @@ body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:
 .sidebar-footer{padding:14px 24px;border-top:1px solid var(--border);font-size:9px;color:var(--muted)}
 .lib-dot{width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;flex-shrink:0}
 
+/* ── TOOL NAV ITEMS ── */
+.tool-nav-item{position:relative}
+.tool-lock{width:12px;height:12px;flex-shrink:0;fill:none;stroke-width:2}
+.tool-lock.open{stroke:var(--teal)}
+.tool-lock.locked{stroke:var(--muted);opacity:.5}
+.tool-nav-badge{margin-left:auto;font-family:var(--mono);font-size:7px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border:1px solid;border-radius:2px}
+.tool-nav-badge.unlocked{color:var(--teal);border-color:rgba(26,122,110,.3);background:var(--tealdim)}
+.tool-nav-badge.active-here{color:var(--gold);border-color:rgba(200,150,62,.3);background:var(--golddim)}
+.tool-nav-badge.locked-badge{color:var(--muted);border-color:var(--border);background:transparent;opacity:.6}
+
+/* ── TOOL DETAIL VIEW ── */
+.tool-detail-card{border:1px solid var(--border);background:var(--navy2);max-width:580px}
+.tdc-accent{height:3px}
+.tdc-head{padding:30px 36px 22px;border-bottom:1px solid var(--border)}
+.tdc-kicker{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.tdc-kicker::before{content:'';width:14px;height:1px;background:var(--muted)}
+.tdc-title{font-family:var(--serif);font-size:30px;font-weight:300;color:var(--cream);margin-bottom:8px}
+.tdc-title em{font-style:italic;color:var(--gold)}
+.tdc-lock-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.tdc-lock-icon{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:1.5}
+.tdc-lock-text{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em}
+.tdc-body{padding:24px 36px}
+.tdc-blurb{font-size:12px;color:rgba(188,200,220,.8);line-height:1.8;margin-bottom:22px}
+.tdc-produces-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.tdc-produces{list-style:none;padding:0;margin:0 0 22px}
+.tdc-produces li{font-size:11px;color:var(--text);padding:7px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.tdc-produces li::before{content:'›';color:var(--muted);flex-shrink:0;margin-top:1px}
+.tdc-produces li:last-child{border-bottom:none}
+.tdc-unlock-box{background:var(--navy3);border:1px solid var(--border);border-left:2px solid var(--gold);padding:16px 20px;margin-bottom:20px}
+.tdc-unlock-title{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.tdc-unlock-text{font-size:11px;color:rgba(188,200,220,.75);line-height:1.7}
+.tdc-foot{padding:0 36px 28px;display:flex;gap:10px}
+
 /* ── JURISDICTION TOGGLE ── */
 .sidebar-jurisdiction{padding:10px 24px 12px;border-bottom:1px solid var(--border)}
 .jur-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
@@ -697,11 +730,37 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
       <span id="navMatterName" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
     </button>
     <div class="nav-section-label" style="margin-top:8px">Tools</div>
-    <button class="nav-item" id="navTools" onclick="showView('tools')">
-      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="6" height="6"/><rect x="9" y="3" width="6" height="6"/><rect x="16" y="3" width="6" height="6"/><rect x="2" y="10" width="6" height="6"/><rect x="9" y="10" width="6" height="6"/><rect x="16" y="10" width="6" height="6"/><rect x="2" y="17" width="6" height="6"/><rect x="9" y="17" width="6" height="6"/><rect x="16" y="17" width="6" height="6"/></svg>
-      Product Suite
+    <!-- Evaluate — unlocked, external -->
+    <button class="nav-item tool-nav-item" id="navToolEvaluate" onclick="launchTool('evaluate')">
+      <svg class="tool-lock open" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Evaluate
+      <span class="tool-nav-badge unlocked">Live</span>
     </button>
-    <button class="nav-item" id="navScan" onclick="showView('scan')">
+    <!-- Verify — unlocked, current -->
+    <button class="nav-item tool-nav-item active" id="navToolVerify" onclick="showView('dashboard')">
+      <svg class="tool-lock open" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Verify
+      <span class="tool-nav-badge active-here">Here</span>
+    </button>
+    <!-- PropertyTrace — unlocked, external -->
+    <button class="nav-item tool-nav-item" id="navToolPropertyTrace" onclick="launchTool('propertytrace')">
+      <svg class="tool-lock open" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      PropertyTrace
+      <span class="tool-nav-badge unlocked">Live</span>
+    </button>
+    <!-- Vault — locked -->
+    <button class="nav-item tool-nav-item" id="navToolVault" onclick="showToolDetail('vault')">
+      <svg class="tool-lock locked" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+      Vault
+      <span class="tool-nav-badge locked-badge">Locked</span>
+    </button>
+    <!-- Trace — locked -->
+    <button class="nav-item tool-nav-item" id="navToolTrace" onclick="showToolDetail('trace')">
+      <svg class="tool-lock locked" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+      Trace
+      <span class="tool-nav-badge locked-badge">Locked</span>
+    </button>
+    <button class="nav-item" id="navScan" onclick="showView('scan')" style="margin-top:6px;border-top:1px solid var(--border);padding-top:12px">
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Quick Scan
     </button>
@@ -1210,19 +1269,23 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
   </div>
 </div>
 
-<!-- ════ PRODUCT SUITE ════ -->
+<!-- ════ TOOL DETAIL ════ -->
 <div id="view-tools" class="view">
   <div class="topbar">
-    <div class="topbar-title">LexCrypta <em>Product Suite</em></div>
+    <div class="topbar-title" id="toolDetailTopTitle">LexCrypta <em>Tools</em></div>
     <div class="topbar-actions">
       <div id="topbarJurBadge2" class="jur-mode-badge">🇦🇺 AU</div>
+      <button class="btn" onclick="showView('dashboard')">← Dashboard</button>
     </div>
   </div>
   <div class="content">
+    <div id="toolDetailBody"></div>
+  </div>
+</div>
 
-    <div class="section-eyebrow" style="margin-bottom:22px">Available Tools</div>
-
-    <div class="suite-grid">
+<!-- ════ PRODUCT SUITE (legacy — kept for CSS, hidden) ════ -->
+<div id="view-tools-old" style="display:none">
+  <div class="suite-grid">
 
       <!-- ── EVALUATE ── -->
       <div class="suite-card sc-evaluate">
@@ -1318,11 +1381,6 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
         </div>
       </div>
 
-    </div>
-
-    <!-- Version note -->
-    <div style="font-size:9px;color:var(--muted);font-family:var(--mono);text-align:right;margin-top:4px">
-      LexCrypta Platform · Library v2026.03 · 50 detection libraries
     </div>
 
   </div>
@@ -1461,6 +1519,89 @@ function initJurisdiction() {
   }
   const ptBtn = document.getElementById('ptRunBtn');
   if (ptBtn) ptBtn.textContent = 'Run PropertyTrace ' + mode + ' Scan →';
+}
+
+/* ══ TOOL LAUNCHER ══ */
+const TOOL_URLS = {
+  evaluate: 'https://lexcrypta-evaluate-production.up.railway.app',
+  propertytrace: 'https://lexcrypta-evaluate-production.up.railway.app/propertytrace-au',
+};
+
+const TOOL_DATA = {
+  vault: {
+    name: 'Vault',
+    kicker: 'Evidence Management',
+    tagline: 'Secure Document Storage · Chain of Custody · Matter Archive',
+    accentColor: 'var(--amber)',
+    blurb: 'LexCrypta Vault provides court-grade secure document storage with full chain-of-custody tracking. Every upload is timestamped, hash-verified, and access-logged. Designed to make your document holdings admissible and defensible.',
+    produces: [
+      'Tamper-evident document receipts with SHA-256 hash',
+      'Full access log for every document (who opened, when)',
+      'Chain-of-custody certificate for court submission',
+      'Batch upload and matter-linked organisation',
+      'Secure shareable links for counsel and court officers',
+    ],
+    unlock: 'Vault is available as an add-on to any active LexCrypta licence. Contact your account manager or email access@lexcrypta.com to enable.',
+  },
+  trace: {
+    name: 'Trace',
+    kicker: 'Deep Asset Tracing',
+    tagline: 'Registry Integration · Crypto Wallet Clustering · Expert Reports',
+    accentColor: 'var(--blue)',
+    blurb: 'LexCrypta Trace goes beyond bank statements — cross-referencing ASIC company records, land title registries, and crypto exchange APIs to build a complete picture of hidden asset ownership. Produces court-ready expert report packages.',
+    produces: [
+      'ASIC directorship and company interest mapping',
+      'Land title cross-reference against statement property signals',
+      'Crypto wallet cluster analysis and exchange tracing',
+      'Automated subpoena draft letters for identified institutions',
+      'Court-ready expert report package with source references',
+    ],
+    unlock: 'Trace is available to licensed practitioners by application. Requires an active Verify licence. Email access@lexcrypta.com or speak to your account manager to apply.',
+  },
+};
+
+function launchTool(tool) {
+  const url = TOOL_URLS[tool];
+  if (url) window.open(url, '_blank');
+}
+
+function showToolDetail(tool) {
+  const data = TOOL_DATA[tool];
+  if (!data) return;
+  // Update topbar title
+  const titleEl = document.getElementById('toolDetailTopTitle');
+  if (titleEl) titleEl.innerHTML = `LexCrypta <em>${data.name}</em>`;
+  // Build card HTML
+  const producesHtml = data.produces.map(p => `<li>${p}</li>`).join('');
+  document.getElementById('toolDetailBody').innerHTML = `
+    <div class="tool-detail-card">
+      <div class="tdc-accent" style="background:${data.accentColor}"></div>
+      <div class="tdc-head">
+        <div class="tdc-kicker">${data.kicker}</div>
+        <div class="tdc-title">LexCrypta <em>${data.name}</em></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">${data.tagline}</div>
+        <div class="tdc-lock-row">
+          <svg class="tdc-lock-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+          <span class="tdc-lock-text">Access Locked — Licence Required</span>
+        </div>
+      </div>
+      <div class="tdc-body">
+        <div class="tdc-blurb">${data.blurb}</div>
+        <div class="tdc-produces-label">What it produces</div>
+        <ul class="tdc-produces">${producesHtml}</ul>
+        <div class="tdc-unlock-box">
+          <div class="tdc-unlock-title">How to Unlock</div>
+          <div class="tdc-unlock-text">${data.unlock}</div>
+        </div>
+      </div>
+      <div class="tdc-foot">
+        <button class="btn btn-gold" onclick="showNotify('${data.unlock}','Unlock ${data.name}')">Request Access</button>
+        <button class="btn" onclick="showView('dashboard')">← Back</button>
+      </div>
+    </div>
+    <div style="font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:16px">LexCrypta Platform · Library v2026.03 · 50 detection libraries</div>
+  `;
+  showView('tools');
 }
 
 /* ══ STATE ══ */
@@ -1878,7 +2019,7 @@ function showView(v){
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   const panel=document.getElementById('view-'+v);
   if(panel) panel.classList.add('active');
-  const navMap={dashboard:'navDashboard',queue:'navQueue',matters:'navMatters',matter:'navMatter',scan:'navScan',admin:'navAdmin',tools:'navTools'};
+  const navMap={dashboard:'navDashboard',queue:'navQueue',matters:'navMatters',matter:'navMatter',scan:'navScan',admin:'navAdmin',tools:'navToolVault'};
   const nav=document.getElementById(navMap[v]||'nav'+v);
   if(nav) nav.classList.add('active');
   if(v==='queue') renderQueue();
