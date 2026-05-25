@@ -530,6 +530,28 @@ async def run_analysis(
     }
     result["cash_summary"] = cash_summary
 
+    # ── Date range from transaction dates ─────────────────────────────────────
+    _dates = [t.get("transaction_date", "") for t in transactions if t.get("transaction_date")]
+    if _dates:
+        from datetime import datetime as _dt
+        _parsed_dates = []
+        for _d in _dates:
+            for _fmt in ("%m/%d/%Y", "%m/%d/%y", "%Y-%m-%d", "%m/%d", "%-m/%-d", "%#m/%#d"):
+                try:
+                    _parsed_dates.append(_dt.strptime(_d.strip(), _fmt))
+                    break
+                except ValueError:
+                    continue
+        if _parsed_dates:
+            _dmin, _dmax = min(_parsed_dates), max(_parsed_dates)
+            # Use year-aware format only if parsed dates actually contain a year
+            _has_year = any(len(d.strip().split("/")) == 3 or "-" in d for d in _dates)
+            _fmt_out = "%b %d, %Y" if _has_year else "%b %d"
+            result["date_range"] = {
+                "from_label": _dmin.strftime(_fmt_out),
+                "to_label":   _dmax.strftime(_fmt_out),
+            }
+
     # ── Three-document cross-reference ────────────────────────────────────────
     _analysis_progress[matter_id]["stage"] = "CROSS-REFERENCING DOCUMENTS..."
     crossref_signals = run_crossref(
