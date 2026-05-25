@@ -1190,6 +1190,8 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
     </div>
 
     <div id="scanResults" style="display:none;max-width:880px;margin:0 auto">
+      <!-- Parse warning banner — shown when no transactions could be extracted -->
+      <div id="scanParseWarning" style="display:none;background:var(--reddim);border:1px solid rgba(192,57,43,.3);padding:12px 16px;margin-bottom:16px;font-size:11px;color:var(--red);line-height:1.5"></div>
       <!-- Verify+ Trustee Verdict Panel -->
       <div id="vpVerdictPanel" style="display:none"></div>
       <div class="scan-result-meta">
@@ -2037,7 +2039,19 @@ function renderScanResults(result){
       const dr = result.date_range;
       let txt = `${n.toLocaleString()} transactions parsed`;
       if (dr && dr.from_label && dr.to_label) txt += ` · ${dr.from_label} – ${dr.to_label}`;
+      if (result.parse_warning) txt += ` ⚠ ${result.parse_warning}`;
       sMeta.textContent = txt;
+    }
+  }
+
+  // parse_warning banner — shown when statements couldn't be parsed
+  const warnBanner = document.getElementById('scanParseWarning');
+  if (warnBanner) {
+    if (result.parse_warning) {
+      warnBanner.textContent = '⚠ ' + result.parse_warning;
+      warnBanner.style.display = 'block';
+    } else {
+      warnBanner.style.display = 'none';
     }
   }
 

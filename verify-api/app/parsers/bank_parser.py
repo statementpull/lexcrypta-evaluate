@@ -70,6 +70,14 @@ _WF_BALANCE_ROW_RE = re.compile(
     r"^\s*[\d,]+\.\d{2}\s+\d{1,2}/\d{1,2}\s+[\d,]+\.\d{2}"
 )
 
+# WF transaction section header — different statement generations use different labels
+_WF_SECTION_START_RE = re.compile(
+    r"Transaction\s+history|Account\s+[Aa]ctivity|Account\s+History|"
+    r"Transaction\s+History|Checking\s+Account\s+Transactions?|"
+    r"Savings\s+Account\s+Transactions?|Account\s+Transactions?",
+    re.IGNORECASE,
+)
+
 # Section headers that flag ALL following transactions as debits (money out)
 # Used by Chase, BofA, Wells Fargo and similar US statement formats.
 # The standalone ^WITHDRAWALS?$ pattern matches Wells Fargo's bare section header.
@@ -145,7 +153,7 @@ def _parse_wellsfargo_pdf(pdf_bytes: bytes) -> list[dict]:
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         for page_num, page in enumerate(pdf.pages, start=1):
             text = page.extract_text() or ""
-            if "Transaction history" not in text:
+            if not _WF_SECTION_START_RE.search(text):
                 continue
 
             words = page.extract_words()
@@ -157,7 +165,7 @@ def _parse_wellsfargo_pdf(pdf_bytes: bytes) -> list[dict]:
             for line in lines:
                 line_text = " ".join(w["text"] for w in line)
 
-                if "Transaction history" in line_text:
+                if _WF_SECTION_START_RE.search(line_text):
                     in_section = True
                     continue
                 if not in_section:
@@ -889,13 +897,110 @@ def _finalise_mf_txn(t: dict) -> dict:
 
 # ── Public interface ───────────────────────────────────────────────────────────
 
+# ── Text-line fallback parser ─────────────────────────────────────────────────
+# Used when all bank-specific and table parsers return 0 transactions.
+# Handles text-layout PDFs (WF, Chase, and AU banks) by scanning for lines that
+# start with a date, then extracting the first money amount as the transaction value.
+
+_TL_DATE_RE = re.compile(
+    r"""^[\s]*
+    (
+      \d{1,2}/\d{1,2}/\d{2,4}                                        # MM/DD/YYYY
+      | \d{1,2}/\d{1,2}(?=\s)                                         # MM/DD (no year)
+      | \d{1,2}[\s\-](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s\-]\d{2,4}
+      | (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}
+    )
+    [\s,]+
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+_TL_MONEY_RE = re.compile(r"(-?\$?[\d,]{1,12}\.\d{2})")
+
+_TL_SKIP_RE = re.compile(
+    r"^\s*(date|description|narration|narrative|details|transaction|debit|credit|"
+    r"balance|opening|closing|brought forward|carried forward|page\s+\d|"
+    r"account number|account name|bsb|statement period|available)\b",
+    re.IGNORECASE,
+)
+
+
+def _parse_text_lines(full_text: str) -> list[dict]:
+    """Parse transactions from raw PDF text when all structured parsers return 0."""
+    txns = []
+    section_is_debit = False
+    section_skip = False
+
+    for line in full_text.splitlines():
+        stripped = line.strip()
+        if not stripped or len(stripped) < 8:
+            continue
+
+        if _SKIP_SECTION_RE.search(stripped):
+            section_skip = True
+            continue
+        if section_skip:
+            if _RESUME_SECTION_RE.search(stripped):
+                section_skip = False
+            else:
+                continue
+
+        if _DEBIT_SECTION_RE.search(stripped):
+            section_is_debit = True
+            continue
+        if _CREDIT_SECTION_RE.search(stripped):
+            section_is_debit = False
+            continue
+
+        if _TL_SKIP_RE.match(stripped):
+            continue
+
+        m = _TL_DATE_RE.match(stripped)
+        if not m:
+            continue
+
+        date_str = m.group(1).strip()
+        rest = stripped[m.end():].strip()
+
+        amounts = _TL_MONEY_RE.findall(rest)
+        if not amounts:
+            continue
+
+        desc = _TL_MONEY_RE.sub("", rest).strip()
+        desc = re.sub(r"\s*\b(DR|CR)\b.*$", "", desc, flags=re.IGNORECASE).strip()
+        desc = re.sub(r"\s*-?\$+\s*", " ", desc).strip()
+        desc = re.sub(r"\s{2,}", " ", desc).strip()
+        if not desc or len(desc) < 2:
+            continue
+
+        try:
+            amount = float(amounts[0].replace(",", "").replace("$", ""))
+        except ValueError:
+            continue
+
+        if amount > 0:
+            if re.search(r"\bDR\b", rest, re.IGNORECASE) or section_is_debit:
+                amount = -amount
+
+        txns.append({
+            "transaction_date": date_str,
+            "merchant": _normalise_merchant(desc),
+            "amount": amount,
+            "raw": {"line": stripped},
+        })
+
+    return txns
+
+
 def parse_bank_pdf(pdf_bytes: bytes, filename: str = "") -> list[dict]:
     # Detect bank from first two pages (some banks print identifying text on page 2)
+    all_page_text: list[str] = []
     try:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             first_text = "\n".join(
                 (p.extract_text() or "") for p in pdf.pages[:2]
             )
+            all_page_text = [(p.extract_text() or "") for p in pdf.pages]
     except Exception:
         first_text = ""
 
@@ -920,8 +1025,12 @@ def parse_bank_pdf(pdf_bytes: bytes, filename: str = "") -> list[dict]:
                     t.setdefault("source_file", filename)
                 return txns
 
-    # Fallback to generic table parser
+    # Fallback 1: generic table parser
     txns = _parse_generic_pdf(pdf_bytes)
+    if not txns and all_page_text:
+        # Fallback 2: text-line parser — handles text-layout PDFs with no embedded tables
+        txns = _parse_text_lines("\n".join(all_page_text))
+
     meta_signal = _extract_pdf_metadata(pdf_bytes)
     if meta_signal:
         txns.append(meta_signal)

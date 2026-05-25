@@ -467,14 +467,21 @@ async def run_analysis(
     _analysis_progress[matter_id]["stage"] = "RUNNING SIGNALS..."
     raw_signals = run_signals(transactions) + doc_signals
     raw_signals = enrich_signals(db, raw_signals)
+    jurisdiction = getattr(m, "jurisdiction", "US") or "US"
     result = build_verify_result(
         matter_id=matter_id,
         raw_signals=raw_signals,
         transactions=transactions,
+        jurisdiction=jurisdiction,
     )
     if parse_errors:
         result["parse_errors"] = parse_errors
     result["transactions_parsed"] = len(transactions)
+    result["cash_summary"] = {
+        "total_credits": round(sum(t.get("amount", 0) for t in transactions if t.get("amount", 0) > 0), 2),
+        "total_debits":  round(sum(abs(t.get("amount", 0)) for t in transactions if t.get("amount", 0) < 0), 2),
+        "net_cash":      round(sum(t.get("amount", 0) for t in transactions), 2),
+    }
 
     # Surface parse warnings in the result so the frontend can display them
     if parse_warning:
