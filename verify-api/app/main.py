@@ -207,7 +207,12 @@ def list_matters(
     db: Session = Depends(get_db),
     _: bool = Depends(require_license),
 ):
-    matters = db.query(Matter).order_by(Matter.id.desc()).all()
+    matters = (
+        db.query(Matter)
+        .filter((Matter.is_demo == False) | (Matter.is_demo == None))  # noqa: E712
+        .order_by(Matter.id.desc())
+        .all()
+    )
     return [_matter_to_dict(m) for m in matters]
 
 

@@ -22,6 +22,7 @@ class Matter(Base):
     last_run = Column(String(50), default="—")
     doc_count = Column(Integer, default=0)
     analysed = Column(Boolean, default=False)
+    is_demo = Column(Boolean, default=False)
     las_score = Column(Integer)
     las_verdict = Column(String(20))
     las_verdict_cls = Column(String(10))

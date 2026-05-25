@@ -338,7 +338,7 @@ def seed_demo_data(db):
         return  # Already seeded
 
     for m_data in DEMO_MATTERS:
-        matter = Matter(**{k: v for k, v in m_data.items() if k != "id"})
+        matter = Matter(**{k: v for k, v in m_data.items() if k != "id"}, is_demo=True)
         db.add(matter)
     db.flush()
 

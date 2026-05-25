@@ -22,4 +22,9 @@ def get_db():
 def create_verify_schema():
     with engine.connect() as conn:
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS verify"))
+        # Add is_demo column if it doesn't exist (safe to run on existing DBs)
+        conn.execute(text(
+            "ALTER TABLE IF EXISTS verify.matters "
+            "ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT FALSE"
+        ))
         conn.commit()
