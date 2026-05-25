@@ -25,7 +25,7 @@
 html[data-theme="light"]{
   --navy:#eef2f7;--navy2:#e4eaf3;--navy3:#d8e2ef;--navy4:#cdd9ea;
   --border:rgba(0,40,80,0.09);--border2:rgba(0,40,80,0.16);
-  --cream:#1a2d45;--text:#2e4a68;--muted:#587490;
+  --cream:#0f1f35;--text:#1e3a58;--muted:#3a5a7a;
   --golddim:rgba(160,110,30,0.10);
   --reddim:rgba(192,57,43,0.08);--amberdim:rgba(180,100,5,0.08);--greendim:rgba(30,100,60,0.08);
 }
@@ -42,15 +42,121 @@ body{font-family:var(--sans);background:var(--navy);color:var(--text);font-size:
 .sidebar-user-name{color:var(--text);font-weight:400;display:block;font-size:11px;margin-bottom:1px}
 .sidebar-user-role{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .sidebar-nav{padding:14px 0;flex:1;overflow-y:auto}
-.nav-section-label{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);padding:10px 24px 5px;opacity:.55}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 24px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border:none;border-left:2px solid transparent;transition:all .18s;cursor:pointer;background:none;width:100%;text-align:left;font-family:var(--sans);font-weight:400}
-.nav-item:hover{color:var(--text);background:rgba(255,255,255,.025)}
-.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--golddim)}
-.nav-item svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;flex-shrink:0}
+.nav-section-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);padding:12px 24px 5px;opacity:.6}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 24px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border:none;border-left:3px solid transparent;transition:all .15s;cursor:pointer;background:none;width:100%;text-align:left;font-family:var(--sans);font-weight:400}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.032);border-left-color:rgba(255,255,255,.08)}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--golddim);font-weight:500}
+.nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.5;flex-shrink:0}
 .nav-badge{margin-left:auto;min-width:17px;height:17px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:500;border-radius:9px;padding:0 5px;font-family:var(--mono)}
 .nb-red{background:var(--red)}.nb-amber{background:var(--amber)}.nb-teal{background:var(--teal)}.nb-gold{background:var(--gold);color:var(--navy)}
 .sidebar-footer{padding:14px 24px;border-top:1px solid var(--border);font-size:9px;color:var(--muted)}
 .lib-dot{width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;flex-shrink:0}
+
+/* ── TOOL NAV ITEMS ── */
+.tool-nav-item{position:relative}
+.tool-lock{width:12px;height:12px;flex-shrink:0;fill:none;stroke-width:2}
+.tool-lock.open{stroke:var(--teal)}
+.tool-lock.locked{stroke:var(--muted);opacity:.5}
+.tool-nav-badge{margin-left:auto;font-family:var(--mono);font-size:7px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border:1px solid;border-radius:2px}
+.tool-nav-badge.unlocked{color:var(--teal);border-color:rgba(26,122,110,.3);background:var(--tealdim)}
+.tool-nav-badge.active-here{color:var(--gold);border-color:rgba(200,150,62,.3);background:var(--golddim)}
+.tool-nav-badge.locked-badge{color:var(--muted);border-color:var(--border);background:transparent;opacity:.6}
+
+/* ── TOOL HOVER TOOLTIP (JS-positioned — escapes sidebar overflow) ── */
+.js-tool-tip{
+  position:fixed;z-index:9000;
+  background:var(--navy3);border:1px solid var(--border2);color:var(--text);
+  font-size:10px;font-family:var(--sans);font-weight:300;line-height:1.55;
+  padding:9px 13px;width:210px;white-space:normal;
+  pointer-events:none;
+  box-shadow:0 4px 18px rgba(0,0,0,.35);
+  letter-spacing:0;text-transform:none;
+  animation:tipFadeIn .12s ease;
+}
+@keyframes tipFadeIn{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── MATTER DELETE ── */
+.m-delete{width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:1px solid transparent;background:none;cursor:pointer;border-radius:2px;flex-shrink:0;transition:all .15s;opacity:0}
+.matter-row:hover .m-delete{opacity:.45}
+.m-delete:hover{opacity:1!important;border-color:rgba(192,57,43,.35);background:var(--reddim);}
+.m-delete svg{width:11px;height:11px;stroke:var(--red);fill:none;stroke-width:2}
+
+/* ── TOOL DETAIL VIEW ── */
+.tool-detail-card{border:1px solid var(--border);background:var(--navy2);max-width:580px}
+.tdc-accent{height:3px}
+.tdc-head{padding:30px 36px 22px;border-bottom:1px solid var(--border)}
+.tdc-kicker{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.tdc-kicker::before{content:'';width:14px;height:1px;background:var(--muted)}
+.tdc-title{font-family:var(--serif);font-size:30px;font-weight:300;color:var(--cream);margin-bottom:8px}
+.tdc-title em{font-style:italic;color:var(--gold)}
+.tdc-lock-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.tdc-lock-icon{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:1.5}
+.tdc-lock-text{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em}
+.tdc-body{padding:24px 36px}
+.tdc-blurb{font-size:12px;color:rgba(188,200,220,.8);line-height:1.8;margin-bottom:22px}
+.tdc-produces-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.tdc-produces{list-style:none;padding:0;margin:0 0 22px}
+.tdc-produces li{font-size:11px;color:var(--text);padding:7px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.tdc-produces li::before{content:'›';color:var(--muted);flex-shrink:0;margin-top:1px}
+.tdc-produces li:last-child{border-bottom:none}
+.tdc-unlock-box{background:var(--navy3);border:1px solid var(--border);border-left:2px solid var(--gold);padding:16px 20px;margin-bottom:20px}
+.tdc-unlock-title{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.tdc-unlock-text{font-size:11px;color:rgba(188,200,220,.75);line-height:1.7}
+.tdc-foot{padding:0 36px 28px;display:flex;gap:10px}
+.ic-tool-hint{font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border:1px solid rgba(26,122,110,.35);background:var(--tealdim);color:var(--teal);cursor:pointer;transition:all .15s}
+.ic-tool-hint:hover{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+/* ── JURISDICTION TOGGLE ── */
+.sidebar-jurisdiction{padding:10px 24px 12px;border-bottom:1px solid var(--border)}
+.jur-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.jur-toggle{display:flex;background:var(--navy3);border:1px solid var(--border);overflow:hidden}
+.jur-btn{flex:1;padding:7px 0;font-size:9px;letter-spacing:.12em;text-transform:uppercase;border:none;border-right:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:var(--sans);font-weight:400;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:5px}
+.jur-btn:last-child{border-right:none}
+.jur-btn.active{background:var(--gold);color:var(--navy);font-weight:600}
+.jur-btn:not(.active):hover{color:var(--text);background:rgba(255,255,255,.04)}
+.jur-mode-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;font-weight:500;padding:4px 10px;border:1px solid;border-radius:2px;cursor:pointer;transition:all .15s;letter-spacing:.08em;text-transform:uppercase}
+.jur-mode-badge.jur-au{color:var(--teal);border-color:rgba(26,122,110,.4);background:var(--tealdim)}
+.jur-mode-badge.jur-us{color:#7ab0d4;border-color:rgba(122,176,212,.3);background:rgba(122,176,212,.06)}
+
+/* ── PRODUCT SUITE ── */
+.suite-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:28px}
+.suite-card{background:var(--navy2);display:flex;flex-direction:column;position:relative;overflow:hidden}
+.suite-card-top{height:3px;width:100%}
+.sc-evaluate .suite-card-top{background:var(--teal)}
+.sc-verify .suite-card-top{background:var(--gold)}
+.sc-locked .suite-card-top{background:var(--border2)}
+.suite-card-body{padding:26px 28px;flex:1}
+.suite-product-kicker{font-size:8px;letter-spacing:.3em;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.suite-product-kicker::before{content:'';width:16px;height:1px}
+.sc-evaluate .suite-product-kicker{color:var(--teal)}.sc-evaluate .suite-product-kicker::before{background:var(--teal)}
+.sc-verify .suite-product-kicker{color:var(--gold)}.sc-verify .suite-product-kicker::before{background:var(--gold)}
+.sc-locked .suite-product-kicker{color:var(--muted)}.sc-locked .suite-product-kicker::before{background:var(--muted)}
+.suite-product-name{font-family:var(--serif);font-size:28px;font-weight:300;color:var(--cream);line-height:1.1;margin-bottom:6px}
+.suite-product-name em{font-style:italic}
+.sc-verify .suite-product-name em{color:var(--gold)}
+.sc-evaluate .suite-product-name em{color:var(--teal)}
+.sc-locked .suite-product-name em{color:var(--muted)}
+.suite-tagline{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:18px}
+.suite-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase;padding:4px 10px;border:1px solid;margin-bottom:18px}
+.badge-active{color:var(--gold);border-color:rgba(200,150,62,.35);background:var(--golddim)}
+.badge-available{color:var(--teal);border-color:rgba(26,122,110,.35);background:var(--tealdim)}
+.badge-locked{color:var(--muted);border-color:var(--border);background:transparent}
+.suite-blurb{font-size:11px;color:rgba(188,200,220,.75);line-height:1.75;margin-bottom:20px;border-left:2px solid var(--border2);padding-left:14px}
+.suite-produces-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.suite-produces{list-style:none;padding:0;margin:0 0 24px}
+.suite-produces li{font-size:11px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.suite-produces li::before{content:'›';flex-shrink:0;margin-top:1px}
+.sc-evaluate .suite-produces li::before{color:var(--teal)}
+.sc-verify .suite-produces li::before{color:var(--gold)}
+.sc-locked .suite-produces li::before{color:var(--muted)}
+.suite-produces li:last-child{border-bottom:none}
+.suite-card-foot{padding:0 28px 26px}
+.suite-cta{display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:9px;letter-spacing:.18em;text-transform:uppercase;padding:11px 20px;border:1px solid;cursor:pointer;transition:all .18s;font-weight:400;text-decoration:none;background:none}
+.cta-gold{color:var(--gold);border-color:rgba(200,150,62,.4)}.cta-gold:hover{background:var(--golddim);border-color:var(--gold)}
+.cta-teal{color:var(--teal);border-color:rgba(26,122,110,.4)}.cta-teal:hover{background:var(--tealdim);border-color:var(--teal)}
+.cta-current{color:var(--muted);border-color:var(--border);cursor:default;opacity:.6}
+.cta-unlock{color:var(--navy);background:var(--muted);border-color:var(--muted)}.cta-unlock:hover{background:var(--text);border-color:var(--text)}
+.suite-lock-overlay{position:absolute;top:16px;right:16px;opacity:.18}
 
 /* ── MAIN ── */
 .main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh}
@@ -506,6 +612,37 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
 .scan-intel-narrative{font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px}
 .scan-intel-path-lbl{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
 .scan-intel-path{font-size:11px;color:var(--text);line-height:1.65}
+
+/* ══ VERIFY+ VERDICT PANEL ══ */
+.vp-panel{background:var(--navy2);border:1px solid var(--border);margin-bottom:24px}
+.vp-panel-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.vp-panel-kicker{font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:#9c6ef0;font-family:var(--mono)}
+.vp-panel-conf{font-size:8px;letter-spacing:.12em;text-transform:uppercase;padding:3px 9px;border-radius:2px;font-family:var(--mono)}
+.vp-panel-body{padding:20px 24px;display:grid;grid-template-columns:140px 1fr;gap:24px;align-items:start}
+.vp-verdict-word{font-family:var(--mono);font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.vp-verdict-sub{font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.vp-verdict-high{color:#2e7d52}
+.vp-verdict-mid{color:#d4860a}
+.vp-verdict-low{color:#6a7a8e}
+.vp-conf-high{background:rgba(46,125,82,.15);color:#2e7d52;border:1px solid rgba(46,125,82,.3)}
+.vp-conf-mid{background:rgba(212,134,10,.1);color:#d4860a;border:1px solid rgba(212,134,10,.25)}
+.vp-conf-low{background:rgba(106,122,142,.1);color:var(--muted);border:1px solid var(--border)}
+.vp-reasons{}
+.vp-reason-row{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.035)}
+.vp-reason-row:last-child{border-bottom:none}
+.vp-reason-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.vp-dot-red{background:#c0392b}
+.vp-dot-amber{background:#d4860a}
+.vp-dot-green{background:#2e7d52}
+.vp-reason-lbl{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--cream);font-family:var(--mono);margin-bottom:3px}
+.vp-reason-desc{font-size:10px;color:var(--muted);line-height:1.55}
+.vp-panel-footer{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-top:1px solid var(--border)}
+.vp-footer-cell{background:var(--navy3);padding:14px 18px}
+.vp-footer-lbl{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.vp-footer-val{font-family:var(--mono);font-size:12px;color:var(--cream);line-height:1.4}
+.vp-panel-action{padding:14px 20px;border-top:1px solid var(--border);background:var(--navy3)}
+.vp-action-lbl{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:#9c6ef0;margin-bottom:5px}
+.vp-action-text{font-size:11px;color:var(--muted);line-height:1.6}
 </style>
 </head>
 <body>
@@ -614,6 +751,13 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
     <div class="logo-name">LexCrypta</div>
     <div class="logo-sub">Verify Terminal</div>
   </div>
+  <div class="sidebar-jurisdiction">
+    <div class="jur-label">Jurisdiction Mode</div>
+    <div class="jur-toggle">
+      <button class="jur-btn active" id="jurBtnAU" onclick="setJurisdiction('AU')">🇦🇺 Australia</button>
+      <button class="jur-btn" id="jurBtnUS" onclick="setJurisdiction('US')">🇺🇸 USA</button>
+    </div>
+  </div>
   <div class="sidebar-user">
     <span class="sidebar-user-name">Michael Anderson</span>
     <span class="sidebar-user-role">Senior Associate</span>
@@ -628,7 +772,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
     <button class="nav-item" id="navQueue" onclick="showView('queue')">
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Lexi Queue
-      <span class="nav-badge nb-teal" id="nbQueue">2</span>
+      <span class="nav-badge" style="background:var(--navy3);border:1px solid var(--border2);color:var(--muted);font-size:7px;letter-spacing:.08em">Demo</span>
     </button>
     <button class="nav-item" id="navMatters" onclick="showView('matters')">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -640,7 +784,48 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
       <span id="navMatterName" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
     </button>
     <div class="nav-section-label" style="margin-top:8px">Tools</div>
-    <button class="nav-item" id="navScan" onclick="showView('scan')">
+    <!-- Evaluate — unlocked, external -->
+    <button class="nav-item tool-nav-item" id="navToolEvaluate"
+       onclick="window.open('https://lexcrypta-evaluate-production.up.railway.app','_blank')"
+       data-tip="M&A due diligence and deal forensics. Analyses financials to uncover hidden liabilities, cash anomalies, and ownership structures.">
+      <svg class="tool-lock open" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0"/></svg>
+      Evaluate
+    </button>
+    <!-- Verify — unlocked, current -->
+    <button class="nav-item tool-nav-item active" id="navToolVerify" onclick="showView('dashboard')"
+       data-tip="Bank statement intelligence. Detects hidden assets, crypto activity, and behavioural patterns. Produces Lexi Attention Score across 16 signal categories.">
+      <svg class="tool-lock open" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0"/></svg>
+      Verify
+    </button>
+    <!-- Verify+ — locked, trustee screener -->
+    <button class="nav-item tool-nav-item" id="navToolVerifyPlus" onclick="showView('scan')"
+       data-tip="Trustee-grade go/no-go screener. Upload bank statements and get a clear PROCEED / SEEK DISCLOSURE / DECLINE verdict with 3 documented reasons in under 30 seconds.">
+      <svg class="tool-lock open" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0"/></svg>
+      Verify+
+      <span class="tool-nav-badge unlocked" style="font-size:6px;letter-spacing:.06em">Trustee</span>
+    </button>
+    <!-- PropertyTrace — unlocked, external -->
+    <button class="nav-item tool-nav-item" id="navToolPropertyTrace"
+       onclick="window.open('https://lexcrypta-evaluate-production.up.railway.app/propertytrace-au','_blank')"
+       data-tip="Scans bank statements for undisclosed property ownership — council rates, strata, mortgage repayments, and offset accounts. AU and US modes.">
+      <svg class="tool-lock open" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0"/></svg>
+      PropertyTrace
+    </button>
+    <!-- Vault — locked -->
+    <button class="nav-item tool-nav-item" id="navToolVault" onclick="showToolDetail('vault')"
+       data-tip="Secure document storage with chain-of-custody tracking and tamper-evident receipts. Court-grade evidence management. Unlock required.">
+      <svg class="tool-lock locked" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Vault
+      <span class="tool-nav-badge locked-badge">Locked</span>
+    </button>
+    <!-- Trace — locked -->
+    <button class="nav-item tool-nav-item" id="navToolTrace" onclick="showToolDetail('trace')"
+       data-tip="Deep asset tracing — ASIC records, land title registry, crypto wallet clustering, and automated subpoena drafts. Court-ready expert report package. Unlock required.">
+      <svg class="tool-lock locked" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Trace
+      <span class="tool-nav-badge locked-badge">Locked</span>
+    </button>
+    <button class="nav-item" id="navScan" onclick="showView('scan')" style="margin-top:6px;border-top:1px solid var(--border);padding-top:12px">
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Quick Scan
     </button>
@@ -670,6 +855,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
   <div class="topbar">
     <div class="topbar-title">Good morning, <em>Michael.</em></div>
     <div class="topbar-actions">
+      <div id="topbarJurBadge" class="jur-mode-badge jur-au" title="Jurisdiction: Australia — click to change" onclick="document.querySelector('.sidebar-jurisdiction').scrollIntoView({behavior:'smooth'})">🇦🇺 Australia</div>
       <button class="btn" onclick="showView('queue')">Lexi Queue <span id="tbQueueCount" style="font-family:var(--mono);font-size:9px;color:var(--teal);margin-left:4px">2</span></button>
       <button class="btn btn-gold" onclick="openNewMatter()">+ New Matter</button>
     </div>
@@ -695,12 +881,22 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
   <div class="topbar">
     <div class="topbar-title">Lexi <em>Queue</em></div>
     <div class="topbar-actions">
+      <div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:5px 10px;border:1px solid var(--border);background:var(--navy3);font-family:var(--mono)">⬡ Demo Mode</div>
       <button class="btn btn-sm btn-danger" id="btnClearQueue" onclick="clearQueue()">Clear Queue</button>
       <button class="btn btn-teal" id="btnRunQueue" onclick="runQueue()">▶ Run Queue</button>
       <button class="btn btn-sm btn-danger" id="btnStopQueue" onclick="stopQueue()" style="display:none">■ Stop</button>
     </div>
   </div>
   <div class="content">
+
+    <!-- Demo mode notice -->
+    <div style="border:1px solid var(--border2);background:var(--navy3);padding:14px 20px;margin-bottom:24px;display:flex;align-items:flex-start;gap:14px">
+      <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:1.5;flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
+      <div>
+        <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-family:var(--mono)">Demo Mode — Illustrative Only</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.7">The queue is shown here to demonstrate the batch-processing workflow. In a live deployment, queued matters are processed sequentially against real uploaded documents and LAS scores update in real time. Results from the Run button below are for illustration purposes only.</div>
+      </div>
+    </div>
 
     <div class="queue-header-band">
       <div class="qh-left">
@@ -774,7 +970,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
           <div id="mhDebtorWrap" style="display:none"><span class="mhf-lbl">Debtor</span><span class="mhf-val" id="mhDebtorName">—</span></div>
           <div id="mhCaseWrap" style="display:none"><span class="mhf-lbl">Case #</span><span class="mhf-val" id="mhCaseNumber">—</span></div>
           <div><span class="mhf-lbl">Filing Date</span><span class="mhf-val" id="mhDate">—</span></div>
-          <div><span class="mhf-lbl">Last Run</span><span class="mhf-val" id="mhLastRun">Not yet analysed</span></div>
+          <div><span class="mhf-lbl">Last Run</span><span class="mhf-val" id="mhLastRun"><span data-jur-au="Not yet analysed" data-jur-us="Not yet analyzed">Not yet analysed</span></span></div>
           <div id="mhTxnWrap" style="display:none"><span class="mhf-lbl">Transactions</span><span class="mhf-val" id="mhTxnCount">—</span></div>
           <div><span class="mhf-lbl">Library</span><span class="mhf-val">v2026.03</span></div>
         </div>
@@ -849,8 +1045,8 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
         <div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)">Analyst</div>
         <input class="run-analyst-inp" type="text" value="Michael Anderson" placeholder="Your name">
       </div>
-      <div class="run-status" id="runStatus">— 7 documents ready · click Analyse to run Lexi</div>
-      <button class="btn btn-gold" onclick="runDemo()">Analyse with Lexi</button>
+      <div class="run-status" id="runStatus">— 7 documents ready · click <span data-jur-au="Analyse" data-jur-us="Analyze">Analyse</span> to run Lexi</div>
+      <button class="btn btn-gold" onclick="runDemo()"><span data-jur-au="Analyse" data-jur-us="Analyze">Analyse</span> with Lexi</button>
     </div>
     </div><!-- /matterUploadSection -->
 
@@ -902,6 +1098,20 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
         </div>
       </div>
     </div>
+      <!-- ── PROPERTY INTELLIGENCE ── -->
+      <div id="ptSection" style="margin-top:24px">
+        <div class="results-eyebrow" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Property Intelligence</span>
+          <button class="btn btn-gold" id="ptRunBtn" style="font-size:9px;padding:4px 14px;letter-spacing:.1em" onclick="runPropertyTrace()">Run PropertyTrace Scan →</button>
+        </div>
+        <div id="ptBody">
+          <div style="background:var(--navy2);border:1px solid var(--border);padding:18px 20px;display:flex;align-items:center;gap:14px">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--gold);fill:none;stroke-width:1.5;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span id="ptJurDesc" style="font-size:11px;color:var(--muted);line-height:1.6">Scan Australian bank statements for undisclosed property ownership — council rates, strata levies, mortgage repayments, insurance, and offset accounts. Results appear here. <em style="color:var(--gold);font-style:normal">AU statements only.</em></span>
+          </div>
+        </div>
+      </div>
+
       <!-- Flagged transactions evidence table -->
       <div id="flaggedTxnSection" style="display:none;margin-top:24px">
         <div class="results-eyebrow" style="display:flex;align-items:center;justify-content:space-between">
@@ -980,6 +1190,8 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
     </div>
 
     <div id="scanResults" style="display:none;max-width:880px;margin:0 auto">
+      <!-- Verify+ Trustee Verdict Panel -->
+      <div id="vpVerdictPanel" style="display:none"></div>
       <div class="scan-result-meta">
         <div>
           <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Lexi Attention Score</div>
@@ -1035,11 +1247,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
         </table>
       </div>
 
-      <div id="scanVerifyPlus" style="display:none;margin-top:24px;border:1px solid rgba(200,150,62,.3);padding:24px;background:var(--golddim);text-align:center">
-        <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Verify+</div>
-        <div style="font-family:var(--serif);font-size:20px;font-weight:300;color:var(--cream);margin-bottom:6px">Enhanced Recovery Intelligence Available</div>
-        <div style="font-size:11px;color:var(--muted)">High-exposure matter detected. Verify+ provides subpoena pathways, offshore entity mapping, and recovery probability scoring.</div>
-      </div>
+      <div id="scanVerifyPlus" style="display:none"></div>
     </div>
 
   </div>
@@ -1134,6 +1342,123 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
   </div>
 </div>
 
+<!-- ════ TOOL DETAIL ════ -->
+<div id="view-tools" class="view">
+  <div class="topbar">
+    <div class="topbar-title" id="toolDetailTopTitle">LexCrypta <em>Tools</em></div>
+    <div class="topbar-actions">
+      <div id="topbarJurBadge2" class="jur-mode-badge jur-au" title="Jurisdiction: Australia — click to change" onclick="document.querySelector('.sidebar-jurisdiction').scrollIntoView({behavior:'smooth'})">🇦🇺 Australia</div>
+      <button class="btn" onclick="showView('dashboard')">← Dashboard</button>
+    </div>
+  </div>
+  <div class="content">
+    <div id="toolDetailBody"></div>
+  </div>
+</div>
+
+<!-- ════ PRODUCT SUITE (legacy — kept for CSS, hidden) ════ -->
+<div id="view-tools-old" style="display:none">
+  <div class="suite-grid">
+
+      <!-- ── EVALUATE ── -->
+      <div class="suite-card sc-evaluate">
+        <div class="suite-card-top"></div>
+        <div class="suite-card-body">
+          <div class="suite-product-kicker">Forensic Intelligence</div>
+          <div class="suite-product-name">LexCrypta <em>Evaluate</em></div>
+          <div class="suite-tagline">M&A Due Diligence · Deal Forensics · Financial Risk</div>
+          <div class="suite-badge badge-available">
+            <svg viewBox="0 0 24 24" style="width:8px;height:8px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="20 6 9 17 4 12"/></svg>
+            Available
+          </div>
+          <div class="suite-blurb">
+            Analyses company financials, bank statements, and transaction flows to uncover hidden liabilities, cash position anomalies, and undisclosed ownership structures. Built for M&A due diligence, litigation support, and deal forensics.
+          </div>
+          <div class="suite-produces-label">What it produces</div>
+          <ul class="suite-produces">
+            <li>Deal risk score with confidence rating</li>
+            <li>PropertyTrace AU — undisclosed property intelligence</li>
+            <li>Cash flow anomaly and income gap report</li>
+            <li>Ownership flags and liability exposure summary</li>
+            <li>Forensic narrative ready for legal brief</li>
+          </ul>
+        </div>
+        <div class="suite-card-foot">
+          <a class="suite-cta cta-teal" href="https://lexcrypta-evaluate-production.up.railway.app" target="_blank">
+            Open Evaluate
+            <svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- ── VERIFY ── -->
+      <div class="suite-card sc-verify">
+        <div class="suite-card-top"></div>
+        <div class="suite-card-body">
+          <div class="suite-product-kicker">Bank Statement Intelligence</div>
+          <div class="suite-product-name">LexCrypta <em>Verify</em></div>
+          <div class="suite-tagline">Hidden Asset Detection · LAS Scoring · Legal Intelligence</div>
+          <div class="suite-badge badge-active">
+            <svg viewBox="0 0 24 24" style="width:7px;height:7px;fill:var(--gold);stroke:none"><circle cx="12" cy="12" r="8"/></svg>
+            Active — You are here
+          </div>
+          <div class="suite-blurb">
+            Processes bank statements from any institution to detect hidden assets, financial misconduct, crypto activity, and behavioural patterns. Every matter receives a Lexi Attention Score to tell you where to focus first.
+          </div>
+          <div class="suite-produces-label">What it produces</div>
+          <ul class="suite-produces">
+            <li>Lexi Attention Score (LAS 0–100) — ranked across 4 components</li>
+            <li>16-signal forensic analysis across crypto, property, gambling, structuring</li>
+            <li>PropertyTrace — undisclosed property ownership intelligence</li>
+            <li>Intel cards with subpoena pathways and recovery estimates</li>
+            <li>Verify+ trustee YES/NO determination (matters with HIGH exposure)</li>
+          </ul>
+        </div>
+        <div class="suite-card-foot">
+          <button class="suite-cta cta-current" disabled>
+            <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Currently Active
+          </button>
+        </div>
+      </div>
+
+      <!-- ── LOCKED ── -->
+      <div class="suite-card sc-locked">
+        <div class="suite-card-top"></div>
+        <svg class="suite-lock-overlay" viewBox="0 0 24 24" style="width:64px;height:64px;stroke:var(--muted);fill:none;stroke-width:1"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div class="suite-card-body">
+          <div class="suite-product-kicker">Coming Soon</div>
+          <div class="suite-product-name">LexCrypta <em>Trace</em></div>
+          <div class="suite-tagline">Deep Asset Tracing · Registry Integration · Expert Reports</div>
+          <div class="suite-badge badge-locked">
+            <svg viewBox="0 0 24 24" style="width:8px;height:8px;stroke:currentColor;fill:none;stroke-width:2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Unlock Required
+          </div>
+          <div class="suite-blurb">
+            Deep-layer forensic intelligence combining bank statements, ASIC company records, land title registry data, and crypto exchange APIs. Designed for trustees in bankruptcy, complex family law matters, and criminal fraud investigation.
+          </div>
+          <div class="suite-produces-label">What it produces</div>
+          <ul class="suite-produces">
+            <li>Automated subpoena draft letters for identified institutions</li>
+            <li>Land title cross-reference against statement signals</li>
+            <li>ASIC directorship and company interest mapping</li>
+            <li>Crypto wallet cluster analysis and exchange tracing</li>
+            <li>Court-ready expert report package</li>
+          </ul>
+        </div>
+        <div class="suite-card-foot">
+          <button class="suite-cta cta-unlock" onclick="showNotify('Access to LexCrypta Trace is by application. Contact your account manager or email access@lexcrypta.com to apply.','Unlock Access')">
+            <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Request Access
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
 <!-- NOTIFY -->
 <div class="notify" id="notify">
   <div class="notify-title" id="notifyTitle">Lexi</div>
@@ -1183,6 +1508,7 @@ const SIGNALS=[
   {name:'Gold & Precious Metals',cat:'ASSET',status:'none',count:0,amount:null},
   {name:'Gift Card / Prepaid',cat:'OBFUSCATION',status:'none',count:0,amount:null},
   {name:'Cross-Border Value Transfer',cat:'FLOW',status:'none',count:0,amount:null},
+  {name:'P2P / Mobile Transfers',cat:'FLOW · OBFUSCATION',status:'detected',count:6,amount:'$8,450'},
 ];
 
 const INTEL=[
@@ -1192,6 +1518,245 @@ const INTEL=[
   {catCls:'obfuscation',cat:'OBFUSCATION',title:'Structuring — Possible',narrative:'Cash withdrawals clustering below reporting thresholds. Consistent with deliberate structuring to avoid transaction record.',rec:'Low Recovery',recCls:'low',tier:'Behavioural Signal',path:'Document for trustee report. Subpoena ATM records to establish withdrawal locations — may identify secondary addresses or associates.'},
 ];
 
+/* ══ JURISDICTION MODE ══ */
+let jurisdictionMode = localStorage.getItem('lx_jur') || 'AU';
+
+/* ══ JURISDICTION LOCALISER ══ */
+function l(auWord, usWord) {
+  return jurisdictionMode === 'AU' ? auWord : usWord;
+}
+
+const JUR_TERMS = {
+  analyse:       { AU: 'analyse',       US: 'analyze' },
+  analysed:      { AU: 'analysed',      US: 'analyzed' },
+  analysing:     { AU: 'analysing',     US: 'analyzing' },
+  organisation:  { AU: 'organisation',  US: 'organization' },
+  organisations: { AU: 'organisations', US: 'organizations' },
+  behaviour:     { AU: 'behaviour',     US: 'behavior' },
+  behavioural:   { AU: 'behavioural',   US: 'behavioral' },
+  colour:        { AU: 'colour',        US: 'color' },
+  authorise:     { AU: 'authorise',     US: 'authorize' },
+  authorised:    { AU: 'authorised',    US: 'authorized' },
+  recognise:     { AU: 'recognise',     US: 'recognize' },
+  realise:       { AU: 'realise',       US: 'realize' },
+  defence:       { AU: 'defence',       US: 'defense' },
+  offence:       { AU: 'offence',       US: 'offense' },
+  favour:        { AU: 'favour',        US: 'favor' },
+  licence:       { AU: 'licence',       US: 'license' },
+  centre:        { AU: 'centre',        US: 'center' },
+  practise:      { AU: 'practise',      US: 'practice' },
+  cheque:        { AU: 'cheque',        US: 'check' },
+};
+
+function jurWord(key) {
+  const t = JUR_TERMS[key];
+  if (!t) return key;
+  return t[jurisdictionMode] || t['US'];
+}
+
+function applyJurText() {
+  // Update all elements marked with data-jur-au / data-jur-us
+  document.querySelectorAll('[data-jur-au]').forEach(el => {
+    el.textContent = jurisdictionMode === 'AU'
+      ? el.getAttribute('data-jur-au')
+      : el.getAttribute('data-jur-us');
+  });
+  // Update innerHTML variants
+  document.querySelectorAll('[data-jur-html-au]').forEach(el => {
+    el.innerHTML = jurisdictionMode === 'AU'
+      ? el.getAttribute('data-jur-html-au')
+      : el.getAttribute('data-jur-html-us');
+  });
+}
+
+function setJurisdiction(mode) {
+  jurisdictionMode = mode;
+  localStorage.setItem('lx_jur', mode);
+  document.getElementById('jurBtnAU').classList.toggle('active', mode === 'AU');
+  document.getElementById('jurBtnUS').classList.toggle('active', mode === 'US');
+  // Update PropertyTrace description
+  const ptDesc = document.getElementById('ptJurDesc');
+  if (ptDesc) {
+    ptDesc.innerHTML = mode === 'AU'
+      ? 'Scan Australian bank statements for undisclosed property ownership — council rates, strata levies, mortgage repayments, insurance, and offset accounts. Results appear here. <em style="color:var(--gold);font-style:normal">AU statements only.</em>'
+      : 'Scan US bank statements for undisclosed property ownership — HOA fees, property tax payments, mortgage servicer payments, and homeowner\'s insurance. Results appear here. <em style="color:var(--gold);font-style:normal">US statements only.</em>';
+  }
+  // Update PropertyTrace run button label
+  const ptBtn = document.getElementById('ptRunBtn');
+  if (ptBtn) ptBtn.textContent = 'Run PropertyTrace ' + mode + ' Scan →';
+  // Update new matter default jurisdiction
+  const jurSelect = document.getElementById('fJurisdiction');
+  if (jurSelect) jurSelect.value = mode === 'AU' ? 'AU' : 'US';
+  // Update topbar badges
+  const badge = document.getElementById('topbarJurBadge');
+  if (badge) {
+    badge.textContent = mode === 'AU' ? '🇦🇺 Australia' : '🇺🇸 United States';
+    badge.className = 'jur-mode-badge ' + (mode === 'AU' ? 'jur-au' : 'jur-us');
+  }
+  const badge2 = document.getElementById('topbarJurBadge2');
+  if (badge2) {
+    badge2.textContent = mode === 'AU' ? '🇦🇺 Australia' : '🇺🇸 United States';
+    badge2.className = 'jur-mode-badge ' + (mode === 'AU' ? 'jur-au' : 'jur-us');
+  }
+  // Apply localised text to data-jur-* elements
+  applyJurText();
+  // Re-render lists with correct date format
+  renderDashboard();
+  renderMatters && renderMatters();
+}
+
+function fmtDate(val) {
+  if (!val || val === '—') return val;
+  // Already nicely formatted string (e.g. "14 Mar 2024 · 09:14") — reformat date part only
+  const hasTime = val.includes('·');
+  const datePart = hasTime ? val.split('·')[0].trim() : val.trim();
+  const timePart = hasTime ? ' · ' + val.split('·').slice(1).join('·').trim() : '';
+  try {
+    const d = new Date(datePart);
+    if (isNaN(d.getTime())) return val; // unparseable — return as-is
+    const formatted = jurisdictionMode === 'AU'
+      ? d.toLocaleDateString('en-AU', {day:'2-digit', month:'short', year:'numeric'})
+      : d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    return formatted + timePart;
+  } catch(e) { return val; }
+}
+
+function fmtNow(includeTime) {
+  const d = new Date();
+  const datePart = jurisdictionMode === 'AU'
+    ? d.toLocaleDateString('en-AU', {day:'2-digit', month:'short', year:'numeric'})
+    : d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  if (!includeTime) return datePart;
+  const timePart = d.toLocaleTimeString(jurisdictionMode === 'AU' ? 'en-AU' : 'en-US',
+    {hour:'2-digit', minute:'2-digit'});
+  return timePart + ', ' + datePart;
+}
+
+function initJurisdiction() {
+  const mode = jurisdictionMode;
+  document.getElementById('jurBtnAU').classList.toggle('active', mode === 'AU');
+  document.getElementById('jurBtnUS').classList.toggle('active', mode === 'US');
+  const badge = document.getElementById('topbarJurBadge');
+  if (badge) {
+    badge.textContent = mode === 'AU' ? '🇦🇺 Australia' : '🇺🇸 United States';
+    badge.className = 'jur-mode-badge ' + (mode === 'AU' ? 'jur-au' : 'jur-us');
+  }
+  const badge2b = document.getElementById('topbarJurBadge2');
+  if (badge2b) {
+    badge2b.textContent = mode === 'AU' ? '🇦🇺 Australia' : '🇺🇸 United States';
+    badge2b.className = 'jur-mode-badge ' + (mode === 'AU' ? 'jur-au' : 'jur-us');
+  }
+  const jurSelect = document.getElementById('fJurisdiction');
+  if (jurSelect) jurSelect.value = mode === 'AU' ? 'AU' : 'US';
+  // Update PropertyTrace description on init too
+  const ptDesc = document.getElementById('ptJurDesc');
+  if (ptDesc && mode === 'US') {
+    ptDesc.innerHTML = 'Scan US bank statements for undisclosed property ownership — HOA fees, property tax payments, mortgage servicer payments, and homeowner\'s insurance. Results appear here. <em style="color:var(--gold);font-style:normal">US statements only.</em>';
+  }
+  const ptBtn = document.getElementById('ptRunBtn');
+  if (ptBtn) ptBtn.textContent = 'Run PropertyTrace ' + mode + ' Scan →';
+  // Apply localised text to data-jur-* elements
+  applyJurText();
+}
+
+/* ══ TOOL LAUNCHER ══ */
+const TOOL_URLS = {
+  evaluate: 'https://lexcrypta-evaluate-production.up.railway.app',
+  propertytrace: 'https://lexcrypta-evaluate-production.up.railway.app/propertytrace-au',
+};
+
+const TOOL_DATA = {
+  vault: {
+    name: 'Vault',
+    kicker: 'Evidence Management',
+    tagline: 'Secure Document Storage · Chain of Custody · Matter Archive',
+    accentColor: 'var(--amber)',
+    blurb: 'LexCrypta Vault provides court-grade secure document storage with full chain-of-custody tracking. Every upload is timestamped, hash-verified, and access-logged. Designed to make your document holdings admissible and defensible.',
+    produces: [
+      'Tamper-evident document receipts with SHA-256 hash',
+      'Full access log for every document (who opened, when)',
+      'Chain-of-custody certificate for court submission',
+      'Batch upload and matter-linked organisation',
+      'Secure shareable links for counsel and court officers',
+    ],
+    unlock: 'Vault is available as an add-on to any active LexCrypta licence. Contact your account manager or email access@lexcrypta.com to enable.',
+  },
+  verifyplus: {
+    name: 'Verify+',
+    kicker: 'Trustee Intelligence',
+    tagline: 'Go / No-Go · Matter Screening · Trustee-Grade Verdict',
+    accentColor: '#7c3aed',
+    blurb: 'Verify+ is the trustee-grade matter screener built on top of Verify\'s signal engine. Upload one or more bank statements and receive a clear Go or No-Go verdict — with the three key reasons — in under 30 seconds. Designed to eliminate 90% of unviable matters before they consume firm resources.',
+    produces: [
+      'Go / No-Go verdict with confidence rating',
+      'Three primary supporting or disqualifying signals',
+      'Financial gap summary — declared income vs actual obligations',
+      'Recommended next action (proceed to full Verify, decline, or seek further disclosure)',
+      'Trustee-ready one-page screening report for matter file',
+    ],
+    unlock: 'Verify+ is available as an add-on module to any active Verify licence. Contact LexCrypta to discuss trustee deployment options.',
+  },
+  trace: {
+    name: 'Trace',
+    kicker: 'Deep Asset Tracing',
+    tagline: 'Registry Integration · Crypto Wallet Clustering · Expert Reports',
+    accentColor: 'var(--blue)',
+    blurb: 'LexCrypta Trace goes beyond bank statements — cross-referencing ASIC company records, land title registries, and crypto exchange APIs to build a complete picture of hidden asset ownership. Produces court-ready expert report packages.',
+    produces: [
+      'ASIC directorship and company interest mapping',
+      'Land title cross-reference against statement property signals',
+      'Crypto wallet cluster analysis and exchange tracing',
+      'Automated subpoena draft letters for identified institutions',
+      'Court-ready expert report package with source references',
+    ],
+    unlock: 'Trace is available to licensed practitioners by application. Requires an active Verify licence. Email access@lexcrypta.com or speak to your account manager to apply.',
+  },
+};
+
+function launchTool(tool) {
+  const url = TOOL_URLS[tool];
+  if (url) window.open(url, '_blank');
+}
+
+function showToolDetail(tool) {
+  const data = TOOL_DATA[tool];
+  if (!data) return;
+  // Update topbar title
+  const titleEl = document.getElementById('toolDetailTopTitle');
+  if (titleEl) titleEl.innerHTML = `LexCrypta <em>${data.name}</em>`;
+  // Build card HTML
+  const producesHtml = data.produces.map(p => `<li>${p}</li>`).join('');
+  document.getElementById('toolDetailBody').innerHTML = `
+    <div class="tool-detail-card">
+      <div class="tdc-accent" style="background:${data.accentColor}"></div>
+      <div class="tdc-head">
+        <div class="tdc-kicker">${data.kicker}</div>
+        <div class="tdc-title">LexCrypta <em>${data.name}</em></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">${data.tagline}</div>
+        <div class="tdc-lock-row">
+          <svg class="tdc-lock-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+          <span class="tdc-lock-text">Access Locked — Licence Required</span>
+        </div>
+      </div>
+      <div class="tdc-body">
+        <div class="tdc-blurb">${data.blurb}</div>
+        <div class="tdc-produces-label">What it produces</div>
+        <ul class="tdc-produces">${producesHtml}</ul>
+        <div class="tdc-unlock-box">
+          <div class="tdc-unlock-title">How to Unlock</div>
+          <div class="tdc-unlock-text">${data.unlock}</div>
+        </div>
+      </div>
+      <div class="tdc-foot">
+        <button class="btn btn-gold" onclick="showNotify('${data.unlock}','Unlock ${data.name}')">Request Access</button>
+        <button class="btn" onclick="showView('dashboard')">← Back</button>
+      </div>
+    </div>
+    <div style="font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:16px">LexCrypta Platform · Library v2026.03 · 50 detection libraries</div>
+  `;
+  showView('tools');
+}
+
 /* ══ STATE ══ */
 let queueItems=[{id:1,status:'waiting'},{id:4,status:'waiting'}];
 let queueRunning=false,queueInterval=null,activeMatter=MATTERS[0],selectedType='bankruptcy';
@@ -1200,6 +1765,7 @@ let queueRunning=false,queueInterval=null,activeMatter=MATTERS[0],selectedType='
 async function doLogin() {
   document.getElementById('view-login').style.display = 'none';
   document.getElementById('appShell').style.display = 'flex';
+  initJurisdiction();
   await loadMattersFromAPI();
   renderDashboard();
   renderQueue();
@@ -1388,10 +1954,10 @@ async function runQuickScan(){
     if (_lft) _lft.textContent = 'LOADING ANALYSIS ENGINE...';
     if (_lfb) _lfb.style.width = '22%';
     _addLog(`${scanFiles.length} document${scanFiles.length > 1 ? 's' : ''} received — initialising forensic engine`);
-    _addLog('Running 20 intelligence signals...', 'lf-signal');
+    _addLog('Running 21 intelligence signals...', 'lf-signal');
     startLiveFeed(scanMatterId);
 
-    const runRes = await fetch(`${API_BASE}/matters/${scanMatterId}/run`, { method:'POST' });
+    const runRes = await fetch(`${API_BASE}/matters/${scanMatterId}/run?jurisdiction=${jurisdictionMode}`, { method:'POST' });
     if(!runRes.ok) { stopLiveFeed(); throw new Error('Analysis failed'); }
     const result = await runRes.json();
 
@@ -1515,8 +2081,9 @@ function renderScanResults(result){
     }).join('');
   }
 
-  const vp = result.verify_plus_teaser;
-  if(vp && vp.available) document.getElementById('scanVerifyPlus').style.display='block';
+  // Verify+ verdict panel — replaces old teaser
+  const vp = result.verify_plus;
+  renderVerifyPlusPanel(vp, 'vpVerdictPanel');
 
   window._lastScanResult = result;
 }
@@ -1606,11 +2173,37 @@ function showView(v){
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   const panel=document.getElementById('view-'+v);
   if(panel) panel.classList.add('active');
-  const navMap={dashboard:'navDashboard',queue:'navQueue',matters:'navMatters',matter:'navMatter',scan:'navScan',admin:'navAdmin'};
+  const navMap={dashboard:'navDashboard',queue:'navQueue',matters:'navMatters',matter:'navMatter',scan:'navScan',admin:'navAdmin',tools:'navToolVault'};
   const nav=document.getElementById(navMap[v]||'nav'+v);
   if(nav) nav.classList.add('active');
   if(v==='queue') renderQueue();
   if(v==='matters') renderMattersList('mattersListFull',MATTERS);
+}
+
+/* ══ DELETE MATTER ══ */
+async function deleteMatter(event, id) {
+  event.stopPropagation();
+  const m = MATTERS.find(x => x.id === id);
+  const name = m ? m.subject : 'this matter';
+  if (!confirm(`Delete "${name}"?\n\nThis will permanently remove the matter and all uploaded documents. This cannot be undone.`)) return;
+  try {
+    const r = await fetch(`${API_BASE}/matters/${id}/purge`, { method: 'DELETE' });
+    if (!r.ok) throw new Error(await r.text());
+    // Remove from local array
+    const idx = MATTERS.findIndex(x => x.id === id);
+    if (idx !== -1) MATTERS.splice(idx, 1);
+    // Remove from queue if present
+    const qi = queueItems.findIndex(x => x.id === id);
+    if (qi !== -1) queueItems.splice(qi, 1);
+    // If we're looking at this matter, go back to dashboard
+    if (activeMatter && activeMatter.id === id) showView('dashboard');
+    renderDashboard();
+    renderQueue();
+    updateQueueBadges();
+    showNotify(`"${name}" deleted.`, 'Matter Deleted');
+  } catch(e) {
+    showNotify('Delete failed: ' + e.message, 'Error');
+  }
 }
 
 /* ══ DASHBOARD — CLEAN ══ */
@@ -1628,7 +2221,7 @@ function renderMattersList(id,matters){
         <div class="matter-ref">${m.ref}</div>
         <div class="matter-meta">
           <div class="m-type ${m.type}">${m.typeLabel}</div>
-          <div class="m-date">${m.matterDate}</div>
+          <div class="m-date">${fmtDate(m.matterDate)}</div>
           <div class="m-date">${m.docs} docs</div>
           ${m.attFlag?`<div class="m-flag">${m.attFlag}</div>`:''}
         </div>
@@ -1636,7 +2229,10 @@ function renderMattersList(id,matters){
       <div class="matter-right">
         <button class="q-btn ${inQ?'queued':''}" onclick="toggleQueue(event,${m.id})">${inQ?'✓ Queued':'+ Queue'}</button>
         <div class="exp-badge exp-${m.exposure}">${m.exposure}</div>
-        <div class="m-last">${m.lastRun==='—'?'Not run':m.lastRun}</div>
+        <div class="m-last">${m.lastRun==='—'?'Not run':fmtDate(m.lastRun)}</div>
+        <button class="m-delete" onclick="deleteMatter(event,${m.id})" title="Delete matter">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
         <svg class="m-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     </div>`;
@@ -1798,7 +2394,7 @@ async function processNext() {
     stage++;
   }, 600);
   try {
-    const r = await fetch(`${API_BASE}/matters/${qi.id}/run`, { method: 'POST' });
+    const r = await fetch(`${API_BASE}/matters/${qi.id}/run?jurisdiction=${jurisdictionMode}`, { method: 'POST' });
     clearInterval(stageInterval);
     if (!r.ok) throw new Error(await r.text());
     const result = await r.json();
@@ -1809,7 +2405,7 @@ async function processNext() {
       m.exposure = result.exposure;
       m.att = result.att;
       m.att_flag = result.att_flag;
-      m.lastRun = new Date().toLocaleDateString('en-AU', {day:'2-digit',month:'short',year:'numeric'});
+      m.lastRun = fmtNow(false) + ' · ' + new Date().toLocaleTimeString(jurisdictionMode==='AU'?'en-AU':'en-US',{hour:'2-digit',minute:'2-digit'});
     }
     qi.status = 'done';
     renderQueue(); renderDashboard(); updateQueueBadges();
@@ -1863,7 +2459,7 @@ function openMatter(id){
   document.getElementById('mhSubject').textContent=m.subject;
   document.getElementById('mhRef').textContent=m.ref;
   document.getElementById('mhDate').textContent=m.matterDate;
-  document.getElementById('mhLastRun').textContent=m.lastRun==='—'?'Not yet analysed':m.lastRun;
+  document.getElementById('mhLastRun').textContent=m.lastRun==='—'?l('Not yet analysed','Not yet analyzed'):m.lastRun;
   document.getElementById('mhType').textContent=m.typeLabel+' Matter';
   document.getElementById('matterTopTitle').innerHTML=m.subject+' — <em>'+m.typeLabel+'</em>';
   const mhDebtor=document.getElementById('mhDebtorName');
@@ -2019,6 +2615,19 @@ function renderSignalsFromResult(result) {
   window._lastResult = result;
 }
 
+function _intelToolHint(i) {
+  const t = (i.title + ' ' + i.path).toLowerCase();
+  if (/subpoena|wallet|crypto exchange|austrac|mlat/.test(t))
+    return `<button class="ic-tool-hint" onclick="showToolDetail('trace')" title="LexCrypta Trace can automate this">→ Use Trace</button>`;
+  if (/land title|asic|director|registry|ppsr/.test(t))
+    return `<button class="ic-tool-hint" onclick="showToolDetail('trace')" title="LexCrypta Trace cross-references registries">→ Use Trace</button>`;
+  if (/vault|evidence|chain.of.custody|preserve/.test(t))
+    return `<button class="ic-tool-hint" onclick="showToolDetail('vault')" title="LexCrypta Vault handles court-grade evidence storage">→ Use Vault</button>`;
+  if (/property|propertytrace|council rates|strata/.test(t))
+    return `<button class="ic-tool-hint" onclick="launchTool('propertytrace')" title="Run PropertyTrace for property ownership intelligence">→ PropertyTrace</button>`;
+  return '';
+}
+
 function renderIntelFromResult(result) {
   const intel = result.intel || [];
   const el = document.getElementById('intelCards');
@@ -2029,10 +2638,14 @@ function renderIntelFromResult(result) {
           <div class="ic-cat ${i.cat_cls}">${i.cat}</div>
           <div class="ic-title">${i.title}</div>
           <div class="ic-narrative">${i.narrative}</div>
-          <div class="ic-tags"><span class="ic-tag ${i.rec_cls}">${i.rec}</span><span class="ic-tag">${i.tier}</span></div>
+          <div class="ic-tags">
+            <span class="ic-tag ${i.rec_cls}">${i.rec}</span>
+            <span class="ic-tag">${i.tier}</span>
+            ${_intelToolHint(i)}
+          </div>
           <div class="ic-path"><span class="ic-path-lbl">Path Forward</span>${i.path}</div>
         </div>`).join('')
-    : '<div style="padding:20px;color:var(--muted);font-style:italic;font-size:11px">No signals detected across all 16 categories.</div>';
+    : '<div style="padding:20px;color:var(--muted);font-style:italic;font-size:11px">No signals detected across all 17 categories.</div>';
 }
 
 const DB_CHECKS_DEMO = [
@@ -2079,43 +2692,245 @@ function renderDbChecks(show) {
   panel.style.display = 'block';
 }
 
-function renderVerifyPlus(result) {
-  const vp = result.verify_plus_teaser;
-  const container = document.getElementById('verifyPlusTeaser');
+function renderVerifyPlusPanel(vp, containerId) {
+  const container = document.getElementById(containerId);
   if (!container) return;
   if (!vp || !vp.available) { container.style.display = 'none'; return; }
   container.style.display = 'block';
-  container.innerHTML = `
-    <div style="border:1px solid rgba(200,150,62,0.25);background:var(--navy2);margin-top:24px;position:relative;overflow:hidden">
-      <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold)">Verify+ · Trustee Intelligence Layer</div>
-        <div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;padding:3px 9px;border:1px solid rgba(200,150,62,.3);color:var(--gold)">Locked</div>
+
+  const verdictCls = vp.verdict_cls === 'high' ? 'vp-verdict-high' : vp.verdict_cls === 'mid' ? 'vp-verdict-mid' : 'vp-verdict-low';
+  const confCls = vp.verdict_cls === 'high' ? 'vp-conf-high' : vp.verdict_cls === 'mid' ? 'vp-conf-mid' : 'vp-conf-low';
+  const dotCls = s => s === 'red' ? 'vp-dot-red' : s === 'amber' ? 'vp-dot-amber' : 'vp-dot-green';
+
+  const reasons = (vp.reasons || []).map(r => `
+    <div class="vp-reason-row">
+      <div class="vp-reason-dot ${dotCls(r.severity)}"></div>
+      <div>
+        <div class="vp-reason-lbl">${r.label || ''}</div>
+        <div class="vp-reason-desc">${r.description || ''}</div>
       </div>
-      <div style="padding:20px;position:relative">
-        <div style="filter:blur(5px);pointer-events:none;user-select:none">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:16px">
-            <div style="background:var(--navy3);padding:16px 18px">
-              <div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Trustee Verdict</div>
-              <div style="font-size:15px;color:#c0392b;font-family:var(--mono)">${vp.verdict}</div>
-            </div>
-            <div style="background:var(--navy3);padding:16px 18px">
-              <div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Recovery Estimate</div>
-              <div style="font-size:15px;color:var(--cream);font-family:var(--mono)">${vp.recovery_estimate}</div>
-            </div>
-            <div style="background:var(--navy3);padding:16px 18px">
-              <div style="font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Priority Action</div>
-              <div style="font-size:11px;color:var(--text);line-height:1.5">${vp.priority_action}</div>
-            </div>
-          </div>
+    </div>`).join('');
+
+  const gap = vp.financial_gap || {};
+  const fmt = v => v > 0 ? '$' + v.toLocaleString('en', {minimumFractionDigits: 0, maximumFractionDigits: 0}) : '—';
+
+  container.innerHTML = `
+    <div class="vp-panel">
+      <div class="vp-panel-header">
+        <span class="vp-panel-kicker">Verify+ · Trustee Intelligence</span>
+        <span class="vp-panel-conf ${confCls}">Confidence: ${vp.confidence || '—'}${vp.confidence_note ? ' · ' + vp.confidence_note : ''}</span>
+      </div>
+      <div class="vp-panel-body">
+        <div>
+          <div class="vp-verdict-word ${verdictCls}">${vp.verdict || '—'}</div>
+          <div class="vp-verdict-sub">Trustee Verdict</div>
         </div>
-        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,15,28,0.7);padding:20px;text-align:center">
-          <div style="font-size:11px;color:var(--text);line-height:1.7;max-width:400px;margin-bottom:16px">
-            Verify+ adds trustee-grade signals: 90-day preference period analysis, recovery probability scoring, and a single <strong style="color:var(--cream)">YES / NO / REFER</strong> verdict with full documented reasoning.
-          </div>
-          <a href="mailto:hello@lexcryptaglobal.com?subject=Verify%2B%20Inquiry" style="background:var(--gold);color:var(--navy);padding:10px 24px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;text-decoration:none">Contact LexCrypta to unlock Verify+ →</a>
+        <div class="vp-reasons">${reasons}</div>
+      </div>
+      <div class="vp-panel-footer">
+        <div class="vp-footer-cell">
+          <div class="vp-footer-lbl">Recovery Estimate</div>
+          <div class="vp-footer-val">${vp.recovery_estimate || '—'}</div>
         </div>
+        <div class="vp-footer-cell">
+          <div class="vp-footer-lbl">Preference Window</div>
+          <div class="vp-footer-val">${vp.preference_window || '—'}</div>
+        </div>
+      </div>
+      <div class="vp-panel-action">
+        <div class="vp-action-lbl">Recommended Action</div>
+        <div class="vp-action-text">${vp.recommended_action || '—'}</div>
       </div>
     </div>`;
+}
+
+function renderVerifyPlus(result) {
+  // Use the full VP panel renderer for the matter analysis view too
+  renderVerifyPlusPanel(result.verify_plus, 'verifyPlusTeaser');
+}
+
+
+/* ══ PROPERTY TRACE ══ */
+const escH = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function runPropertyTrace() {
+  const btn  = document.getElementById('ptRunBtn');
+  const body = document.getElementById('ptBody');
+  if (!activeMatter || !activeMatter.id) { showNotify('No active matter.','Error'); return; }
+  btn.disabled = true; btn.textContent = 'Scanning…';
+  body.innerHTML = `<div style="background:var(--navy2);border:1px solid var(--border);padding:20px 18px;display:flex;align-items:center;gap:12px">
+    <div style="width:7px;height:7px;border-radius:50%;background:var(--gold);animation:pulse 1.2s ease-in-out infinite;flex-shrink:0"></div>
+    <span style="font-size:11px;color:var(--muted)">Scanning for property ownership signals — council rates, strata, mortgage, insurance, offset accounts…</span>
+  </div>`;
+  try {
+    const r = await fetch(`${API_BASE}/matters/${activeMatter.id}/property-trace`, {
+      method: 'POST',
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(()=>({}));
+      throw new Error(err.detail || `PropertyTrace error (${r.status})`);
+    }
+    const pt = await r.json();
+    renderPropertyTrace(pt);
+    btn.textContent = 'Re-run →'; btn.disabled = false;
+    const n = (pt.signals||[]).length;
+    showNotify(n>0 ? `PropertyTrace: ${n} property signal${n!==1?'s':''} detected.` : 'PropertyTrace: No property signals found.','Lexi');
+  } catch(e) {
+    body.innerHTML = `<div style="background:var(--navy2);border:1px solid rgba(248,113,113,.25);padding:16px 20px;border-left:2px solid var(--red)">
+      <div style="font-size:9px;letter-spacing:.2em;color:var(--red);margin-bottom:5px">PROPERTY TRACE ERROR</div>
+      <div style="font-size:11px;color:var(--muted)">${escH(e.message)}</div>
+    </div>`;
+    btn.textContent = 'Retry →'; btn.disabled = false;
+  }
+}
+
+function renderPropertyTrace(pt) {
+  const body = document.getElementById('ptBody');
+  const signals    = pt.signals || [];
+  const juris      = pt.jurisdictions || [];
+  const noSignals  = pt.no_signals_found === true || signals.length === 0;
+
+  // ── Type display helpers ──────────────────────────────────────────────────
+  const TYPE_LABEL = {
+    mortgage:'MORTGAGE', strata:'STRATA LEVY', utility:'UTILITY',
+    insurance:'INSURANCE', council_rates:'COUNCIL RATES', land_tax:'LAND TAX',
+    storage:'STORAGE', rental:'RENTAL INCOME', maintenance:'MAINTENANCE', offset:'OFFSET ACCOUNT'
+  };
+  const typeLabel = t => TYPE_LABEL[t] || (t||'').toUpperCase().replace(/_/g,' ');
+
+  // colour matches Verify's status badge scheme
+  const TYPE_BG = {
+    mortgage:'rgba(200,150,62,0.12)', strata:'rgba(212,134,10,0.12)',
+    council_rates:'rgba(200,150,62,0.12)', insurance:'rgba(46,125,82,0.12)',
+    utility:'rgba(74,159,212,0.12)', land_tax:'rgba(192,57,43,0.12)',
+    rental:'rgba(46,125,82,0.12)', maintenance:'rgba(154,127,212,0.12)',
+    offset:'rgba(200,150,62,0.12)'
+  };
+  const TYPE_COL = {
+    mortgage:'var(--gold)', strata:'var(--amber)', council_rates:'var(--gold)',
+    insurance:'var(--green)', utility:'#4a9fd4', land_tax:'var(--red)',
+    rental:'var(--green)', maintenance:'#9a7fd4', offset:'var(--gold)'
+  };
+  const typeBg  = t => TYPE_BG[t]  || 'rgba(138,155,180,0.10)';
+  const typeCol = t => TYPE_COL[t] || 'var(--muted)';
+
+  const confBadge = c => {
+    const lc = (c||'').toLowerCase();
+    if (lc==='high')   return `<span style="font-size:8px;letter-spacing:.12em;padding:2px 7px;background:rgba(200,150,62,0.18);color:var(--gold)">HIGH</span>`;
+    if (lc==='medium') return `<span style="font-size:8px;letter-spacing:.12em;padding:2px 7px;background:rgba(212,134,10,0.15);color:var(--amber)">MEDIUM</span>`;
+    return               `<span style="font-size:8px;letter-spacing:.12em;padding:2px 7px;background:rgba(138,155,180,0.12);color:var(--muted)">LOW</span>`;
+  };
+
+  // ── No signals ────────────────────────────────────────────────────────────
+  if (noSignals) {
+    body.innerHTML = `
+      <div style="background:var(--navy2);border:1px solid var(--border);padding:20px;text-align:center">
+        <div style="font-size:9px;letter-spacing:.2em;color:var(--muted);margin-bottom:6px">PROPERTY INTELLIGENCE RESULT</div>
+        <div style="font-size:13px;color:var(--cream)">No property ownership signals detected</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;font-style:italic;max-width:480px;margin-inline:auto;line-height:1.6">${escH(pt.cluster_finding||'No property-linked signals identified in the provided transaction data.')}</div>
+      </div>`;
+    return;
+  }
+
+  // ── Summary strip ─────────────────────────────────────────────────────────
+  const propCount = juris.length;
+  const summaryStrip = `
+    <div style="background:var(--navy2);border:1px solid var(--border);border-left:3px solid var(--gold);padding:12px 18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:1px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:var(--gold);fill:none;stroke-width:1.5;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <div>
+          <div style="font-family:var(--mono);font-size:18px;color:var(--gold);font-weight:700;line-height:1">${signals.length}</div>
+          <div style="font-size:8px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-top:1px">Property Signals</div>
+        </div>
+      </div>
+      ${propCount>0?`<div style="width:1px;height:32px;background:var(--border)"></div>
+      <div>
+        <div style="font-family:var(--mono);font-size:18px;color:var(--cream);font-weight:700;line-height:1">${propCount}</div>
+        <div style="font-size:8px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-top:1px">Possible Propert${propCount===1?'y':'ies'}</div>
+      </div>`:''}
+      <div style="flex:1;min-width:200px;border-left:1px solid var(--border);padding-left:16px;margin-left:2px">
+        <div style="font-size:8px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;margin-bottom:4px">Lexi Assessment</div>
+        <div style="font-size:11px;color:var(--text);line-height:1.6;font-style:italic">${escH(pt.cluster_finding||'')}</div>
+      </div>
+    </div>`;
+
+  // ── Evidence table (Section C) ────────────────────────────────────────────
+  const evidenceRows = signals.map((s,i)=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 12px;font-family:var(--mono);font-size:9px;color:var(--muted);white-space:nowrap">${String(i+1).padStart(2,'0')}</td>
+      <td style="padding:8px 12px">
+        <span style="font-size:8px;letter-spacing:.10em;padding:2px 8px;background:${typeBg(s.type)};color:${typeCol(s.type)}">${typeLabel(s.type)}</span>
+      </td>
+      <td style="padding:8px 14px;font-size:11px;color:var(--cream);line-height:1.5">${escH(s.description)}</td>
+      <td style="padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--gold);white-space:nowrap;text-align:right">${escH(s.amount||'—')}</td>
+      <td style="padding:8px 12px;white-space:nowrap">${confBadge(s.confidence)}</td>
+      <td style="padding:8px 12px;font-size:9px;color:var(--muted);font-family:var(--mono);white-space:nowrap">${escH(s.jurisdiction_hint||'—')}</td>
+    </tr>`).join('');
+
+  const sectionC = `
+    <div style="border:1px solid var(--border);background:var(--navy2);margin-bottom:1px">
+      <div class="rz-head">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--gold);fill:none;stroke-width:1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <div class="rz-head-title gold">C — Property Evidence</div>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted)">${signals.length} signal${signals.length!==1?'s':''} from bank statement analysis</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:6px 12px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:left">#</th>
+            <th style="padding:6px 12px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:left">TYPE</th>
+            <th style="padding:6px 14px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:left">EVIDENCE</th>
+            <th style="padding:6px 12px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:right">AMOUNT</th>
+            <th style="padding:6px 12px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:left">CONFIDENCE</th>
+            <th style="padding:6px 12px;font-size:8px;letter-spacing:.15em;color:var(--muted);font-weight:400;text-align:left">JURISDICTION</th>
+          </tr>
+        </thead>
+        <tbody>${evidenceRows}</tbody>
+      </table>
+    </div>`;
+
+  // ── Property location records (Section D) ─────────────────────────────────
+  const propCards = juris.map((j,idx)=>{
+    const zones = (j.search_zones||[]);
+    const zoneHtml = zones.map(z=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:var(--gold);fill:none;stroke-width:2;flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+        <span style="font-size:10px;color:var(--text)">${escH(z)}</span>
+      </div>`).join('');
+    return `
+      <div style="background:var(--navy2);border:1px solid var(--border);border-top:2px solid var(--gold)">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--gold)">PROPERTY ${idx+1}</div>
+          <div style="font-size:13px;color:var(--cream);font-weight:500;flex:1">${escH(j.city)}, ${escH(j.state)}</div>
+          ${confBadge(j.confidence)}
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted)">${j.signal_count} SIGNAL${j.signal_count!==1?'S':''}</div>
+        </div>
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+          <div style="font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Evidence Basis</div>
+          <div style="font-size:11px;color:var(--text);line-height:1.65">${escH(j.basis)}</div>
+        </div>
+        ${zones.length?`<div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+          <div style="font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Search Register</div>
+          ${zoneHtml}
+        </div>`:''}
+        <div style="padding:12px 16px;background:var(--golddim)">
+          <div style="font-size:8px;letter-spacing:.16em;color:var(--gold);text-transform:uppercase;margin-bottom:5px">Recommended Action</div>
+          <div style="font-size:11px;color:var(--cream);line-height:1.65">${escH(j.next_step)}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const sectionD = juris.length ? `
+    <div style="border:1px solid var(--border);background:var(--navy2);margin-bottom:1px">
+      <div class="rz-head">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--gold);fill:none;stroke-width:1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <div class="rz-head-title gold">D — Property Location Records</div>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted)">${juris.length} location${juris.length!==1?'s':''} identified</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--border)">${propCards}</div>
+    </div>` : '';
+
+  body.innerHTML = summaryStrip + sectionC + sectionD;
 }
 
 /* ══ RUN DEMO ══ */
@@ -2131,7 +2946,7 @@ function runDemo(){
       document.getElementById('mhLAS').style.display='block';
       document.getElementById('mhLASNum').textContent='84';
       const vEl=document.getElementById('mhLASVerdict');vEl.textContent='DO FIRST';vEl.className='mh-las-verdict lv-high';
-      document.getElementById('auditTime').textContent=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'})+', '+new Date().toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'});
+      document.getElementById('auditTime').textContent=fmtNow(true);
       renderSignals();renderIntel();
       status.textContent='— Analysis complete · Lexi Attention Score: 84 · DO FIRST · Library v2026.03';
       showNotify('LAS: 84 · DO FIRST · HIGH exposure · 9 signals detected.','Lexi');
@@ -2249,6 +3064,31 @@ async function activateLicense() {
     err.textContent = 'Connection error. Ensure the application is running.';
   }
 }
+
+/* ══ JS TOOLTIPS — fixed-position, escapes sidebar overflow ══ */
+(function initToolTips() {
+  let _tip = null;
+  function removeTip() { if (_tip) { _tip.remove(); _tip = null; } }
+  document.querySelectorAll('[data-tip]').forEach(function(el) {
+    el.addEventListener('mouseenter', function() {
+      removeTip();
+      const text = el.getAttribute('data-tip');
+      if (!text) return;
+      _tip = document.createElement('div');
+      _tip.className = 'js-tool-tip';
+      _tip.textContent = text;
+      document.body.appendChild(_tip);
+      const r = el.getBoundingClientRect();
+      const th = _tip.offsetHeight;
+      let top = Math.round(r.top + r.height / 2 - th / 2);
+      top = Math.max(8, Math.min(top, window.innerHeight - th - 8));
+      _tip.style.top = top + 'px';
+      _tip.style.left = Math.round(r.right + 12) + 'px';
+    });
+    el.addEventListener('mouseleave', removeTip);
+    el.addEventListener('click', removeTip);
+  });
+})();
 </script>
 </body>
 </html>
