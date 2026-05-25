@@ -293,6 +293,7 @@ async def upload_documents(
 @app.post("/matters/{matter_id}/run")
 async def run_analysis(
     matter_id: int,
+    jurisdiction: str = "AU",
     db: Session = Depends(get_db),
     _: bool = Depends(require_license),
 ):
@@ -330,6 +331,7 @@ async def run_analysis(
         matter_id=matter_id,
         raw_signals=raw_signals,
         transactions=transactions,
+        jurisdiction=jurisdiction,
     )
 
     las = result["las"]
@@ -341,7 +343,10 @@ async def run_analysis(
     m.att = result["att"]
     m.att_flag = result["att_flag"]
     m.analysed = True
-    m.last_run = datetime.now(timezone.utc).strftime("%d %b %Y · %H:%M")
+    if jurisdiction == 'AU':
+        m.last_run = datetime.now(timezone.utc).strftime("%d %b %Y · %H:%M")
+    else:
+        m.last_run = datetime.now(timezone.utc).strftime("%b %d, %Y · %H:%M")
 
     if existing:
         existing.result_json = json.dumps(result)

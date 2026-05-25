@@ -1,4 +1,57 @@
 """Narrative template engine. No Ollama. Templates inject library fields."""
+import re
+
+# ── Jurisdiction localisation (mirrors signals/__init__.py) ───────────────────
+
+_JUR_SUBS_AU: dict[str, str] = {
+    "analyzed":      "analysed",
+    "analyze":       "analyse",
+    "analyzing":     "analysing",
+    "organized":     "organised",
+    "organize":      "organise",
+    "organization":  "organisation",
+    "organizations": "organisations",
+    "behavioral":    "behavioural",
+    "behavior":      "behaviour",
+    "behaviors":     "behaviours",
+    "authorized":    "authorised",
+    "authorize":     "authorise",
+    "authorization": "authorisation",
+    "recognized":    "recognised",
+    "recognize":     "recognise",
+    "realized":      "realised",
+    "realize":       "realise",
+    "defense":       "defence",
+    "offense":       "offence",
+    "license":       "licence",
+    "favorable":     "favourable",
+    "favor":         "favour",
+    "neighboring":   "neighbouring",
+    "center":        "centre",
+}
+
+
+def _localize_text(text: str, jurisdiction: str) -> str:
+    """Apply jurisdiction-appropriate English spelling to generated narrative text."""
+    if not text or jurisdiction != 'AU':
+        return text
+    result = text
+    for us_word, au_word in _JUR_SUBS_AU.items():
+        pattern = re.compile(re.escape(us_word), re.IGNORECASE)
+
+        def _make_replacer(au: str):
+            def replace_match(m: re.Match) -> str:
+                orig = m.group(0)
+                if orig.isupper():
+                    return au.upper()
+                if orig[0].isupper():
+                    return au[0].upper() + au[1:]
+                return au
+            return replace_match
+
+        result = pattern.sub(_make_replacer(au_word), result)
+    return result
+
 
 _TEMPLATES: dict[str, dict[str, str]] = {
     "digital_asset": {
@@ -65,7 +118,7 @@ _TEMPLATES: dict[str, dict[str, str]] = {
 }
 
 
-def generate_narrative(signal: dict) -> str:
+def generate_narrative(signal: dict, jurisdiction: str = "AU") -> str:
     signal_type = signal.get("signal_type", "")
     severity = signal.get("severity", "amber")
     merchant = signal.get("merchant", "UNKNOWN")
@@ -82,7 +135,7 @@ def generate_narrative(signal: dict) -> str:
     template = templates.get(severity, templates.get("amber", "{description}"))
 
     try:
-        return template.format(
+        narrative = template.format(
             total=amount,
             merchant=merchant,
             library_detail=library_detail,
@@ -90,4 +143,6 @@ def generate_narrative(signal: dict) -> str:
             description=description,
         )
     except KeyError:
-        return description
+        narrative = description
+
+    return _localize_text(narrative, jurisdiction)

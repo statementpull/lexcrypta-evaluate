@@ -13,6 +13,7 @@ Interface notes (actual signatures discovered from source):
   - owner_compensation.run(transactions, pl_rows=None, loader=None) — OK
   - liability.run(transactions)                        — NO loader param
 """
+import re
 from datetime import datetime, timezone
 
 from ..las_score import calculate_las
@@ -21,6 +22,63 @@ from . import (
     digital_asset, hidden_assets, behavioural, aml_structuring,
     cash_flow, real_estate, owner_compensation, liability,
 )
+
+# ── Jurisdiction localisation ──────────────────────────────────────────────────
+
+_JUR_SUBS_AU: dict[str, str] = {
+    "analyzed":      "analysed",
+    "analyze":       "analyse",
+    "analyzing":     "analysing",
+    "organized":     "organised",
+    "organize":      "organise",
+    "organization":  "organisation",
+    "organizations": "organisations",
+    "behavioral":    "behavioural",
+    "behavior":      "behaviour",
+    "behaviors":     "behaviours",
+    "authorized":    "authorised",
+    "authorize":     "authorise",
+    "authorization": "authorisation",
+    "recognized":    "recognised",
+    "recognize":     "recognise",
+    "realized":      "realised",
+    "realize":       "realise",
+    "defense":       "defence",
+    "offense":       "offence",
+    "license":       "licence",
+    "favorable":     "favourable",
+    "favor":         "favour",
+    "neighboring":   "neighbouring",
+    "center":        "centre",
+}
+
+
+def _localize_text(text: str, jurisdiction: str) -> str:
+    """Apply jurisdiction-appropriate English spelling to generated text.
+
+    When jurisdiction is 'AU', substitutes US spellings with AU equivalents.
+    When jurisdiction is 'US' (or any other value), text is returned unchanged.
+    Case is preserved: ALL CAPS → AU UPPER; Title Case → AU Title; lower → au lower.
+    """
+    if not text or jurisdiction != 'AU':
+        return text
+    result = text
+    for us_word, au_word in _JUR_SUBS_AU.items():
+        pattern = re.compile(re.escape(us_word), re.IGNORECASE)
+
+        def _make_replacer(au: str):
+            def replace_match(m: re.Match) -> str:
+                orig = m.group(0)
+                if orig.isupper():
+                    return au.upper()
+                if orig[0].isupper():
+                    return au[0].upper() + au[1:]
+                return au
+            return replace_match
+
+        result = pattern.sub(_make_replacer(au_word), result)
+    return result
+
 
 # Fixed 16-slot mapping — order must match frontend SIGNALS array exactly
 SIGNAL_SLOTS = [
@@ -202,6 +260,7 @@ def build_verify_result(
     raw_signals: list,
     transactions: list,
     exposure: str = "PENDING",
+    jurisdiction: str = "AU",
 ) -> dict:
     """Map raw engine output to frontend result object."""
     total_vol = sum(abs(t.get("amount", 0)) for t in transactions)
@@ -239,7 +298,8 @@ def build_verify_result(
         parts.append("Cash flow anomalies present")
     if fin_val > 10:
         parts.append(f"Financial gap: ${flagged_total:,.0f}")
-    reason = " · ".join(parts) if parts else "Analysis complete — review matter for full detail."
+    raw_reason = " · ".join(parts) if parts else "Analysis complete — review matter for full detail."
+    reason = _localize_text(raw_reason, jurisdiction)
 
     signals_out = []
     intel_out = []
