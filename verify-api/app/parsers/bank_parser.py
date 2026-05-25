@@ -1048,9 +1048,17 @@ def parse_bank_csv_text(csv_text: str) -> list[dict]:
         keys = {k.lower().strip(): v for k, v in row.items()}
         date = keys.get("date", "")
         desc = keys.get("description", keys.get("narrative", keys.get("memo", "")))
-        debit = keys.get("debit", keys.get("withdrawals", ""))
-        credit = keys.get("credit", keys.get("deposits", ""))
-        amount = normalise_amount(debit, credit)
+
+        # Try split debit/credit columns first; fall back to single Amount column
+        debit  = keys.get("debit",  keys.get("withdrawals", keys.get("debit amount", "")))
+        credit = keys.get("credit", keys.get("deposits",    keys.get("credit amount", "")))
+        if debit or credit:
+            amount = normalise_amount(debit, credit)
+        else:
+            # Single Amount column — positive = credit, negative = debit
+            raw_amt = keys.get("amount", keys.get("transaction amount", keys.get("amt", "")))
+            amount = _parse_float(raw_amt) if raw_amt else 0.0
+
         if not (desc or "").strip():
             continue
         txns.append({
