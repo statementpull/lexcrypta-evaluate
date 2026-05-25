@@ -20,8 +20,11 @@ from sqlalchemy.orm import Session
 from .config import DEMO_KEY, LICENSE_SECRET, MAX_CSV_MB, MAX_PDF_MB
 from .database import Base, create_verify_schema, engine, get_db
 from .intelligence.signals import build_verify_result, run_signals
+from .intelligence.crossref import run_crossref, build_crossref_summary
 from .models import AnalysisResult, Counterparty, Document, License, Matter, TransactionRevision
 from .parsers.bank_parser import parse_bank_csv_text, parse_bank_pdf
+from .parsers.tax_return_parser import parse_tax_return
+from .parsers.bankruptcy_parser import parse_bankruptcy_petition
 from .parsers.file_detector import detect_file_type
 from .parsers.security_scanner import scan_pdf_bytes, validate_pdf_header
 from .seed import seed_demo_data
@@ -434,6 +437,9 @@ async def run_analysis(
 
     transactions = []
     parse_errors = []
+    tax_data: dict | None = None          # parsed 1040
+    petition_data: dict | None = None     # parsed bankruptcy petition
+
     for idx, doc in enumerate(docs, start=1):
         _analysis_progress[matter_id].update({
             "stage": f"READING FILE {idx} OF {len(docs)}: {doc.filename}",
@@ -441,12 +447,52 @@ async def run_analysis(
         })
         try:
             raw = bytes(doc.content)  # memoryview → bytes for pdfplumber
-            if doc.filename.lower().endswith(".pdf"):
-                txns = parse_bank_pdf(raw, doc.filename)
+            doc_zone = (doc.zone or "").lower()
+
+            # ── Document type routing ─────────────────────────────────────
+            # Zone field carries the type set by the frontend upload widget.
+            # If zone is not set, auto-detect by trying parsers in order.
+            if doc_zone == "tax":
+                parsed = parse_tax_return(raw)
+                if parsed.get("is_tax_return"):
+                    tax_data = parsed
+                    logger.info("Tax return parsed: year=%s agi=%s", parsed.get("tax_year"), parsed.get("agi"))
+                else:
+                    logger.warning("Zone=tax but parse failed: %s", parsed.get("parse_error"))
+
+            elif doc_zone == "petition":
+                parsed = parse_bankruptcy_petition(raw)
+                if parsed.get("is_petition"):
+                    petition_data = parsed
+                    logger.info("Petition parsed: chapter=%s assets=%s", parsed.get("chapter"), parsed.get("total_assets_declared"))
+                else:
+                    logger.warning("Zone=petition but parse failed: %s", parsed.get("parse_error"))
+
             else:
-                txns = parse_bank_csv_text(raw.decode("utf-8", errors="replace"))
-            transactions.extend(txns)
-            _analysis_progress[matter_id]["txn_count"] += len(txns)
+                # Bank statement (zone="bank" or unset) — auto-detect tax/petition
+                if doc.filename.lower().endswith(".pdf"):
+                    # Try tax return auto-detect first
+                    tax_probe = parse_tax_return(raw)
+                    if tax_probe.get("is_tax_return"):
+                        tax_data = tax_probe
+                        logger.info("Auto-detected tax return: %s", doc.filename)
+                        continue  # skip bank parsing for this file
+
+                    # Try bankruptcy petition auto-detect
+                    pet_probe = parse_bankruptcy_petition(raw)
+                    if pet_probe.get("is_petition"):
+                        petition_data = pet_probe
+                        logger.info("Auto-detected bankruptcy petition: %s", doc.filename)
+                        continue  # skip bank parsing
+
+                    # Default: parse as bank statement
+                    txns = parse_bank_pdf(raw, doc.filename)
+                else:
+                    txns = parse_bank_csv_text(raw.decode("utf-8", errors="replace"))
+
+                transactions.extend(txns)
+                _analysis_progress[matter_id]["txn_count"] += len(txns)
+
         except Exception as e:
             logger.exception("Parse failed for %s: %s", doc.filename, e)
             parse_errors.append(doc.filename)
@@ -456,7 +502,7 @@ async def run_analysis(
     transactions = [t for t in transactions if t.get("signal_type") != "document_integrity"]
 
     parse_warning: str | None = None
-    if not transactions:
+    if not transactions and not tax_data and not petition_data:
         parse_warning = (
             "No transactions could be parsed from the uploaded documents. "
             + (f"Parse errors: {'; '.join(parse_errors)}" if parse_errors else
@@ -477,11 +523,25 @@ async def run_analysis(
     if parse_errors:
         result["parse_errors"] = parse_errors
     result["transactions_parsed"] = len(transactions)
-    result["cash_summary"] = {
+    cash_summary = {
         "total_credits": round(sum(t.get("amount", 0) for t in transactions if t.get("amount", 0) > 0), 2),
         "total_debits":  round(sum(abs(t.get("amount", 0)) for t in transactions if t.get("amount", 0) < 0), 2),
         "net_cash":      round(sum(t.get("amount", 0) for t in transactions), 2),
     }
+    result["cash_summary"] = cash_summary
+
+    # ── Three-document cross-reference ────────────────────────────────────────
+    _analysis_progress[matter_id]["stage"] = "CROSS-REFERENCING DOCUMENTS..."
+    crossref_signals = run_crossref(
+        bank_summary=cash_summary,
+        bank_signals=raw_signals,
+        tax=tax_data,
+        petition=petition_data,
+    )
+    crossref_summary = build_crossref_summary(crossref_signals)
+    result["crossref"] = crossref_summary
+    result["tax_parsed"] = tax_data
+    result["petition_parsed"] = petition_data
 
     # Surface parse warnings in the result so the frontend can display them
     if parse_warning:

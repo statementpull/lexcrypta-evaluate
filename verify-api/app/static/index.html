@@ -565,6 +565,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
 .scan-drop-icon{margin:0 auto 14px;width:40px;height:40px;color:var(--muted)}
 .scan-drop-title{font-family:var(--serif);font-size:20px;font-weight:300;color:var(--cream);margin-bottom:6px}
 .scan-drop-sub{font-size:10px;color:var(--muted);letter-spacing:.05em}
+.scan-drop-sm{padding:18px 10px!important}
 .scan-file-row{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--navy2);border:1px solid var(--border);margin-bottom:3px;font-size:11px}
 .scan-file-name{color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .scan-file-size{color:var(--muted);font-family:var(--mono);font-size:9px;margin:0 12px;flex-shrink:0}
@@ -1147,8 +1148,54 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
   <div class="content">
 
     <div id="scanUploadSection">
-      <div style="max-width:680px;margin:0 auto">
-        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:20px">Upload one or more bank statement files (PDF or CSV) and run the full 16-signal forensic engine.</div>
+      <div style="max-width:720px;margin:0 auto">
+        <div style="font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:6px">Document Intake</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:18px;line-height:1.6">Upload bank statements, tax returns, and/or a bankruptcy petition. Verify+ triangulates all three to identify discrepancies — more documents = deeper verdict.</div>
+
+        <!-- Three upload zones -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+          <!-- Bank Statements -->
+          <div style="border:1px solid var(--border);padding:16px;background:var(--navy2)">
+            <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Bank Statements</div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5">PDF or CSV — all accounts</div>
+            <div class="scan-drop scan-drop-sm" onclick="triggerScanUpload('bank')"
+              ondragover="event.preventDefault()" ondrop="handleScanDropZone(event,'bank')">
+              <div style="font-size:9px;color:var(--muted)">Drop or click</div>
+            </div>
+            <input type="file" id="scanFileInputBank" multiple accept=".pdf,.csv" style="display:none" onchange="handleScanFilesZone(event,'bank')">
+            <div id="scanFileListBank" style="margin-top:8px;font-size:9px;color:var(--muted)"></div>
+          </div>
+          <!-- Tax Returns -->
+          <div style="border:1px solid var(--border);padding:16px;background:var(--navy2)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold)">Tax Returns</div>
+              <div style="font-size:7px;letter-spacing:.15em;background:var(--teal);color:#fff;padding:1px 5px">OPTIONAL</div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5">1040 + schedules — last 2 years</div>
+            <div class="scan-drop scan-drop-sm" onclick="triggerScanUpload('tax')"
+              ondragover="event.preventDefault()" ondrop="handleScanDropZone(event,'tax')">
+              <div style="font-size:9px;color:var(--muted)">Drop or click</div>
+            </div>
+            <input type="file" id="scanFileInputTax" multiple accept=".pdf" style="display:none" onchange="handleScanFilesZone(event,'tax')">
+            <div id="scanFileListTax" style="margin-top:8px;font-size:9px;color:var(--muted)"></div>
+          </div>
+          <!-- Bankruptcy Petition -->
+          <div style="border:1px solid var(--border);padding:16px;background:var(--navy2)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <div style="font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold)">Bankruptcy Petition</div>
+              <div style="font-size:7px;letter-spacing:.15em;background:var(--teal);color:#fff;padding:1px 5px">OPTIONAL</div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5">Schedule A/B, I, SOFA</div>
+            <div class="scan-drop scan-drop-sm" onclick="triggerScanUpload('petition')"
+              ondragover="event.preventDefault()" ondrop="handleScanDropZone(event,'petition')">
+              <div style="font-size:9px;color:var(--muted)">Drop or click</div>
+            </div>
+            <input type="file" id="scanFileInputPetition" multiple accept=".pdf" style="display:none" onchange="handleScanFilesZone(event,'petition')">
+            <div id="scanFileListPetition" style="margin-top:8px;font-size:9px;color:var(--muted)"></div>
+          </div>
+        </div>
+        <!-- Legacy single-drop still works (zone defaults to bank) -->
+        <div style="font-size:9px;color:var(--muted);margin-bottom:10px;text-align:center">Or drop all files here — document type auto-detected</div>
         <div class="scan-drop" id="scanDropZone" onclick="document.getElementById('scanFileInput').click()"
           ondragover="event.preventDefault();this.classList.add('drag-over')"
           ondragleave="this.classList.remove('drag-over')"
@@ -1156,8 +1203,8 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
           <div class="scan-drop-icon">
             <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" fill="none" stroke-width="1.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           </div>
-          <div class="scan-drop-title">Drop bank statements here</div>
-          <div class="scan-drop-sub">PDF or CSV · Click to browse · Multiple files supported</div>
+          <div class="scan-drop-title">Drop files here</div>
+          <div class="scan-drop-sub">Bank statements · Tax returns · Bankruptcy petition · Auto-detected</div>
         </div>
         <input type="file" id="scanFileInput" multiple accept=".pdf,.csv" style="display:none" onchange="handleScanFiles(event)">
         <div id="scanFileList" style="margin-top:12px"></div>
@@ -1247,6 +1294,16 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
           <thead><tr><th>Date</th><th>Merchant / Description</th><th style="text-align:right">Amount</th><th>Signal</th></tr></thead>
           <tbody id="scanFlaggedBody"></tbody>
         </table>
+      </div>
+
+      <!-- Three-Document Cross-Reference Panel -->
+      <div id="scanCrossRef" style="display:none;margin-top:20px">
+        <div class="scan-section-title" style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span>Document Triangulation</span>
+          <span id="scanCrossRefBadge" style="font-size:8px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--border);color:var(--muted)">CROSS-REFERENCE</span>
+        </div>
+        <div id="scanCrossRefHeadline" style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5"></div>
+        <div id="scanCrossRefBody"></div>
       </div>
 
       <div id="scanVerifyPlus" style="display:none"></div>
@@ -1882,6 +1939,52 @@ function stopLiveFeed() {
 /* ══ QUICK SCAN ══ */
 let scanFiles = [];
 let scanMatterId = null;
+let scanFilesZone = { bank: [], tax: [], petition: [] };
+
+/* ── Zone-specific upload handlers ── */
+function triggerScanUpload(zone) {
+  const ids = {bank:'scanFileInputBank',tax:'scanFileInputTax',petition:'scanFileInputPetition'};
+  const el = document.getElementById(ids[zone]);
+  if (el) el.click();
+}
+function handleScanDropZone(e, zone) {
+  e.preventDefault();
+  if (e.currentTarget) e.currentTarget.classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => /\.(pdf|csv)$/i.test(f.name));
+  addScanFilesZone(files, zone);
+}
+function handleScanFilesZone(e, zone) {
+  addScanFilesZone(Array.from(e.target.files), zone);
+  e.target.value = '';
+}
+function addScanFilesZone(files, zone) {
+  files.forEach(f => {
+    if (!scanFilesZone[zone].find(x => x.name === f.name)) scanFilesZone[zone].push(f);
+  });
+  _renderZoneFileList(zone);
+  _updateScanRunBtn();
+}
+function removeScanFileZone(name, zone) {
+  scanFilesZone[zone] = scanFilesZone[zone].filter(f => f.name !== name);
+  _renderZoneFileList(zone);
+  _updateScanRunBtn();
+}
+function _renderZoneFileList(zone) {
+  const ids = {bank:'scanFileListBank',tax:'scanFileListTax',petition:'scanFileListPetition'};
+  const el = document.getElementById(ids[zone]);
+  if (!el) return;
+  el.innerHTML = scanFilesZone[zone].map(f =>
+    `<div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:9px">${f.name}</span>
+      <button onclick="removeScanFileZone('${f.name.replace(/'/g,"\\'")}','${zone}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;padding:0 2px;line-height:1">✕</button>
+    </div>`
+  ).join('');
+}
+function _updateScanRunBtn() {
+  const zoneTotal = Object.values(scanFilesZone).reduce((n, a) => n + a.length, 0);
+  const btn = document.getElementById('scanRunBtn');
+  if (btn) btn.disabled = (scanFiles.length + zoneTotal) === 0;
+}
 
 function handleScanDrop(e){
   e.preventDefault();
@@ -1909,10 +2012,12 @@ function renderScanFileList(){
       <span class="scan-file-size">${(f.size/1024/1024).toFixed(2)} MB</span>
       <button class="scan-file-rm" onclick="removeScanFile('${f.name.replace(/'/g,"\\'")}')">✕</button>
     </div>`).join('');
-  document.getElementById('scanRunBtn').disabled = scanFiles.length === 0;
+  _updateScanRunBtn();
 }
 async function runQuickScan(){
-  if(!scanFiles.length) return;
+  const zoneTotal = Object.values(scanFilesZone).reduce((n, a) => n + a.length, 0);
+  const totalFiles = scanFiles.length + zoneTotal;
+  if(!totalFiles) return;
   const btn = document.getElementById('scanRunBtn');
   btn.disabled = true;
 
@@ -1933,13 +2038,15 @@ async function runQuickScan(){
   };
   if (_lft) _lft.textContent = 'PREPARING FILES...';
   if (_lfb) _lfb.style.width = '5%';
-  _addLog(`${scanFiles.length} file${scanFiles.length > 1 ? 's' : ''} queued for analysis`);
+  _addLog(`${totalFiles} file${totalFiles > 1 ? 's' : ''} queued for analysis`);
 
   try {
+    // Name the matter from whichever file arrived first
+    const _firstName = (scanFiles[0] || scanFilesZone.bank[0] || scanFilesZone.tax[0] || scanFilesZone.petition[0]).name;
     const ref = 'QS-' + Date.now();
     const mRes = await fetch(`${API_BASE}/matters`, {
       method:'POST',
-      body: (() => { const f=new FormData(); f.append('subject','Quick Scan — '+scanFiles[0].name); f.append('ref',ref); f.append('type','civil'); return f; })()
+      body: (() => { const f=new FormData(); f.append('subject','Quick Scan — '+_firstName); f.append('ref',ref); f.append('type','civil'); return f; })()
     });
     if(!mRes.ok) throw new Error('Could not create matter');
     const matter = await mRes.json();
@@ -1948,14 +2055,28 @@ async function runQuickScan(){
     if (_lfb) _lfb.style.width = '15%';
     _addLog('Secure upload channel established');
 
-    const upForm = new FormData();
-    scanFiles.forEach(f => upForm.append('files', f));
-    upForm.append('zone','bank');
-    const upRes = await fetch(`${API_BASE}/matters/${scanMatterId}/upload`, { method:'POST', body:upForm });
-    if(!upRes.ok) throw new Error('Upload failed');
+    // Build a combined zone-aware file list
+    // Legacy drop-zone files go as bank; zone-specific files go as their zone
+    const _allByZone = {
+      bank: [...scanFilesZone.bank, ...scanFiles],
+      tax: [...scanFilesZone.tax],
+      petition: [...scanFilesZone.petition],
+    };
+    let uploadedCount = 0;
+    for (const [zone, zFiles] of Object.entries(_allByZone)) {
+      if (!zFiles.length) continue;
+      const upForm = new FormData();
+      zFiles.forEach(f => upForm.append('files', f));
+      upForm.append('zone', zone);
+      const upRes = await fetch(`${API_BASE}/matters/${scanMatterId}/upload`, { method:'POST', body:upForm });
+      if(!upRes.ok) throw new Error('Upload failed');
+      uploadedCount += zFiles.length;
+      if (zone === 'tax') _addLog(`${zFiles.length} tax return${zFiles.length>1?'s':''} received`,'lf-signal');
+      if (zone === 'petition') _addLog(`${zFiles.length} petition document${zFiles.length>1?'s':''} received`,'lf-signal');
+    }
     if (_lft) _lft.textContent = 'LOADING ANALYSIS ENGINE...';
     if (_lfb) _lfb.style.width = '22%';
-    _addLog(`${scanFiles.length} document${scanFiles.length > 1 ? 's' : ''} received — initialising forensic engine`);
+    _addLog(`${uploadedCount} document${uploadedCount > 1 ? 's' : ''} received — initialising forensic engine`);
     _addLog('Running 21 intelligence signals...', 'lf-signal');
     startLiveFeed(scanMatterId);
 
@@ -2099,6 +2220,48 @@ function renderScanResults(result){
   const vp = result.verify_plus;
   renderVerifyPlusPanel(vp, 'vpVerdictPanel');
 
+  // Cross-reference triangulation panel (three-document mode)
+  const cr = result.crossref;
+  const crEl = document.getElementById('scanCrossRef');
+  if (crEl) {
+    if (cr && cr.available && cr.signal_count > 0) {
+      crEl.style.display = 'block';
+      // Update badge colour based on severity
+      const crBadge = document.getElementById('scanCrossRefBadge');
+      if (crBadge) {
+        if (cr.red_count > 0) { crBadge.style.color='var(--red)'; crBadge.style.borderColor='rgba(192,57,43,.35)'; crBadge.style.background='var(--reddim)'; }
+        else { crBadge.style.color='var(--amber)'; crBadge.style.borderColor='rgba(212,134,10,.3)'; crBadge.style.background='var(--amberdim)'; }
+      }
+      const hl = document.getElementById('scanCrossRefHeadline');
+      if (hl) hl.textContent = cr.headline || '';
+      const body = document.getElementById('scanCrossRefBody');
+      if (body) {
+        body.innerHTML = (cr.signals || []).map(s => {
+          const sevClr = s.severity==='red' ? 'var(--red)' : s.severity==='amber' ? 'var(--amber)' : 'var(--green)';
+          const sevBg  = s.severity==='red' ? 'var(--reddim)' : s.severity==='amber' ? 'var(--amberdim)' : 'var(--greendim)';
+          const gapFmt = s.gap_usd > 0 ? ` — $${Math.round(s.gap_usd).toLocaleString()} gap` : '';
+          const srcBadges = (s.sources||[]).map(src =>
+            `<span style="font-size:8px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border:1px solid var(--border);color:var(--muted);margin-right:4px">${src}</span>`
+          ).join('');
+          const confPct = s.confidence != null ? `<span style="font-size:8px;font-family:var(--mono);color:var(--muted)">${Math.round(s.confidence*100)}% confidence</span>` : '';
+          return `<div style="border:1px solid var(--border);border-left:3px solid ${sevClr};background:${sevBg};padding:16px 20px;margin-bottom:10px">
+            <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+              <span style="font-size:8px;font-family:var(--mono);letter-spacing:.15em;text-transform:uppercase;color:${sevClr};font-weight:600">${(s.severity||'').toUpperCase()}</span>
+              <span style="font-size:12px;color:var(--cream);font-weight:500;flex:1">${s.label}</span>
+              <span style="font-size:9px;font-family:var(--mono);color:${sevClr}">${gapFmt}</span>
+            </div>
+            <div style="font-size:10px;color:var(--text);line-height:1.75;margin-bottom:10px">${s.description}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">${srcBadges}${confPct}</div>
+            <div style="font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Recommended Action</div>
+            <div style="font-size:10px;color:var(--muted);line-height:1.65">${s.recommended_action}</div>
+          </div>`;
+        }).join('');
+      }
+    } else {
+      crEl.style.display = 'none';
+    }
+  }
+
   window._lastScanResult = result;
 }
 function _formatBriefText(result, title) {
@@ -2150,7 +2313,11 @@ function downloadScanReport(fmt='forensic'){
 }
 function resetScan(){
   scanFiles = []; scanMatterId = null;
+  scanFilesZone = { bank: [], tax: [], petition: [] };
   renderScanFileList();
+  ['scanFileListBank','scanFileListTax','scanFileListPetition'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.innerHTML = '';
+  });
   document.getElementById('scanUploadSection').style.display='block';
   document.getElementById('scanResults').style.display='none';
   document.getElementById('scanVerifyPlus').style.display='none';
@@ -2158,6 +2325,7 @@ function resetScan(){
   document.getElementById('scanIntegrityBanner').style.display='none';
   document.getElementById('scanCashFlow').style.display='none';
   document.getElementById('scanFlaggedSection').style.display='none';
+  const crEl = document.getElementById('scanCrossRef'); if(crEl) crEl.style.display='none';
   document.getElementById('scanRunBtn').textContent = 'Run Analysis';
   window._lastScanResult = null;
 }
