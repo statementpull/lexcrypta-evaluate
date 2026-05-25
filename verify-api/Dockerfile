@@ -6,9 +6,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev gcc poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
-COPY verify-api/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY verify-api/app/ ./app/
+COPY app/ ./app/
 
 CMD sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
