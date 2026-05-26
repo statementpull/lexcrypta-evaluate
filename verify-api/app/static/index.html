@@ -1386,8 +1386,8 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
         <div class="field"><div class="field-label">Notes (optional)</div><input class="field-input" type="text" id="nmNotes" placeholder="Brief description of the matter…"></div>
       </div>
       <div class="form-row">
-        <div class="field"><div class="field-label">Debtor Name</div><input class="field-input" type="text" id="fDebtorName" placeholder="e.g. John Vincent Lombardo"></div>
-        <div class="field"><div class="field-label">Case Number</div><input class="field-input" type="text" id="fCaseNumber" placeholder="e.g. 2024-BK-04467"></div>
+        <div class="field"><div class="field-label">Debtor Name</div><input class="field-input" type="text" id="fDebtorName" placeholder="e.g. Robert A. Williams"></div>
+        <div class="field"><div class="field-label">Case Number</div><input class="field-input" type="text" id="fCaseNumber" placeholder="e.g. 2024-BK-00123"></div>
       </div>
       <div class="form-row" style="margin-bottom:0">
         <div class="field"><div class="field-label">Jurisdiction</div><select class="field-input" id="fJurisdiction"><option value="US">US Chapter 7</option><option value="AU">AU Bankruptcy</option></select></div>
@@ -2360,6 +2360,8 @@ function showView(v){
   if(nav) nav.classList.add('active');
   if(v==='queue') renderQueue();
   if(v==='matters') renderMattersList('mattersListFull',MATTERS);
+  // Always start the scan view clean — never carry over a previous result
+  if(v==='scan') resetScan();
 }
 
 /* ══ DELETE MATTER ══ */
@@ -2834,8 +2836,8 @@ const DB_CHECKS_DEMO = [
   { name: "ASIC / ABN Lookup",         status: "hit",     finding: "3 directorships found — Morning Moon Developments Pty Ltd active" },
   { name: "PPSR",                       status: "hit",     finding: "2 security interests registered — Westpac Banking Corp (2019)" },
   { name: "AFSA Bankruptcy Register",  status: "clear",   finding: "No current or prior bankruptcy found" },
-  { name: "Property Title Search",     status: "hit",     finding: "2 properties identified — Lot 54 Windsor, 9 Matherson Way Officer" },
-  { name: "Court Records",             status: "hit",     finding: "CI-24-04467 · CI-24-06120 — active civil proceedings" },
+  { name: "Property Title Search",     status: "hit",     finding: "2 properties identified — [results shown in full deployment]" },
+  { name: "Court Records",             status: "hit",     finding: "Active civil proceedings identified — [details shown in full deployment]" },
   { name: "PACER (US Federal Courts)", status: "pending", finding: "Integration pending — available in full deployment" },
 ];
 
