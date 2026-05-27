@@ -1371,7 +1371,6 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
         <div class="type-grid">
           <div class="type-opt selected" onclick="selectType('bankruptcy',this)"><span class="type-icon">⚖️</span><span class="type-name">Bankruptcy</span><span class="type-desc">Insolvency · Preference periods</span></div>
           <div class="type-opt" onclick="selectType('family_law',this)"><span class="type-icon">🏛️</span><span class="type-name">Family Law</span><span class="type-desc">Divorce · Separation date</span></div>
-          <div class="type-opt" onclick="selectType('civil',this)"><span class="type-icon">📁</span><span class="type-name">Civil / Commercial</span><span class="type-desc">Fraud · Disputes · Other</span></div>
         </div>
       </div>
       <div class="form-row">
@@ -1544,9 +1543,6 @@ const MATTERS=[
   {id:5,subject:'Thornton v Thornton',ref:'HF-2025-0334',type:'family_law',typeLabel:'Family Law',matterDate:'20 Jan 2025',lastRun:'15 Mar 2026 · 16:05',exposure:'LOW',att:'green',attFlag:'',docs:6,analysed:true,
     las:{score:22,verdict:'LOW URGENCY',verdictCls:'low',reason:'Limited signals · No crypto activity · Income gap within normal range.',
       components:[{label:'Signal Severity',val:8,max:40},{label:'Timing / Urgency',val:7,max:25},{label:'Financial Gap',val:5,max:20},{label:'Recovery Potential',val:2,max:15}]}},
-  {id:6,subject:'Bright Star Capital',ref:'HF-2024-0520',type:'civil',typeLabel:'Civil / Commercial',matterDate:'22 Aug 2024',lastRun:'12 Mar 2026 · 10:30',exposure:'HIGH',att:'red',attFlag:'🔴 High Exposure',docs:9,analysed:true,
-    las:{score:71,verdict:'DO FIRST',verdictCls:'high',reason:'DeFi and crypto exchange activity · Cross-border value transfers · High financial gap.',
-      components:[{label:'Signal Severity',val:32,max:40},{label:'Timing / Urgency',val:18,max:25},{label:'Financial Gap',val:13,max:20},{label:'Recovery Potential',val:8,max:15}]}},
   {id:7,subject:'Nguyen Estate',ref:'HF-2026-0041',type:'bankruptcy',typeLabel:'Bankruptcy',matterDate:'01 Feb 2026',lastRun:'—',exposure:'PENDING',att:'amber',attFlag:'🟡 Documents Missing',docs:1,analysed:false,las:null},
 ];
 
@@ -1866,7 +1862,7 @@ async function loadMattersFromAPI() {
     if (!r.ok) return;
     const apiMatters = await r.json();
     MATTERS.length = 0;
-    MATTERS.push(...apiMatters.map(normalizeApiMatter).filter(m=>!(m.ref&&m.ref.startsWith('QS-'))));
+    MATTERS.push(...apiMatters.map(normalizeApiMatter).filter(m=>!(m.ref&&m.ref.startsWith('QS-')) && m.type!=='civil'));
   } catch (e) { /* backend unavailable — MATTERS stays as local demo data */ }
 }
 
@@ -2046,7 +2042,7 @@ async function runQuickScan(){
     const ref = 'QS-' + Date.now();
     const mRes = await fetch(`${API_BASE}/matters`, {
       method:'POST',
-      body: (() => { const f=new FormData(); f.append('subject','Quick Scan — '+_firstName); f.append('ref',ref); f.append('type','civil'); return f; })()
+      body: (() => { const f=new FormData(); f.append('subject','Quick Scan — '+_firstName); f.append('ref',ref); f.append('type','bankruptcy'); return f; })()
     });
     if(!mRes.ok) throw new Error('Could not create matter');
     const matter = await mRes.json();
@@ -2396,7 +2392,7 @@ function renderDashboard(){
 }
 function renderMattersList(id,matters){
   const el=document.getElementById(id);if(!el) return;
-  el.innerHTML=matters.filter(m=>!(m.ref&&m.ref.startsWith('QS-'))).map(m=>{
+  el.innerHTML=matters.filter(m=>!(m.ref&&m.ref.startsWith('QS-')) && m.type!=='civil').map(m=>{
     const inQ=queueItems.some(q=>q.id===m.id);
     return `<div class="matter-row" onclick="openMatter(${m.id})">
       <div class="matter-att att-${m.att}"></div>

@@ -343,6 +343,9 @@ def purge_matter(
     m = db.query(Matter).filter(Matter.id == matter_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Matter not found.")
+    # Explicitly remove child records not covered by cascade on Matter
+    db.query(CounterpartyMatterLink).filter(CounterpartyMatterLink.matter_id == matter_id).delete(synchronize_session=False)
+    db.query(TransactionRevision).filter(TransactionRevision.matter_id == matter_id).delete(synchronize_session=False)
     db.delete(m)
     db.commit()
     return {"purged": True}
