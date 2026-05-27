@@ -956,9 +956,11 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
     <div class="topbar-actions">
       <button class="btn" onclick="showView('dashboard')">← Dashboard</button>
       <button class="btn" id="btnAddQueue" onclick="addToQueue()">+ Add to Queue</button>
+      <span id="topbarReportBtns" style="display:none">
       <button class="btn btn-gold" onclick="openMatterReport('forensic')" title="Full forensic detail — all signals, all transactions">Forensic Report</button>
       <button class="btn" style="background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('brief')" title="Key findings only — professional summary">Lawyer Brief</button>
       <button class="btn" style="background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('snapshot')" title="One-page verdict + action pathways">Snapshot</button>
+      </span>
     </div>
   </div>
   <div class="content">
@@ -983,7 +985,7 @@ select.field-input{cursor:pointer;appearance:none;background-image:url("data:ima
           <div class="mh-las-verdict" id="mhLASVerdict"></div>
         </div>
         <div class="exp-badge" id="mhExposure" style="display:none">—</div>
-        <div id="btnViewReport" style="display:none;margin-top:8px;display:flex;flex-direction:column;gap:4px">
+        <div id="btnViewReport" style="display:none;margin-top:8px;flex-direction:column;gap:4px">
           <button class="btn btn-gold" style="font-size:8px;padding:5px 12px" onclick="openMatterReport('forensic')">Forensic Report</button>
           <button class="btn" style="font-size:8px;padding:5px 12px;background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('brief')">Lawyer Brief</button>
           <button class="btn" style="font-size:8px;padding:5px 12px;background:var(--navy3);color:var(--cream);border:1px solid var(--border)" onclick="openMatterReport('snapshot')">Snapshot</button>
@@ -2650,7 +2652,9 @@ function openMatter(id){
   if(m.analysed){exp.style.display='block';exp.className='exp-badge exp-'+m.exposure;exp.textContent=m.exposure;}
   else exp.style.display='none';
   const reportBtn=document.getElementById('btnViewReport');
-  if(reportBtn) reportBtn.style.display=m.analysed?'inline-flex':'none';
+  if(reportBtn) reportBtn.style.display=m.analysed?'flex':'none';
+  const topReportBtns=document.getElementById('topbarReportBtns');
+  if(topReportBtns) topReportBtns.style.display=m.analysed?'inline':'none';
   const lasEl=document.getElementById('mhLAS');
   if(m.las){
     lasEl.style.display='block';
