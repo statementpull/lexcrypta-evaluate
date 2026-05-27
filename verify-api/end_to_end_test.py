@@ -18,10 +18,13 @@ import io
 import sys
 import time
 
+# Force UTF-8 on Windows terminals
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+
 BASE = "https://lexcrypta-verify-production.up.railway.app"
 
-PASS = "✓"
-FAIL = "✗"
+PASS = "OK"
+FAIL = "FAIL"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -102,7 +105,7 @@ BANK_CSV = b"""Date,Description,Amount,Balance
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 def test_bank_only():
-    print("\n── TEST 1: Bank-only scan ──")
+    print("\n-- TEST 1: Bank-only scan --")
     m = create_matter("E2E Test — Bank Only")
     mid = m["id"]
     upload_file(mid, "test_bank.csv", BANK_CSV, "text/csv", "bank")
@@ -130,10 +133,10 @@ def test_bank_only():
     p2p_sig = next((s for s in sigs if "p2p" in s.get("name", "").lower() and s.get("status") == "detected"), None)
     chk("P2P signal fires", p2p_sig is not None)
 
-    # Cross-ref with bank only — no income gap checks possible but should return valid structure
+    # Cross-ref with bank only — UNDISCLOSED_CRYPTO amber can still fire (crypto seen, no filing to verify)
     chk("Crossref available field present", "available" in cr)
-    chk("No crossref signals without tax/petition", cr.get("signal_count", 0) == 0,
-        f"signal_count={cr.get('signal_count', '?')}")
+    chk("No red crossref signals without tax/petition", cr.get("red_count", 0) == 0,
+        f"red_count={cr.get('red_count', '?')}")
 
     chk("Verify+ verdict present", bool(vp.get("verdict")), vp.get("verdict", "?"))
     chk("Verify+ reasons = 3", len(vp.get("reasons", [])) == 3)
@@ -144,7 +147,7 @@ def test_bank_only():
 
 
 def test_health():
-    print("\n── TEST 0: Health check ──")
+    print("\n-- TEST 0: Health check --")
     h = api("/health")
     chk("Service online", h.get("status") == "ok")
     v = api("/version")
