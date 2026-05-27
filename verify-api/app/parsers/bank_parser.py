@@ -532,10 +532,31 @@ _WP_BALANCE_MIN_X = 410.0
 
 
 def _is_westpac_bank(text: str) -> bool:
-    return ("Westpac Banking Corporation" in text
-            or "ABN 33 007 457 141" in text
-            or "Westpac eSaver" in text
-            or ("Westpac" in text and "Electronic Statement" in text))
+    t = text.upper()
+    # Hard identifiers — any of these alone is definitive
+    if ("WESTPAC BANKING CORPORATION" in t
+            or "ABN 33 007 457 141" in t
+            or "WESTPAC.COM.AU" in t):
+        return True
+    # Westpac is in the text — check for any corroborating signal
+    if "WESTPAC" not in t:
+        return False
+    return (
+        "ESAVER" in t                    # Westpac eSaver account
+        or "WESTPAC CHOICE" in t         # Westpac Choice everyday account
+        or "WESTPAC EVERYDAY" in t       # Westpac Everyday account
+        or "WESTPAC FLEXI" in t          # Westpac Flexi First Option
+        or "WESTPAC LIFE" in t           # Westpac Life savings
+        or "WESTPAC SAVER" in t          # Westpac Saver
+        or "WESTPAC LITE" in t           # Westpac Lite card
+        or "WESTPAC ALTITUDE" in t       # Westpac Altitude rewards
+        or "WESTPAC ACTIVATE" in t       # Westpac Activate account
+        or "ELECTRONIC STATEMENT" in t   # Original: Westpac + Electronic Statement
+        or "DETAILS OF YOUR ACCOUNT" in t  # Section header used by _parse_westpac_pdf
+        or "STATEMENT PERIOD" in t       # Universal Westpac header
+        or "STATEMENT NO." in t          # Westpac statement number field
+        or ("BSB" in t and "WESTPAC" in t)  # BSB is AU-only; Westpac BSB confirmation
+    )
 
 
 def _classify_wp_amount(word: dict) -> str | None:
