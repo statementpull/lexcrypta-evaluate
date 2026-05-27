@@ -2303,11 +2303,16 @@ function copyScanBrief() {
   if (!txt) return;
   navigator.clipboard.writeText(txt).then(() => showNotify('Intelligence brief copied to clipboard.', 'Lexi'));
 }
+function _openReportTab(url){
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
 function openMatterReport(fmt='forensic'){
-  if(activeMatter && activeMatter.id) window.open(`${API_BASE}/reports/${activeMatter.id}?format=${fmt}`, '_blank');
+  if(activeMatter && activeMatter.id) _openReportTab(`${API_BASE}/reports/${activeMatter.id}?format=${fmt}`);
 }
 function downloadScanReport(fmt='forensic'){
-  if(scanMatterId) window.open(`${API_BASE}/reports/${scanMatterId}?format=${fmt}`, '_blank');
+  if(scanMatterId) _openReportTab(`${API_BASE}/reports/${scanMatterId}?format=${fmt}`);
 }
 function resetScan(){
   scanFiles = []; scanMatterId = null;
