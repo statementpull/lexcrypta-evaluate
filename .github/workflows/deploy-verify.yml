@@ -1,0 +1,25 @@
+name: Deploy Verify to Railway
+
+on:
+  push:
+    branches:
+      - evaluate-main
+    paths:
+      - 'verify-api/**'
+
+jobs:
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy
+        run: railway up --service d4b2a1c3-0a98-44e1-8081-f5074cacdd73 --detach
+        working-directory: verify-api
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
