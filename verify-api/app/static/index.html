@@ -2392,7 +2392,7 @@ function renderDashboard(){
 }
 function renderMattersList(id,matters){
   const el=document.getElementById(id);if(!el) return;
-  el.innerHTML=matters.filter(m=>!(m.ref&&m.ref.startsWith('QS-')) && m.type!=='civil').map(m=>{
+  el.innerHTML=matters.filter(m=>!(m.ref&&(m.ref.startsWith('QS-')||m.ref.startsWith('TEST-'))) && m.type!=='civil').map(m=>{
     const inQ=queueItems.some(q=>q.id===m.id);
     return `<div class="matter-row" onclick="openMatter(${m.id})">
       <div class="matter-att att-${m.att}"></div>

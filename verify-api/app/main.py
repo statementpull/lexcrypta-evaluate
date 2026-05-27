@@ -21,7 +21,7 @@ from .config import DEMO_KEY, LICENSE_SECRET, MAX_CSV_MB, MAX_PDF_MB
 from .database import Base, create_verify_schema, engine, get_db
 from .intelligence.signals import build_verify_result, run_signals
 from .intelligence.crossref import run_crossref, build_crossref_summary
-from .models import AnalysisResult, Counterparty, Document, License, Matter, TransactionRevision
+from .models import AnalysisResult, Counterparty, CounterpartyMatterLink, Document, License, Matter, TransactionRevision
 from .parsers.bank_parser import parse_bank_csv_text, parse_bank_pdf
 from .parsers.tax_return_parser import parse_tax_return
 from .parsers.bankruptcy_parser import parse_bankruptcy_petition
